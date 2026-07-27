@@ -1,0 +1,55 @@
+name: build
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      PS2DEV: /tmp/ps2dev
+      PS2SDK: /tmp/ps2dev/ps2sdk
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install host build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential make git wget bzip2 pkg-config curl
+
+      - name: Download PS2DEV prebuilt toolchain
+        run: |
+          mkdir -p "$PS2DEV"
+          curl -L -o /tmp/ps2dev-ubuntu-latest.tar.gz \
+            https://github.com/ps2dev/ps2dev/releases/download/latest/ps2dev-ubuntu-latest.tar.gz
+          tar -xzf /tmp/ps2dev-ubuntu-latest.tar.gz -C "$PS2DEV"
+          ls -la "$PS2DEV/bin"
+          ls -la "$PS2SDK/bin"
+
+      - name: Show repository structure
+        run: |
+          ls -la
+          find . -maxdepth 2 -type f | sed 's#^./##' | sort | head -200
+
+      - name: Build host tools
+        run: |
+          make tools
+
+      - name: Build PS2 ELF
+        run: |
+          export PATH="$PS2DEV/bin:$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin:$PATH"
+          make
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: quake2-ps2-build
+          path: |
+            build/quake2.elf
+            build/tools/
