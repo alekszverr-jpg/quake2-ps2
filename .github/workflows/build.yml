@@ -28,9 +28,9 @@ jobs:
           mkdir -p "$PS2DEV"
           curl -L -o /tmp/ps2dev-ubuntu-latest.tar.gz \
             https://github.com/ps2dev/ps2dev/releases/download/latest/ps2dev-ubuntu-latest.tar.gz
-          tar -xzf /tmp/ps2dev-ubuntu-latest.tar.gz -C "$PS2DEV"
-          ls -la "$PS2DEV/bin"
-          ls -la "$PS2SDK/bin"
+          tar -xzf /tmp/ps2dev-ubuntu-latest.tar.gz --strip-components=1 -C "$PS2DEV"
+          ls -la "$PS2DEV"
+          ls -la "$PS2SDK"
 
       - name: Show repository structure
         run: |
