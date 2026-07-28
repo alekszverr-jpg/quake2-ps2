@@ -943,7 +943,8 @@ math::Vec3 AliasModelLight(const entity_t & entity, const refdef_t & viewDef)
     return light;
 }
 
-u32 AliasVertexColor(const math::Vec3 & modelLight, float yaw, u8 normalIndex)
+u32 AliasVertexColor(const math::Vec3 & modelLight,
+                     const math::Vec3 & shadeVector, u8 normalIndex)
 {
     constexpr int kNumAliasNormals =
         static_cast<int>(sizeof(kAliasNormals) / sizeof(kAliasNormals[0]));
@@ -954,14 +955,10 @@ u32 AliasVertexColor(const math::Vec3 & modelLight, float yaw, u8 normalIndex)
 
     // This is the formula represented by ref_gl's 16-angle shadedot table:
     // dot(normal, normalize(cos(-yaw), sin(-yaw), 1)) + 1.
-    const float angle = math::DegToRad(-yaw);
-    constexpr float kInvSqrt2 = 0.70710678118f;
-    const float shadeX = std::cos(angle) * kInvSqrt2;
-    const float shadeY = std::sin(angle) * kInvSqrt2;
-    constexpr float shadeZ = kInvSqrt2;
     const float * normal = kAliasNormals[normalIndex];
-    float intensity = normal[0] * shadeX + normal[1] * shadeY +
-                      normal[2] * shadeZ + 1.0f;
+    float intensity = normal[0] * shadeVector.x +
+                      normal[1] * shadeVector.y +
+                      normal[2] * shadeVector.z + 1.0f;
     if (intensity < 0.0f) { intensity = 0.0f; }
 
     auto channel = [intensity](float light) -> u8 {
@@ -1037,6 +1034,13 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model,
     const tex::Texture & texture = AliasSkin(entity, model);
     const math::Mat4 mvp = EntityModelMatrix(entity) * s_viewProjMatrix;
     const math::Vec3 modelLight = AliasModelLight(entity, viewDef);
+    const float shadeAngle = math::DegToRad(-entity.angles[YAW]);
+    constexpr float kInvSqrt2 = 0.70710678118f;
+    const math::Vec3 shadeVector = {
+        std::cos(shadeAngle) * kInvSqrt2,
+        std::sin(shadeAngle) * kInvSqrt2,
+        kInvSqrt2
+    };
 
     PS2_Assert(s_scratchVertCount == 0);
     for (int t = 0; t < md2->num_tris; ++t)
@@ -1065,8 +1069,7 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model,
             out.z = move[2] + static_cast<float>(ov.v[2]) * backScale[2]
                             + static_cast<float>(v.v[2])  * frontScale[2];
             out.w    = 1.0f;
-            out.rgba = AliasVertexColor(modelLight, entity.angles[YAW],
-                                        v.lightnormalindex);
+            out.rgba = AliasVertexColor(modelLight, shadeVector, v.lightnormalindex);
             // The original MD2 glcmd builder samples texel centres:
             // (pixel + 0.5) / realDimension. Scale that normalised value by
             // realDimension / GS-extent, which simplifies to the expressions
