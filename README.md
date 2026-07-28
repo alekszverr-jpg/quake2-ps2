@@ -30,7 +30,7 @@ rendering paths are still under development.
 | Cinematics | Implemented |
 | Lightmaps and dynamic lighting | Not implemented |
 | Sound | Not implemented |
-| WAL world-texture mipmaps | Implemented, hardware validation pending |
+| WAL world-texture mipmaps | Implemented and hardware-tested |
 | Save/load on PS2 storage | Not implemented |
 
 See [ROADMAP.md](ROADMAP.md) for milestones and [CHANGELOG](CHANGELOG) for

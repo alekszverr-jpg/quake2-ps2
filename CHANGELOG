@@ -18,6 +18,10 @@ Development priorities and completion criteria are tracked in
   real GS STQ precision/range limits and reduce texture swimming while moving.
 - Tuned world-texture LOD bias so nearby surfaces retain their high-resolution
   mip level instead of appearing excessively blurred.
+- Confirmed on real PS2 hardware that the corrected BSP coordinates and WAL
+  mipmap LOD eliminate floor/wall shimmer without excessive blur.
+- Switched world mipmap minification from trilinear filtering to bilinear
+  filtering with nearest-level selection to reduce GS fill cost.
 
 ### Documentation
 
@@ -60,8 +64,6 @@ Development priorities and completion criteria are tracked in
 - World and model rendering is currently fullbright: lightmaps, dynamic lights
   and complete model lighting are not implemented.
 - Sound output is not implemented.
-- WAL mipmap filtering is implemented but still needs real-hardware tuning and
-  validation against floor/wall shimmer on a CRT.
 - Sprite, translucent, sky, water and brush-entity rendering is incomplete.
 - Save/load and long-play stability on real hardware still need validation.
 

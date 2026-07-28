@@ -575,7 +575,7 @@ void SetTextureFor2D(const tex::Texture & texture)
     lod.max_level     = static_cast<unsigned char>(texture.mipLevels - 1);
     lod.mag_filter    = static_cast<unsigned char>(tex::GsMagFilter(texture.magFilter));
     lod.min_filter    = static_cast<unsigned char>(
-        mipped ? LOD_MIN_LINE_MIPMAP_LINE : tex::GsMinFilter(texture.minFilter));
+        mipped ? LOD_MIN_LINE_MIPMAP_NEAR : tex::GsMinFilter(texture.minFilter));
     lod.mipmap_select = LOD_MIPMAP_REGISTER;
     lod.l             = 0;
     lod.k             = mipped ? kMipmapLodBias : 0.0f;

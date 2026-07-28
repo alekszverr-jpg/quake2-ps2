@@ -29,7 +29,7 @@ without crashes or severe rendering corruption.
 
 - [~] Validate cold boot and repeated boot through uLaunchELF
 - [x] Validate full-height PAL output and CRT safe area
-- [~] Validate WAL mipmaps and minification filtering on real hardware
+- [x] Validate WAL mipmaps and minification filtering on real hardware
 - [ ] Make diagnostic overlays optional and disabled by default
 - [ ] Run a complete first-level playthrough on real hardware
 - [ ] Record a small compatibility matrix: console region, video mode,
@@ -49,7 +49,7 @@ enough for normal gameplay.
 - [ ] Transparent surfaces and entity alpha
 - [ ] Turbulent water/lava/slime surfaces
 - [ ] Weapon depth-range and view-model render flags
-- [~] WAL mipmaps and stable minification filtering
+- [x] WAL mipmaps and stable minification filtering
 - [ ] Frustum/entity culling and renderer performance pass
 
 ## Milestone 2 - Audio
@@ -98,10 +98,10 @@ development tools.
 
 ## Immediate priorities
 
-1. Validate WAL mipmap filtering against floor/wall shimmer on the real console.
-2. Implement BSP lightmaps.
-3. Start the PS2 audio backend.
-4. Run a complete first-level real-hardware stability test.
+1. Implement BSP lightmaps.
+2. Start the PS2 audio backend.
+3. Run a complete first-level real-hardware stability test.
+4. Make diagnostic overlays optional and disabled by default.
 
 Update this file whenever priorities, milestone status or completion criteria
 change. Record completed user-visible work in `CHANGELOG` in the same commit.

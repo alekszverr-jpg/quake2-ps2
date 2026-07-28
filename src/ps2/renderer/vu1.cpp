@@ -146,7 +146,7 @@ u64 MakeTex1Data(const tex::Texture & texture)
     return GS_SET_TEX1(mipped ? LOD_FORMULAIC : LOD_USE_K,
                        texture.mipLevels - 1,
                        tex::GsMagFilter(texture.magFilter),
-                       mipped ? LOD_MIN_LINE_MIPMAP_LINE : tex::GsMinFilter(texture.minFilter),
+                       mipped ? LOD_MIN_LINE_MIPMAP_NEAR : tex::GsMinFilter(texture.minFilter),
                        LOD_MIPMAP_REGISTER, 0, mipped ? kMipmapLodBiasFixed : 0);
 }
 
