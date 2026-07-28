@@ -753,6 +753,15 @@ const tex::Texture & AliasSkin(const entity_t & entity, const mod::ModelInstance
     return (model.skins[skinIndex] != nullptr) ? *model.skins[skinIndex] : tex::DebugTexture();
 }
 
+template<typename T>
+const T * MD2DataAt(const dmdl_t & md2, int byteOffset)
+{
+    PS2_Assert(byteOffset >= 0 && (byteOffset % static_cast<int>(alignof(T))) == 0);
+    const auto * bytes = reinterpret_cast<const u8 *>(&md2);
+    const void * aligned = __builtin_assume_aligned(bytes + byteOffset, alignof(T));
+    return static_cast<const T *>(aligned);
+}
+
 void FlushAliasScratch(const math::Mat4 & mvp, const tex::Texture & texture)
 {
     if (s_scratchVertCount == 0)
@@ -789,10 +798,10 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model)
     if (backLerp > 1.0f) { backLerp = 1.0f; }
     const float frontLerp = 1.0f - backLerp;
 
-    const auto * frame = reinterpret_cast<const daliasframe_t *>(
-        reinterpret_cast<const u8 *>(md2) + md2->ofs_frames + (frameIndex * md2->framesize));
-    const auto * oldFrame = reinterpret_cast<const daliasframe_t *>(
-        reinterpret_cast<const u8 *>(md2) + md2->ofs_frames + (oldFrameIndex * md2->framesize));
+    const auto * frame = MD2DataAt<daliasframe_t>(
+        *md2, md2->ofs_frames + (frameIndex * md2->framesize));
+    const auto * oldFrame = MD2DataAt<daliasframe_t>(
+        *md2, md2->ofs_frames + (oldFrameIndex * md2->framesize));
 
     // GL_DrawAliasFrameLerp's origin interpolation, in model-local axes.
     vec3_t delta = {
@@ -819,10 +828,8 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model)
         backScale[i]  = backLerp  * oldFrame->scale[i];
     }
 
-    const auto * triangles = reinterpret_cast<const dtriangle_t *>(
-        reinterpret_cast<const u8 *>(md2) + md2->ofs_tris);
-    const auto * stVerts = reinterpret_cast<const dstvert_t *>(
-        reinterpret_cast<const u8 *>(md2) + md2->ofs_st);
+    const auto * triangles = MD2DataAt<dtriangle_t>(*md2, md2->ofs_tris);
+    const auto * stVerts   = MD2DataAt<dstvert_t>(*md2, md2->ofs_st);
 
     const float invSkinW = 1.0f / static_cast<float>(md2->skinwidth);
     const float invSkinH = 1.0f / static_cast<float>(md2->skinheight);
