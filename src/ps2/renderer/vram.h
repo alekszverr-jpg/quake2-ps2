@@ -33,14 +33,13 @@ void EndFrame();
 int TextureFootprintWords(int width, int height, int psm);
 
 // Allocates 'sizeWords' for 'texture', evicting least-recently-bound textures as
-// needed (never ones bound this frame; asserts if the frame's working set cannot
-// fit). Evicted textures get vramAddr = kNotResident and self-heal on their next
-// bind. Returns the block's word address; sets *outEvicted when anything was
-// evicted - the caller must sync the GS before writing over reused VRAM.
+// needed. Evicted textures get vramAddr = kNotResident and self-heal on their
+// next bind. Returns the block's word address; sets *outEvicted when anything
+// was evicted - the caller must sync the GS before writing over reused VRAM
+// (especially when the victim was already bound during the current frame).
 Address Allocate(const tex::Texture & texture, int sizeWords, bool * outEvicted);
 
-// Marks the (resident) texture as bound this frame, protecting it from eviction
-// until the next frame.
+// Marks the resident texture as recently bound for LRU victim selection.
 void Touch(const tex::Texture & texture);
 
 // True when the (resident) texture was already bound this frame - its draws may

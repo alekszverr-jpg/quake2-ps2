@@ -214,6 +214,11 @@ void Init()
         s_clutData[csm1] = global_palette[i];
     }
 
+    // The EE just populated this buffer through its data cache. PCSX2 observes
+    // those writes directly, but the real GIF DMA reads main memory and would
+    // otherwise upload stale (usually zero/black) palette entries.
+    SyncDCache(s_clutData, s_clutData + ArrayLength(s_clutData));
+
     RenderPacket & upload = s_texUploadPacket;
     upload.Reset();
     upload.TextureTransfer(s_clutData, 16, 16, GS_PSM_32, s_clutVramAddr, 64);

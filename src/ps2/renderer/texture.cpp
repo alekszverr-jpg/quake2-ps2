@@ -351,8 +351,6 @@ Texture & TextureCache::Register(const char * name, const void * pixels, int wid
                   name, kMaxTextures);
     }
 
-    const bool builtin = HasFlag(flags, TexFlags::Builtin);
-
     // Pics and sprites keep crisp texels (and their transparency cutouts
     // fringe-free); skins, walls and sky get smoothed by bilinear sampling.
     // The GS filters the post-CLUT colors, so Palette8 works with Linear too.
@@ -376,9 +374,11 @@ Texture & TextureCache::Register(const char * name, const void * pixels, int wid
     texture.textureChain = nullptr;
     texture.vramAddr     = Texture::kNotResident;
     texture.texbuf       = {};
-    texture.dirtyPixels  = !builtin; // loader-written pixels may still sit in the dcache;
-                                     // the first upload must flush them (built-ins were
-                                     // written by the ELF loader and need no flush).
+    // Flush every pixel source before its first DMA upload. This is harmless
+    // for const images mapped from the ELF and required for runtime-generated
+    // built-ins such as the checkerboards (real hardware has a non-coherent
+    // EE data cache; PCSX2 commonly masks the mistake).
+    texture.dirtyPixels  = true;
 
     const auto inserted = m_lookup.emplace(LookupKey(texture.name, texture.type), slot);
     PS2_AssertMsg(inserted.second, "Duplicate texture name+type!");

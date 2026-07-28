@@ -196,12 +196,15 @@ Address Allocate(const tex::Texture & texture, int sizeWords, bool * outEvicted)
         }
 
         // Nothing fits: evict the least-recently-bound texture and retry.
-        // Textures bound this frame are off-limits - their draws may still be
-        // queued in the frame packet or in flight on the GS.
+        // This may include a texture bound during the current frame. Allocate
+        // only changes bookkeeping; its caller sees outEvicted, drains the GS,
+        // and only then uploads over the reused range. Keeping current-frame
+        // textures artificially pinned can exceed the heap on the first busy
+        // frame even though safe streaming is already available.
         int victim = -1;
         for (int i = 0; i < s_blockCount; ++i)
         {
-            if (s_blocks[i].owner == nullptr || s_blocks[i].lastBoundFrame == s_frame)
+            if (s_blocks[i].owner == nullptr)
             {
                 continue;
             }
@@ -210,7 +213,7 @@ Address Allocate(const tex::Texture & texture, int sizeWords, bool * outEvicted)
                 victim = i;
             }
         }
-        PS2_AssertMsg(victim >= 0, "GS texture heap too small for this frame's working set!");
+        PS2_AssertMsg(victim >= 0, "GS texture heap has no evictable allocation!");
 
         Com_DPrintf("VRAM: evicting '%s' (%d KB)\n",
                     s_blocks[victim].owner->name, s_blocks[victim].sizeWords * 4 / 1024);
