@@ -157,7 +157,7 @@ void Init()
     // Two 32-bit framebuffers.
     // TODO: Consider more compact framebuffer formats to leave more vram for textures (RGB16?).
     s_frame[0].width   = kWidth;
-    s_frame[0].height  = s_height;
+    s_frame[0].height  = static_cast<unsigned int>(s_height);
     s_frame[0].mask    = 0;
     s_frame[0].psm     = GS_PSM_32;
     s_frame[0].address = static_cast<unsigned int>(graph_vram_allocate(kWidth, s_height, GS_PSM_32, GRAPH_ALIGN_PAGE));
