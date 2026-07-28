@@ -66,7 +66,15 @@ jobs:
       - name: Build PS2 ELF
         run: |
           export PATH="$PS2DEV/bin:$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin:$PATH"
-          make
+          set +e
+          make 2>&1 | tee build.log
+          build_status=${PIPESTATUS[0]}
+          if [ "$build_status" -ne 0 ]; then
+            grep -E '(^|: )(fatal )?error:' build.log | head -20 | while IFS= read -r line; do
+              echo "::error::$line"
+            done
+          fi
+          exit "$build_status"
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
