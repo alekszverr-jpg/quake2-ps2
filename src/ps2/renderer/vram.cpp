@@ -26,9 +26,9 @@ namespace {
 constexpr int kVramTotalWords = 1024 * 1024; // 4 MB of GS VRAM, in 32-bit words.
 
 // One entry per contiguous VRAM range. Every block spans at least one GS page
-// (TextureFootprintWords is page-granular), so the ~1.27 MB heap left after
-// the framebuffers/z-buffer (~161 pages) can never fragment into more blocks
-// than this, no matter how many textures the cache holds.
+// (TextureFootprintWords is page-granular), so the texture heap left after the
+// region-sized framebuffers/z-buffer can never fragment into more blocks than
+// this, no matter how many textures the cache holds.
 constexpr int kMaxBlocks = 176;
 
 // Debug knob: nonzero clamps the heap to this many words so eviction can be

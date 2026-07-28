@@ -18,7 +18,8 @@ namespace ps2::tex { struct Texture; }
 namespace ps2::gs {
 
 // Brings up the GS: allocates two 32-bit framebuffers, initialises the video
-// mode (auto NTSC/PAL) and sets up both drawing contexts. Call once.
+// mode and height from the console region (640x448 NTSC, 640x512 PAL), and
+// sets up both drawing contexts. Call once.
 void Init();
 
 int Width();

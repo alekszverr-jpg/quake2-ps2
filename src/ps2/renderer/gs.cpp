@@ -18,7 +18,7 @@
  *  consumed before a later 3D upload can evict the VRAM they sample.
  *
  *  Textures stream on first bind into the VRAM left over after the
- *  framebuffers and z-buffer (~1.27 MB), managed by vram.cpp. While a texture
+ *  framebuffers and z-buffer, managed by vram.cpp. While a texture
  *  is resident, binding it is just a TEX0/TEX1 register write - no DMA upload,
  *  no pipeline flush. When the heap fills, the least-recently-bound textures
  *  are evicted; uploads over reused VRAM first sync the GS so queued draws
@@ -46,8 +46,13 @@
 namespace ps2::gs {
 namespace {
 
-constexpr int kWidth  = 640;
-constexpr int kHeight = 448;
+constexpr int kWidth      = 640;
+constexpr int kNtscHeight = 448;
+constexpr int kPalHeight  = 512;
+
+// Selected from the console ROM region during Init. PAL exposes 64 more
+// active lines; rendering an NTSC-height buffer there leaves a black strip.
+static int s_height = kNtscHeight;
 
 // Per-frame packet headroom. Worst observed 2D load is a full console of text
 // (~2200 glyphs at 4 qwords each); 32K qwords (512 KB) leaves ample margin.
@@ -123,7 +128,7 @@ inline int PixelBufferBytes(const tex::Texture & texture)
 // ------------------------------------------------------------------------------------------------
 
 int Width()  { return kWidth; }
-int Height() { return kHeight; }
+int Height() { return s_height; }
 
 int CurrentContext()
 {
@@ -147,27 +152,30 @@ void Init()
     dma_channel_initialize(DMA_CHANNEL_GIF, nullptr, 0);
     dma_channel_fast_waits(DMA_CHANNEL_GIF);
 
+    s_height = (graph_get_region() == GRAPH_MODE_PAL) ? kPalHeight : kNtscHeight;
+
     // Two 32-bit framebuffers.
     // TODO: Consider more compact framebuffer formats to leave more vram for textures (RGB16?).
     s_frame[0].width   = kWidth;
-    s_frame[0].height  = kHeight;
+    s_frame[0].height  = s_height;
     s_frame[0].mask    = 0;
     s_frame[0].psm     = GS_PSM_32;
-    s_frame[0].address = static_cast<unsigned int>(graph_vram_allocate(kWidth, kHeight, GS_PSM_32, GRAPH_ALIGN_PAGE));
+    s_frame[0].address = static_cast<unsigned int>(graph_vram_allocate(kWidth, s_height, GS_PSM_32, GRAPH_ALIGN_PAGE));
 
     s_frame[1]         = s_frame[0];
-    s_frame[1].address = static_cast<unsigned int>(graph_vram_allocate(kWidth, kHeight, GS_PSM_32, GRAPH_ALIGN_PAGE));
+    s_frame[1].address = static_cast<unsigned int>(graph_vram_allocate(kWidth, s_height, GS_PSM_32, GRAPH_ALIGN_PAGE));
 
     // Z-buffer for the 3D world; larger depth = closer (the projection maps the
-    // near plane to 0xFFFF), hence GREATER_EQUAL. 16-bit z leaves ~1.27 MB of
-    // VRAM for textures. It must be the *signed* 16-bit format: the GS pairs
+    // near plane to 0xFFFF), hence GREATER_EQUAL. A 16-bit z-buffer preserves
+    // as much VRAM as possible for textures. It must be the *signed* format:
+    // the GS pairs
     // PSMCT32 color with the Z32/Z24/Z16S column - plain Z16 only works with
     // CT16 color buffers.
     s_zbuffer.enable  = DRAW_ENABLE;
     s_zbuffer.method  = ZTEST_METHOD_GREATER_EQUAL;
     s_zbuffer.mask    = 0;
     s_zbuffer.zsm     = GS_ZBUF_16S;
-    s_zbuffer.address = static_cast<unsigned int>(graph_vram_allocate(kWidth, kHeight, GS_ZBUF_16S, GRAPH_ALIGN_PAGE));
+    s_zbuffer.address = static_cast<unsigned int>(graph_vram_allocate(kWidth, s_height, GS_ZBUF_16S, GRAPH_ALIGN_PAGE));
 
     // The global-palette CLUT lives with the fixed allocations (a 16x16
     // PSMCT32 image, 256 words); the streamed texture heap takes everything
@@ -178,7 +186,7 @@ void Init()
     s_clutVramAddr = vram::Address(clutVramAddr);
 
     // Display framebuffer 0 first; auto-detects NTSC/PAL.
-    graph_initialize(static_cast<int>(s_frame[0].address), kWidth, kHeight, GS_PSM_32, 0, 0);
+    graph_initialize(static_cast<int>(s_frame[0].address), kWidth, s_height, GS_PSM_32, 0, 0);
 
     s_framePacket[0].Init(kPacketQwords);
     s_framePacket[1].Init(kPacketQwords);
@@ -254,7 +262,7 @@ void BeginFrame()
     clear.DisableTests(s_drawCtx, s_zbuffer);
     clear.Clear(s_drawCtx,
                 0.0f, 0.0f,
-                static_cast<float>(kWidth), static_cast<float>(kHeight),
+                static_cast<float>(kWidth), static_cast<float>(s_height),
                 static_cast<int>(s_clear[0]), static_cast<int>(s_clear[1]), static_cast<int>(s_clear[2]));
     clear.EnableTests(s_drawCtx, s_zbuffer); // restore the real z-test for the 3D world
     clear.Finish();
