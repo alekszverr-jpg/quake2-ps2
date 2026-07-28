@@ -39,8 +39,10 @@ static tex::Texture s_frameTexture = {
     .name         = "cinematic_frame",
     .regSequence  = 0, // never in the texture cache; not part of the registration cycle.
     .pixels       = s_frameBuffer,
+    .pixelBytes   = sizeof(s_frameBuffer),
     .width        = kFrameDim,
     .height       = kFrameDim,
+    .mipLevels    = 1,
     .type         = tex::ImageType::Pic,
     .flags        = tex::TexFlags::None,
     .format       = tex::PixelFormat::RGB16,
@@ -51,6 +53,7 @@ static tex::Texture s_frameTexture = {
     .textureChain = nullptr,
     .vramAddr     = tex::Texture::kNotResident,
     .texbuf       = {},
+    .mipmap       = {},
     .dirtyPixels  = false,
 };
 

@@ -26,11 +26,11 @@ rendering paths are still under development.
 | DualShock input | Working |
 | Textured BSP world | Working |
 | Animated MD2 models and weapons | Working |
-| NTSC `640x448` / PAL `640x512` | Implemented, PAL under validation |
+| NTSC `640x448` / PAL `640x512` | Implemented and hardware-tested |
 | Cinematics | Implemented |
 | Lightmaps and dynamic lighting | Not implemented |
 | Sound | Not implemented |
-| Mipmaps | Not implemented |
+| WAL world-texture mipmaps | Implemented, hardware validation pending |
 | Save/load on PS2 storage | Not implemented |
 
 See [ROADMAP.md](ROADMAP.md) for milestones and [CHANGELOG](CHANGELOG) for

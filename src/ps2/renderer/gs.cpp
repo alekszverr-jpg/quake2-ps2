@@ -101,24 +101,35 @@ static vram::Address s_clutVramAddr = vram::Address::Invalid;
 // Pixel stride the texture occupies VRAM with (the TEX0 TBW and transfer DBW).
 // 8-bit textures must use a multiple of 128 (TBW must be even for PSMT8/4);
 // other formats use their width as-is.
-inline int TextureStridePixels(const tex::Texture & texture, int psm)
+inline int TextureStridePixels(int width, int psm)
 {
     if (psm == GS_PSM_8)
     {
-        return (texture.width + 127) & ~127;
+        return (width + 127) & ~127;
     }
-    return texture.width;
+    return width;
+}
+
+inline int MipDimension(int base, int level)
+{
+    const int dimension = base >> level;
+    return dimension > 0 ? dimension : 1;
+}
+
+inline int TextureVramWords(const tex::Texture & texture, int psm)
+{
+    int words = 0;
+    for (int level = 0; level < texture.mipLevels; ++level)
+    {
+        words += vram::TextureFootprintWords(MipDimension(texture.width, level),
+                                             MipDimension(texture.height, level), psm);
+    }
+    return words;
 }
 
 inline RenderPacket & FramePacket()
 {
     return s_framePacket[s_packetIdx];
-}
-
-// Bytes of EE RAM the texture's pixel buffer occupies (linear width*height texels).
-inline int PixelBufferBytes(const tex::Texture & texture)
-{
-    return texture.width * texture.height * tex::BytesPerTexel(texture.format);
 }
 
 } // namespace
@@ -401,7 +412,7 @@ void EnsureTextureResident(const tex::Texture & texture)
     PS2_Assert(texture.type != tex::ImageType::Null && texture.pixels != nullptr);
 
     const int psm    = tex::GsPsm(texture.format);
-    const int stride = TextureStridePixels(texture, psm);
+    const int stride = TextureStridePixels(texture.width, psm);
 
     if (texture.vramAddr != tex::Texture::kNotResident)
     {
@@ -424,7 +435,7 @@ void EnsureTextureResident(const tex::Texture & texture)
     }
     else
     {
-        const int sizeWords = vram::TextureFootprintWords(texture.width, texture.height, psm);
+        const int sizeWords = TextureVramWords(texture, psm);
 
         bool evicted = false;
         const vram::Address addr = vram::Allocate(texture, sizeWords, &evicted);
@@ -448,6 +459,29 @@ void EnsureTextureResident(const tex::Texture & texture)
         texture.texbuf.info.components = static_cast<unsigned char>(tex::GsComponents(texture.components));
         texture.texbuf.info.function   = static_cast<unsigned char>(tex::GsFunction(texture.function));
 
+        // MIPTBP1 addresses are in 64-word GS blocks and widths are in
+        // 64-pixel TBW units. All levels share one allocator extent, packed
+        // after level 0 in page-granular footprints.
+        vram::Address mipAddr = vram::Address(
+            static_cast<int>(addr) + vram::TextureFootprintWords(texture.width, texture.height, psm));
+        unsigned int mipAddresses[3] = {};
+        unsigned int mipWidths[3] = {};
+        for (int level = 1; level < texture.mipLevels; ++level)
+        {
+            const int mipWidth  = MipDimension(texture.width, level);
+            const int mipHeight = MipDimension(texture.height, level);
+            mipAddresses[level - 1] = static_cast<unsigned int>(static_cast<int>(mipAddr) >> 6);
+            mipWidths[level - 1] = static_cast<unsigned int>(TextureStridePixels(mipWidth, psm) >> 6);
+            mipAddr = vram::Address(static_cast<int>(mipAddr) +
+                                    vram::TextureFootprintWords(mipWidth, mipHeight, psm));
+        }
+        texture.mipmap.address1 = mipAddresses[0];
+        texture.mipmap.width1   = mipWidths[0];
+        texture.mipmap.address2 = mipAddresses[1];
+        texture.mipmap.width2   = mipWidths[1];
+        texture.mipmap.address3 = mipAddresses[2];
+        texture.mipmap.width3   = mipWidths[2];
+
         Com_DPrintf("VRAM: uploaded '%s' (%dx%d, %d KB)\n", texture.name,
                     texture.width, texture.height, sizeWords * 4 / 1024);
     }
@@ -459,7 +493,7 @@ void EnsureTextureResident(const tex::Texture & texture)
         // REF'd data - flush the range or the GS reads stale texels. Built-ins
         // are never dirty (the ELF loader wrote them) and skip this.
         void * pixels = const_cast<void *>(texture.pixels);
-        SyncDCache(pixels, static_cast<u8 *>(pixels) + PixelBufferBytes(texture));
+        SyncDCache(pixels, static_cast<u8 *>(pixels) + texture.pixelBytes);
         texture.dirtyPixels = false;
     }
 
@@ -468,7 +502,20 @@ void EnsureTextureResident(const tex::Texture & texture)
     // packet if large streamed assets ever exceed its chain-tag headroom.
     RenderPacket & pkt = s_texUploadPacket;
     pkt.Reset();
-    pkt.TextureTransfer(texture.pixels, texture.width, texture.height, psm, texture.vramAddr, stride);
+    const u8 * mipPixels = static_cast<const u8 *>(texture.pixels);
+    vram::Address mipAddr = texture.vramAddr;
+    for (int level = 0; level < texture.mipLevels; ++level)
+    {
+        const int mipWidth  = MipDimension(texture.width, level);
+        const int mipHeight = MipDimension(texture.height, level);
+        const int mipStride = TextureStridePixels(mipWidth, psm);
+
+        pkt.TextureTransfer(mipPixels, mipWidth, mipHeight, psm, mipAddr, mipStride);
+
+        mipPixels += mipWidth * mipHeight * tex::BytesPerTexel(texture.format);
+        mipAddr = vram::Address(static_cast<int>(mipAddr) +
+                                vram::TextureFootprintWords(mipWidth, mipHeight, psm));
+    }
     pkt.TextureFlush();
 
     pkt.SendChain();
@@ -516,10 +563,12 @@ void SetTextureFor2D(const tex::Texture & texture)
     pkt.EnsureSpace(16);
 
     lod_t lod;
-    lod.calculation   = LOD_USE_K;
-    lod.max_level     = 0;
+    const bool mipped = texture.mipLevels > 1;
+    lod.calculation   = mipped ? LOD_FORMULAIC : LOD_USE_K;
+    lod.max_level     = static_cast<unsigned char>(texture.mipLevels - 1);
     lod.mag_filter    = static_cast<unsigned char>(tex::GsMagFilter(texture.magFilter));
-    lod.min_filter    = static_cast<unsigned char>(tex::GsMinFilter(texture.minFilter));
+    lod.min_filter    = static_cast<unsigned char>(
+        mipped ? LOD_MIN_LINE_MIPMAP_LINE : tex::GsMinFilter(texture.minFilter));
     lod.mipmap_select = LOD_MIPMAP_REGISTER;
     lod.l             = 0;
     lod.k             = 0.0f;
@@ -550,6 +599,11 @@ void SetTextureFor2D(const tex::Texture & texture)
 
     pkt.TextureSampling(s_drawCtx, lod);
     pkt.TextureBuffer(s_drawCtx, texbuf, clut);
+    if (mipped)
+    {
+        mipmap_t mipmap = texture.mipmap;
+        pkt.TextureMipmap1(s_drawCtx, mipmap);
+    }
 }
 
 void DrawTexturedRect(int x, int y, int w, int h,

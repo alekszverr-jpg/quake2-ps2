@@ -32,7 +32,7 @@
 ; Batch offsets, relative to XTOP:
 #define kBatchHeader 0
 #define kGifTags     1
-#define kVertexData  6
+#define kVertexData  7
 
 ; Transforms one vertex: 2 input qwords at offPos/offStq from iInPtr
 ; become the ST, RGBAQ (via A+D) and XYZ2 output qwords at offST/offAD/
@@ -137,9 +137,9 @@
 ;       qword* kick = in + (numVerts * 2);
 ;       qword* out  = kick;
 ;
-;       // Packet head: the 5 GIF tag qwords prepared by the EE:
-;       memcpy(out, &batch[kGifTags], 5 * sizeof(qword));
-;       out += 5;
+;       // Packet head: the 6 GIF tag qwords prepared by the EE:
+;       memcpy(out, &batch[kGifTags], 6 * sizeof(qword));
+;       out += 6;
 ;
 ;       do // One triangle per iteration:
 ;       {
@@ -199,11 +199,13 @@
     lqi fTag2, (iTagPtr++)
     lqi fTag3, (iTagPtr++)
     lqi fTag4, (iTagPtr++)
+    lqi fTag5, (iTagPtr++)
     sqi fTag0, (iOutPtr++)
     sqi fTag1, (iOutPtr++)
     sqi fTag2, (iOutPtr++)
     sqi fTag3, (iOutPtr++)
     sqi fTag4, (iOutPtr++)
+    sqi fTag5, (iOutPtr++)
 
     ; One triangle per iteration:
     lTriangleLoop:

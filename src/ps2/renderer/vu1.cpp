@@ -22,7 +22,7 @@
  *      8-999  the two XTOP double buffers (VIF1 BASE=8, OFFSET=496)
  *
  *  Batch layout inside a double buffer (relative to XTOP): input is one header
- *  qword (vertex count in .w), 5 GIF/AD tag qwords, then 2 qwords per vertex;
+ *  qword (vertex count in .w), 6 GIF/AD tag qwords, then 2 qwords per vertex;
  *  the microprogram builds the GS packet in the same buffer after the input.
  *  The A+D block programs TEST as well as TEX0/TEX1, so a batch draws with the
  *  proper z-test no matter what state the surrounding 2D packets left behind.
@@ -48,7 +48,7 @@ PS2_DECLARE_VU_MICROPROGRAM(VU1Prog_TexturedTriangles);
 namespace {
 
 // Vertices per VU run: DrawTriangles splits larger draws into chunks of this
-// size. Bounded by the VU double buffer: input (6 + 2n) plus output (5 + 3n)
+// size. Bounded by the VU double buffer: input (7 + 2n) plus output (6 + 3n)
 // qwords must fit in one 496-qword buffer half, so n <= 97 - and chunks are
 // whole triangles, hence 96.
 constexpr int kMaxVertsPerBatch = 96;
@@ -62,8 +62,8 @@ constexpr int kFrameConstantsAddr = 0;
 
 // Batch layout, relative to the current double buffer (XTOP).
 constexpr int kBatchHeaderAddr = 0; // vertex count in .w
-constexpr int kGifTagsAddr     = 1; // 5 qwords: GIF set tag, TEST, TEX1, TEX0, prim tag
-constexpr int kVertexDataAddr  = kGifTagsAddr + 5;
+constexpr int kGifTagsAddr     = 1; // 6 qwords: GIF set tag, TEST, TEX1, TEX0, MIPTBP1, prim tag
+constexpr int kVertexDataAddr  = kGifTagsAddr + 6;
 
 // The chain is tags plus small per-chunk inline unpacks; constants and
 // vertices are referenced in place. Sized so a DrawTriangles call fits ~30
@@ -139,10 +139,19 @@ u64 MakeTex0Data(const tex::Texture & texture)
 
 u64 MakeTex1Data(const tex::Texture & texture)
 {
-    return GS_SET_TEX1(LOD_USE_K, 0,
+    const bool mipped = texture.mipLevels > 1;
+    return GS_SET_TEX1(mipped ? LOD_FORMULAIC : LOD_USE_K,
+                       texture.mipLevels - 1,
                        tex::GsMagFilter(texture.magFilter),
-                       tex::GsMinFilter(texture.minFilter),
+                       mipped ? LOD_MIN_LINE_MIPMAP_LINE : tex::GsMinFilter(texture.minFilter),
                        LOD_MIPMAP_REGISTER, 0, 0);
+}
+
+u64 MakeMiptbp1Data(const tex::Texture & texture)
+{
+    return GS_SET_MIPTBP1(texture.mipmap.address1, texture.mipmap.width1,
+                          texture.mipmap.address2, texture.mipmap.width2,
+                          texture.mipmap.address3, texture.mipmap.width3);
 }
 
 // Pixel tests for the batch: the environment's alpha test plus the real
@@ -170,12 +179,13 @@ void AddBatchChunk(VifPacket & pkt, const tex::Texture & texture, int ctx,
         pkt.AddU32(0);
         pkt.AddU32(static_cast<u32>(vertCount));
 
-        // Three A+D register writes: pixel tests and the texture bind for
+        // Four A+D register writes: pixel tests and the texture bind for
         // this context...
-        pkt.AddQword(GIF_SET_TAG(3, 0, 0, 0, GIF_FLG_PACKED, 1), GIF_REG_AD);
+        pkt.AddQword(GIF_SET_TAG(4, 0, 0, 0, GIF_FLG_PACKED, 1), GIF_REG_AD);
         pkt.AddQword(MakeTestData(), static_cast<u64>(GS_REG_TEST + ctx));
         pkt.AddQword(MakeTex1Data(texture), static_cast<u64>(GS_REG_TEX1 + ctx));
         pkt.AddQword(MakeTex0Data(texture), static_cast<u64>(GS_REG_TEX0 + ctx));
+        pkt.AddQword(MakeMiptbp1Data(texture), static_cast<u64>(GS_REG_MIPTBP1 + ctx));
 
         // ...then the drawing tag: gouraud textured triangle list, STQ mapping,
         // with the per-vertex registers of kVertexRegList.

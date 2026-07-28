@@ -15,7 +15,8 @@ namespace ps2::img {
 
 // On success every loader hands back a pixel buffer allocated with
 // PS2_MemAllocAligned(16, ..., MEMTAG_TEXIMAGE) - DMA-ready - that the caller
-// owns and frees with PS2_MemFree (size = width * height * bytes per texel).
+// owns and frees with PS2_MemFree (the loader-provided byte size when the
+// format carries a mip chain, otherwise width * height * bytes per texel).
 // On failure they warn via Com_DPrintf and return false with nothing allocated.
 
 // PCX: 8-bit palette indices, 1 byte/texel. The palette embedded in the file is
@@ -23,9 +24,10 @@ namespace ps2::img {
 // ref_gl decoded through d_8to24table.
 bool LoadPcx(const char * filename, u8 ** outPic, int * outWidth, int * outHeight);
 
-// WAL: mip level 0 as 8-bit palette indices, 1 byte/texel (the GS pipeline has
-// no mipmapping set up; the smaller mips in the file are skipped).
-bool LoadWal(const char * filename, u8 ** outPic, int * outWidth, int * outHeight);
+// WAL: all four precomputed mip levels as packed 8-bit palette indices,
+// level 0 first. outPixelBytes covers the complete allocation.
+bool LoadWal(const char * filename, u8 ** outPic, int * outWidth, int * outHeight,
+             int * outMipLevels, int * outPixelBytes);
 
 // TGA (types 2 and 10, 24/32 bpp, no colormaps - all Quake II ever shipped):
 // RGBA32 texels, 4 bytes/texel. *outHasAlpha is set when the file carried an

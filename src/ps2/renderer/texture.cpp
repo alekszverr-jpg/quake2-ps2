@@ -182,6 +182,7 @@ public:
 
 private:
     Texture & Register(const char * name, const void * pixels, int width, int height,
+                       int pixelBytes, int mipLevels,
                        PixelFormat format, TexComponents components,
                        ImageType type, TexFlags flags);
 
@@ -242,6 +243,8 @@ const Texture * TextureCache::LoadFromFile(const char * fullname, const ImageTyp
     const void * pixels = nullptr;
     int width  = 0;
     int height = 0;
+    int pixelBytes = 0;
+    int mipLevels  = 1;
     PixelFormat format;
     TexComponents components;
 
@@ -251,9 +254,17 @@ const Texture * TextureCache::LoadFromFile(const char * fullname, const ImageTyp
         // the global-palette CLUT uploaded at init, at a quarter of the RGBA32
         // footprint in RAM and VRAM.
         u8 * pic8 = nullptr;
-        const bool loaded = (extension[1] == 'p')
-            ? img::LoadPcx(fullname, &pic8, &width, &height)
-            : img::LoadWal(fullname, &pic8, &width, &height);
+        bool loaded;
+        if (extension[1] == 'p')
+        {
+            loaded = img::LoadPcx(fullname, &pic8, &width, &height);
+            pixelBytes = width * height;
+        }
+        else
+        {
+            loaded = img::LoadWal(fullname, &pic8, &width, &height,
+                                  &mipLevels, &pixelBytes);
+        }
         if (!loaded)
         {
             return nullptr;
@@ -275,6 +286,7 @@ const Texture * TextureCache::LoadFromFile(const char * fullname, const ImageTyp
         format     = PixelFormat::RGBA32;
         components = hasAlpha ? TexComponents::RGBA : TexComponents::RGB;
         pixels     = pic32;
+        pixelBytes = width * height * BytesPerTexel(format);
     }
     else
     {
@@ -282,7 +294,8 @@ const Texture * TextureCache::LoadFromFile(const char * fullname, const ImageTyp
         return nullptr;
     }
 
-    return &Register(fullname, pixels, width, height, format, components, type, TexFlags::None);
+    return &Register(fullname, pixels, width, height, pixelBytes, mipLevels,
+                     format, components, type, TexFlags::None);
 }
 
 void TextureCache::Unload(u16 slot)
@@ -292,8 +305,7 @@ void TextureCache::Unload(u16 slot)
 
     gs::ReleaseTexture(texture); // return its GS VRAM to the heap (no-op when not resident)
 
-    const int pixelBytes = texture.width * texture.height * BytesPerTexel(texture.format);
-    PS2_MemFree(const_cast<void *>(texture.pixels), static_cast<size_t>(pixelBytes), MEMTAG_TEXIMAGE);
+    PS2_MemFree(const_cast<void *>(texture.pixels), static_cast<size_t>(texture.pixelBytes), MEMTAG_TEXIMAGE);
 
     m_texturePool.Free(slot); // resets the slot; its type reads Null again
 }
@@ -339,10 +351,12 @@ const Texture & TextureCache::DebugTexture(int index) const
 }
 
 Texture & TextureCache::Register(const char * name, const void * pixels, int width, int height,
+                                 int pixelBytes, int mipLevels,
                                  PixelFormat format, TexComponents components,
                                  ImageType type, TexFlags flags)
 {
     PS2_Assert(width > 0 && height > 0 && pixels != nullptr);
+    PS2_Assert(pixelBytes > 0 && mipLevels > 0 && mipLevels <= Texture::kMaxMipLevels);
 
     const u16 slot = m_texturePool.Alloc();
     if (slot == TexturePool::kInvalidIndex)
@@ -362,8 +376,10 @@ Texture & TextureCache::Register(const char * name, const void * pixels, int wid
 
     texture.regSequence  = m_regSequence;
     texture.pixels       = pixels;
+    texture.pixelBytes   = pixelBytes;
     texture.width        = width;
     texture.height       = height;
+    texture.mipLevels    = static_cast<u8>(mipLevels);
     texture.type         = type;
     texture.flags        = flags;
     texture.format       = format;
@@ -374,6 +390,7 @@ Texture & TextureCache::Register(const char * name, const void * pixels, int wid
     texture.textureChain = nullptr;
     texture.vramAddr     = Texture::kNotResident;
     texture.texbuf       = {};
+    texture.mipmap      = {};
     // Flush every pixel source before its first DMA upload. This is harmless
     // for const images mapped from the ELF and required for runtime-generated
     // built-ins such as the checkerboards (real hardware has a non-coherent
@@ -427,6 +444,7 @@ void TextureCache::Init()
     for (const BuiltinImage & builtin : builtins)
     {
         Register(builtin.name, builtin.pixels, builtin.width, builtin.height,
+                 builtin.width * builtin.height * BytesPerTexel(builtin.format), 1,
                  builtin.format, builtin.components, ImageType::Pic, TexFlags::Builtin);
     }
 

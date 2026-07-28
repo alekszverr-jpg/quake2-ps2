@@ -150,10 +150,12 @@ bool LoadPcx(const char * filename, u8 ** outPic, int * outWidth, int * outHeigh
 // WAL
 // ------------------------------------------------------------------------------------------------
 
-bool LoadWal(const char * filename, u8 ** outPic, int * outWidth, int * outHeight)
+bool LoadWal(const char * filename, u8 ** outPic, int * outWidth, int * outHeight,
+             int * outMipLevels, int * outPixelBytes)
 {
     *outPic = nullptr;
     *outWidth = *outHeight = 0;
+    *outMipLevels = *outPixelBytes = 0;
 
     u8 * fileData = nullptr;
     const int fileLen = FS_LoadFile(filename, reinterpret_cast<void **>(&fileData));
@@ -170,24 +172,55 @@ bool LoadWal(const char * filename, u8 ** outPic, int * outWidth, int * outHeigh
     const miptex_t * wal = static_cast<const miptex_t *>(static_cast<const void *>(fileData));
     const int width  = static_cast<int>(wal->width);
     const int height = static_cast<int>(wal->height);
-    const int offset = static_cast<int>(wal->offsets[0]);
-
-    if (width <= 0 || height <= 0 || width > kMaxImageDim || height > kMaxImageDim ||
-        offset <= 0 || (offset + width * height) > fileLen)
+    if (width <= 0 || height <= 0 || width > kMaxImageDim || height > kMaxImageDim)
     {
         Com_DPrintf("WARNING: Bad WAL file '%s'. Invalid header value(s)!\n", filename);
         FS_FreeFile(fileData);
         return false;
     }
 
-    u8 * pic = AllocPixels(width * height);
-    std::memcpy(pic, fileData + offset, static_cast<size_t>(width * height));
+    constexpr int kWalMipLevels = 4;
+    int mipBytes[kWalMipLevels];
+    int totalBytes = 0;
+    bool valid = true;
+    for (int level = 0; level < kWalMipLevels; ++level)
+    {
+        const int mipWidth  = (width  >> level) > 0 ? (width  >> level) : 1;
+        const int mipHeight = (height >> level) > 0 ? (height >> level) : 1;
+        const int offset    = static_cast<int>(wal->offsets[level]);
+        mipBytes[level]     = mipWidth * mipHeight;
+
+        if (offset <= 0 || offset > fileLen || mipBytes[level] > fileLen - offset)
+        {
+            valid = false;
+            break;
+        }
+        totalBytes += mipBytes[level];
+    }
+
+    if (!valid)
+    {
+        Com_DPrintf("WARNING: Bad WAL file '%s'. Invalid mip offset(s)!\n", filename);
+        FS_FreeFile(fileData);
+        return false;
+    }
+
+    u8 * pic = AllocPixels(totalBytes);
+    int destOffset = 0;
+    for (int level = 0; level < kWalMipLevels; ++level)
+    {
+        const int sourceOffset = static_cast<int>(wal->offsets[level]);
+        std::memcpy(pic + destOffset, fileData + sourceOffset, static_cast<size_t>(mipBytes[level]));
+        destOffset += mipBytes[level];
+    }
 
     FS_FreeFile(fileData);
 
     *outPic    = pic;
     *outWidth  = width;
     *outHeight = height;
+    *outMipLevels = kWalMipLevels;
+    *outPixelBytes = totalBytes;
     return true;
 }
 

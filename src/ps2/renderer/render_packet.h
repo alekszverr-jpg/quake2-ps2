@@ -120,6 +120,11 @@ public:
         m_ptr = draw_texturebuffer(m_ptr, context, &texbuf, &clut);
     }
 
+    void TextureMipmap1(int context, mipmap_t & mipmap)
+    {
+        m_ptr = draw_mipmap1(m_ptr, context, &mipmap);
+    }
+
     // Emits the DMA chain tags for a texture upload; the pixels are referenced
     // in place and must stay valid until the transfer completes. 'destWidth'
     // is the VRAM buffer width in pixels (the TBW stride the texture will be

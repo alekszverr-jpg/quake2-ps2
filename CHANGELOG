@@ -6,6 +6,15 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+### Added
+
+- Added upload and GS binding of all four mip levels stored in WAL world
+  textures, with trilinear minification filtering.
+
+### Fixed
+
+- Confirmed full-height `640x512` PAL output and CRT framing on a real PS2.
+
 ### Documentation
 
 - Reactivated the project documentation.
@@ -47,8 +56,8 @@ Development priorities and completion criteria are tracked in
 - World and model rendering is currently fullbright: lightmaps, dynamic lights
   and complete model lighting are not implemented.
 - Sound output is not implemented.
-- Mipmaps are not uploaded, so floors and other receding surfaces may shimmer
-  or alias, especially on a CRT.
+- WAL mipmap filtering is implemented but still needs real-hardware tuning and
+  validation against floor/wall shimmer on a CRT.
 - Sprite, translucent, sky, water and brush-entity rendering is incomplete.
 - Save/load and long-play stability on real hardware still need validation.
 
