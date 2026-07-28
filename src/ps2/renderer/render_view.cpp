@@ -43,9 +43,12 @@ constexpr float kZFar  = 4096.0f;
 // Vertex colour for the not-yet-lit world: GS modulate 128 = texels unchanged.
 constexpr u32 kFullBright = vu1::PackColorRGBA(128, 128, 128, 0x80);
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfloat-conversion"
 constexpr float kAliasNormals[][3] = {
     #include "client/anorms.h"
 };
+#pragma GCC diagnostic pop
 
 // ------------------------------------------------------------------------------------------------
 // Frame state
