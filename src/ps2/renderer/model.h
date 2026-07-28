@@ -87,6 +87,10 @@ struct PolyVertex
     // lightmap tex coords:
     float lightmap_s;
     float lightmap_t;
+
+    // Static BSP light sampled from the Quake II RGB lightmap and packed in
+    // native GS RGBAQ byte order (128 means 1.0 modulation).
+    u32 lightColor;
 };
 
 //

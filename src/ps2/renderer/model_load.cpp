@@ -586,6 +586,10 @@ void BuildPolygonFromSurface(ModelInstance & mdl, HunkAllocator & hunk, ModelSur
     const float textureBaseT = std::floor(
         (static_cast<float>(surf.textureMins[1]) + static_cast<float>(surf.extents[1]) * 0.5f) / texH);
 
+    const int lightWidth  = (surf.extents[0] >> 4) + 1;
+    const int lightHeight = (surf.extents[1] >> 4) + 1;
+    const int lightTexels = lightWidth * lightHeight;
+
     for (int i = 0; i < numVerts; ++i)
     {
         const Vec3 & pos = EdgeVertex(mdl, mdl.surfEdges[surf.firstEdge + i]);
@@ -603,6 +607,44 @@ void BuildPolygonFromSurface(ModelInstance & mdl, HunkAllocator & hunk, ModelSur
                         + static_cast<float>(surf.light_t * 16) + 8.0f;
         poly->vertexes[i].lightmap_s = lms / static_cast<float>(kLightmapTextureWidth  * 16);
         poly->vertexes[i].lightmap_t = lmt / static_cast<float>(kLightmapTextureHeight * 16);
+
+        // Sample the static RGB lightmap at this BSP corner. Multiple styles
+        // occupy consecutive lightTexels*3 blocks; their base contributions
+        // are added here. Animated style scaling and finer interior
+        // tessellation are follow-up work, but this already restores genuine
+        // map lighting instead of drawing every surface fullbright.
+        int lightRgb[3] = { 255, 255, 255 };
+        if (surf.samples != nullptr)
+        {
+            lightRgb[0] = lightRgb[1] = lightRgb[2] = 0;
+
+            const float sampleSf = (TexProject(pos, tex->vecs[0]) -
+                                    static_cast<float>(surf.textureMins[0])) * (1.0f / 16.0f);
+            const float sampleTf = (TexProject(pos, tex->vecs[1]) -
+                                    static_cast<float>(surf.textureMins[1])) * (1.0f / 16.0f);
+            int sampleS = static_cast<int>(std::floor(sampleSf + 0.5f));
+            int sampleT = static_cast<int>(std::floor(sampleTf + 0.5f));
+            if (sampleS < 0) { sampleS = 0; }
+            if (sampleT < 0) { sampleT = 0; }
+            if (sampleS >= lightWidth)  { sampleS = lightWidth  - 1; }
+            if (sampleT >= lightHeight) { sampleT = lightHeight - 1; }
+            const int sampleIndex = sampleT * lightWidth + sampleS;
+
+            for (int style = 0; style < kMaxLightmaps && surf.styles[style] != 255; ++style)
+            {
+                const u8 * sample = surf.samples + (style * lightTexels + sampleIndex) * 3;
+                for (int channel = 0; channel < 3; ++channel)
+                {
+                    lightRgb[channel] += sample[channel];
+                    if (lightRgb[channel] > 255) { lightRgb[channel] = 255; }
+                }
+            }
+        }
+
+        const u32 r = static_cast<u32>((lightRgb[0] * 128 + 127) / 255);
+        const u32 g = static_cast<u32>((lightRgb[1] * 128 + 127) / 255);
+        const u32 b = static_cast<u32>((lightRgb[2] * 128 + 127) / 255);
+        poly->vertexes[i].lightColor = r | (g << 8) | (b << 16) | (0x80u << 24);
     }
 
     TriangulatePolygon(*poly);

@@ -19,7 +19,7 @@ Status markers:
 - [x] Animated MD2 enemies, corpses and first-person weapons
 - [x] NTSC/PAL framebuffer selection
 - [~] Texture streaming within the PS2's 4 MB GS VRAM
-- [ ] Lighting
+- [~] Static BSP vertex lighting
 - [ ] Sound
 
 ## Milestone 0 - Stable hardware test build
@@ -40,7 +40,7 @@ without crashes or severe rendering corruption.
 Target: levels visually match the original software/OpenGL renderer closely
 enough for normal gameplay.
 
-- [ ] BSP lightmaps and static lighting
+- [~] BSP lightmaps and static lighting
 - [ ] MD2 vertex lighting using Quake II normal tables
 - [ ] Dynamic lights and light styles
 - [ ] Sprite entities and particles

@@ -535,9 +535,10 @@ struct alignas(16) ClipVertex
 {
     math::Vec4 pos; // world position, w = 1
     math::Vec4 st;  // diffuse texture coords in xy; zw unused
+    math::Vec4 color; // GS modulation channels as floats in xyzw.
     ClipDists  d;
 };
-static_assert(sizeof(ClipVertex) == 64, "ClipVertex must be exactly four quadwords");
+static_assert(sizeof(ClipVertex) == 80, "ClipVertex must be exactly five quadwords");
 
 // Sutherland-Hodgman pass of a convex polygon against one plane. 'out' must
 // hold inCount + 1 vertexes. Returns the clipped vertex count.
@@ -559,6 +560,7 @@ int ClipAgainstPlane(const ClipVertex * in, const int inCount, ClipVertex * out,
             ClipVertex & o = out[outCount++];
             math::LerpTo(o.pos,    a.pos,    b.pos,    t);
             math::LerpTo(o.st,     a.st,     b.st,     t);
+            math::LerpTo(o.color,  a.color,  b.color,  t);
             math::LerpTo(o.d.q[0], a.d.q[0], b.d.q[0], t);
             math::LerpTo(o.d.q[1], a.d.q[1], b.d.q[1], t);
         }
@@ -573,7 +575,11 @@ inline void EmitScratchVertex(const ClipVertex & v)
     dst.y    = v.pos.y;
     dst.z    = v.pos.z;
     dst.w    = 1.0f;
-    dst.rgba = kFullBright;
+    dst.rgba = vu1::PackColorRGBA(
+        static_cast<u32>(v.color.x + 0.5f),
+        static_cast<u32>(v.color.y + 0.5f),
+        static_cast<u32>(v.color.z + 0.5f),
+        0x80);
     dst.s    = v.st.x;
     dst.t    = v.st.y;
     dst.q    = 1.0f;
@@ -606,6 +612,12 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const tex::Texture & textu
 
             c.pos = { src.position.x, src.position.y, src.position.z, 1.0f };
             c.st  = { src.texture_s, src.texture_t, 0.0f, 0.0f };
+            c.color = {
+                static_cast<float>( src.lightColor        & 0xFFu),
+                static_cast<float>((src.lightColor >> 8)  & 0xFFu),
+                static_cast<float>((src.lightColor >> 16) & 0xFFu),
+                128.0f
+            };
 
             const math::Vec4 clip = math::Transform(c.pos, s_viewProjMatrix);
             const float gw = vu1::kGuardBandNdcLimit * clip.w;

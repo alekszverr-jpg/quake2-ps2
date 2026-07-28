@@ -9,7 +9,9 @@ Development priorities and completion criteria are tracked in
 ### Added
 
 - Added upload and GS binding of all four mip levels stored in WAL world
-  textures, with trilinear minification filtering.
+  textures, with mipmapped minification filtering.
+- Added a first static BSP lighting pass that samples Quake II RGB lightmap
+  data at surface vertices and interpolates it through the VU1 draw path.
 
 ### Fixed
 

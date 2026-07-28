@@ -28,7 +28,8 @@ rendering paths are still under development.
 | Animated MD2 models and weapons | Working |
 | NTSC `640x448` / PAL `640x512` | Implemented and hardware-tested |
 | Cinematics | Implemented |
-| Lightmaps and dynamic lighting | Not implemented |
+| Static BSP vertex lighting | First pass, PCSX2 validation pending |
+| Full lightmaps and dynamic lighting | Not implemented |
 | Sound | Not implemented |
 | WAL world-texture mipmaps | Implemented and hardware-tested |
 | Save/load on PS2 storage | Not implemented |
