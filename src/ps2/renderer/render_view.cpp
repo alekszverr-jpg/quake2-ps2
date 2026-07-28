@@ -753,6 +753,23 @@ const tex::Texture & AliasSkin(const entity_t & entity, const mod::ModelInstance
     return (model.skins[skinIndex] != nullptr) ? *model.skins[skinIndex] : tex::DebugTexture();
 }
 
+// TEX0 describes each texture dimension as a power-of-two exponent. The GS
+// therefore normalises ST coordinates against this rounded-up extent, not the
+// image's actual (often NPOT) width/height. Quake II model skins commonly use
+// sizes such as 288x195, so dividing their pixel STs by the real dimensions
+// samples far outside the uploaded image. Match draw_log2/TEX0 by rounding up.
+int GSTextureExtent(int imageDimension)
+{
+    PS2_Assert(imageDimension > 0);
+
+    int extent = 1;
+    while (extent < imageDimension)
+    {
+        extent <<= 1;
+    }
+    return extent;
+}
+
 template<typename T>
 const T * MD2DataAt(const dmdl_t & md2, int byteOffset)
 {
@@ -831,8 +848,8 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model)
     const auto * triangles = MD2DataAt<dtriangle_t>(*md2, md2->ofs_tris);
     const auto * stVerts   = MD2DataAt<dstvert_t>(*md2, md2->ofs_st);
 
-    const float invSkinW = 1.0f / static_cast<float>(md2->skinwidth);
-    const float invSkinH = 1.0f / static_cast<float>(md2->skinheight);
+    const float invGsSkinW = 1.0f / static_cast<float>(GSTextureExtent(md2->skinwidth));
+    const float invGsSkinH = 1.0f / static_cast<float>(GSTextureExtent(md2->skinheight));
     const tex::Texture & texture = AliasSkin(entity, model);
     const math::Mat4 mvp = EntityModelMatrix(entity) * s_viewProjMatrix;
 
@@ -864,8 +881,12 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model)
                             + static_cast<float>(v.v[2])  * frontScale[2];
             out.w    = 1.0f;
             out.rgba = kFullBright;
-            out.s    = static_cast<float>(st.s) * invSkinW;
-            out.t    = static_cast<float>(st.t) * invSkinH;
+            // The original MD2 glcmd builder samples texel centres:
+            // (pixel + 0.5) / realDimension. Scale that normalised value by
+            // realDimension / GS-extent, which simplifies to the expressions
+            // below and keeps NPOT skins inside their uploaded rectangle.
+            out.s    = (static_cast<float>(st.s) + 0.5f) * invGsSkinW;
+            out.t    = (static_cast<float>(st.t) + 0.5f) * invGsSkinH;
             out.q    = 1.0f;
         }
         ++s_drawStats.trisDrawn;
