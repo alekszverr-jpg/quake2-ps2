@@ -464,14 +464,14 @@ void EnsureTextureResident(const tex::Texture & texture)
         // after level 0 in page-granular footprints.
         vram::Address mipAddr = vram::Address(
             static_cast<int>(addr) + vram::TextureFootprintWords(texture.width, texture.height, psm));
-        unsigned int mipAddresses[3] = {};
-        unsigned int mipWidths[3] = {};
+        int  mipAddresses[3] = {};
+        char mipWidths[3] = {};
         for (int level = 1; level < texture.mipLevels; ++level)
         {
             const int mipWidth  = MipDimension(texture.width, level);
             const int mipHeight = MipDimension(texture.height, level);
-            mipAddresses[level - 1] = static_cast<unsigned int>(static_cast<int>(mipAddr) >> 6);
-            mipWidths[level - 1] = static_cast<unsigned int>(TextureStridePixels(mipWidth, psm) >> 6);
+            mipAddresses[level - 1] = static_cast<int>(mipAddr) >> 6;
+            mipWidths[level - 1] = static_cast<char>(TextureStridePixels(mipWidth, psm) >> 6);
             mipAddr = vram::Address(static_cast<int>(mipAddr) +
                                     vram::TextureFootprintWords(mipWidth, mipHeight, psm));
         }
