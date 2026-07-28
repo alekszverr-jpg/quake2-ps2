@@ -42,7 +42,8 @@ enough for normal gameplay.
 
 - [~] BSP lightmaps and static lighting
 - [ ] MD2 vertex lighting using Quake II normal tables
-- [ ] Dynamic lights and light styles
+- [~] Animated light styles
+- [ ] Dynamic entity lights
 - [ ] Sprite entities and particles
 - [ ] Brush entities such as moving doors and platforms
 - [ ] Sky surfaces and skybox

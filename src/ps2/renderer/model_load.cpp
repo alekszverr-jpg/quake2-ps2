@@ -604,11 +604,6 @@ void BuildPolygonFromSurface(ModelInstance & mdl, HunkAllocator & hunk, ModelSur
         poly->vertexes[i].lightmap_s = lms / static_cast<float>(kLightmapTextureWidth  * 16);
         poly->vertexes[i].lightmap_t = lmt / static_cast<float>(kLightmapTextureHeight * 16);
 
-        const float sampleS = (TexProject(pos, tex->vecs[0]) -
-                               static_cast<float>(surf.textureMins[0])) * (1.0f / 16.0f);
-        const float sampleT = (TexProject(pos, tex->vecs[1]) -
-                               static_cast<float>(surf.textureMins[1])) * (1.0f / 16.0f);
-        poly->vertexes[i].lightColor = SampleStaticLight(surf, sampleS, sampleT);
     }
 
     TriangulatePolygon(*poly);

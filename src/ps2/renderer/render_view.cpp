@@ -155,6 +155,8 @@ void SetupFrame(const refdef_t & viewDef)
 {
     ++s_frameCount;
 
+    mod::SetLightStyles(viewDef.lightstyles);
+
     static const cvar_t * lightSubdivide =
         Cvar_Get("ps2_light_subdivide", "4", CVAR_ARCHIVE);
     s_lightSamplesPerEdge = lightSubdivide->value;
@@ -774,7 +776,7 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
             corner.pos      = { src.position.x, src.position.y, src.position.z, 1.0f };
             corner.st       = { src.texture_s, src.texture_t, 0.0f, 0.0f };
             corner.lightmap = { src.lightmap_s, src.lightmap_t, 0.0f, 0.0f };
-            UnpackLightColor(corner, src.lightColor);
+            SampleVertexLight(corner, surface);
 
             const math::Vec4 clip = math::Transform(corner.pos, s_viewProjMatrix);
             const float gw = vu1::kGuardBandNdcLimit * clip.w;

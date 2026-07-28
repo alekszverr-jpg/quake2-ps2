@@ -30,6 +30,20 @@ namespace {
 // Extra debug printing for cache hits / evictions.
 constexpr bool kVerboseModelCache = false;
 
+static float s_lightStyleRgb[MAX_LIGHTSTYLES][3];
+static bool  s_lightStylesInitialized = false;
+
+void ResetLightStyles()
+{
+    for (int style = 0; style < MAX_LIGHTSTYLES; ++style)
+    {
+        s_lightStyleRgb[style][0] = 1.0f;
+        s_lightStyleRgb[style][1] = 1.0f;
+        s_lightStyleRgb[style][2] = 1.0f;
+    }
+    s_lightStylesInitialized = true;
+}
+
 float StaticLightScale()
 {
     // Equivalent lighting range to the original renderer's default
@@ -403,6 +417,11 @@ static ModelCache s_cache;
 
 u32 SampleStaticLight(const ModelSurface & surface, float sampleS, float sampleT)
 {
+    if (!s_lightStylesInitialized)
+    {
+        ResetLightStyles();
+    }
+
     if (surface.samples == nullptr)
     {
         return 0x80808080u; // No light data: fullbright, like R_BuildLightMap.
@@ -443,7 +462,9 @@ u32 SampleStaticLight(const ModelSurface & surface, float sampleS, float sampleT
                               (static_cast<float>(c10[channel]) - static_cast<float>(c00[channel])) * fracS;
             const float bottom = static_cast<float>(c01[channel]) +
                                  (static_cast<float>(c11[channel]) - static_cast<float>(c01[channel])) * fracS;
-            lightRgb[channel] += (top + (bottom - top) * fracT) * lightScale;
+            const int styleIndex = surface.styles[style];
+            lightRgb[channel] += (top + (bottom - top) * fracT) * lightScale *
+                                 s_lightStyleRgb[styleIndex][channel];
         }
         ++styleCount;
     }
@@ -470,6 +491,23 @@ u32 SampleStaticLight(const ModelSurface & surface, float sampleS, float sampleT
     const u32 g = static_cast<u32>(lightRgb[1] * (128.0f / 255.0f) + 0.5f);
     const u32 b = static_cast<u32>(lightRgb[2] * (128.0f / 255.0f) + 0.5f);
     return r | (g << 8) | (b << 16) | (0x80u << 24);
+}
+
+void SetLightStyles(const lightstyle_t * styles)
+{
+    if (styles == nullptr)
+    {
+        ResetLightStyles();
+        return;
+    }
+
+    for (int style = 0; style < MAX_LIGHTSTYLES; ++style)
+    {
+        s_lightStyleRgb[style][0] = styles[style].rgb[0];
+        s_lightStyleRgb[style][1] = styles[style].rgb[1];
+        s_lightStyleRgb[style][2] = styles[style].rgb[2];
+    }
+    s_lightStylesInitialized = true;
 }
 
 void Init()

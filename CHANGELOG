@@ -15,6 +15,8 @@ Development priorities and completion criteria are tracked in
 - Added adaptive lightmap-space tessellation for large BSP surfaces, sampling
   interior RGB lighting without a second GS texture pass. The archived
   `ps2_light_subdivide` cvar controls its detail/performance balance.
+- Added frame-driven Quake II light-style scaling to BSP samples, restoring
+  animated flicker and pulse patterns from the original level data.
 
 ### Fixed
 

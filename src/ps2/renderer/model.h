@@ -87,10 +87,6 @@ struct PolyVertex
     // lightmap tex coords:
     float lightmap_s;
     float lightmap_t;
-
-    // Static BSP light sampled from the Quake II RGB lightmap and packed in
-    // native GS RGBAQ byte order (128 means 1.0 modulation).
-    u32 lightColor;
 };
 
 //
@@ -182,6 +178,10 @@ struct ModelSurface
 // colour. Bilinear within the sample grid; animated style scaling is not yet
 // applied.
 u32 SampleStaticLight(const ModelSurface & surface, float sampleS, float sampleT);
+
+// Supplies the current engine light-style RGB scales (256 entries). Called
+// once per rendered frame; nullptr restores the all-ones load-time default.
+void SetLightStyles(const lightstyle_t * styles);
 
 //
 // BSP world node.
