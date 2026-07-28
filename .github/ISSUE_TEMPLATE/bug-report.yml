@@ -1,0 +1,54 @@
+name: Bug report
+description: Report a reproducible problem in PCSX2 or on real PS2 hardware.
+title: "[Bug] "
+body:
+  - type: input
+    id: build
+    attributes:
+      label: Build
+      description: Git commit or GitHub Actions run URL.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - PCSX2
+        - Real PlayStation 2
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What happened, and what did you expect instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      placeholder: |
+        1. Start the ELF
+        2. Load map ...
+        3. Move to ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error text, logs or screenshots
+      description: Include PCSX2 emulog output or a clear photo of Sys_Error when available.
+
+  - type: checkboxes
+    id: data
+    attributes:
+      label: Game data
+      options:
+        - label: I did not attach copyrighted Quake II game data.
+          required: true

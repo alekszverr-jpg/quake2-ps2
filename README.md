@@ -1,45 +1,173 @@
+# Quake II for PlayStation 2
 
-# Quake II port for the PlayStation 2
+[![Build](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml/badge.svg)](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml)
+[![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](LICENSE)
 
-Development has resumed. See the [roadmap](ROADMAP.md) for current priorities
-and the [changelog](CHANGELOG) for completed work.
+An active continuation of the unofficial Quake II port for the Sony
+PlayStation 2. It is based on id Software's released Quake II source code and
+the original PS2 port by [Guilherme Lampert](https://github.com/glampert).
 
-![Raw level geometry](https://raw.githubusercontent.com/glampert/quake2-for-ps2/master/misc/screens/q2ps2-level-notex-2.png "Raw level geometry")
+The current test build boots on PCSX2 and real PS2 hardware, renders textured
+BSP levels and animated MD2 models through a VU1-assisted pipeline, and supports
+DualShock controls. It is not yet a complete port: lighting, sound and several
+rendering paths are still under development.
 
-## Overview
+> This repository contains source code only. It does not include or distribute
+> copyrighted Quake II game data. You must provide data files from your own
+> copy of the game.
 
-This is an unofficial fan made port, targeting the PS2 Console, of the original
-[Quake II source code released by id Software][link_id_repo].
+## Project status
 
-This port relies on the free [PS2DEV SDK][link_ps2_dev] to provide rendering,
-input, audio and system services for the Quake Engine.
+| Area | Status |
+| --- | --- |
+| PCSX2 boot from `host:` | Working |
+| Real PS2 boot from FAT32 USB | Working, under validation |
+| Menus, HUD and console | Working |
+| DualShock input | Working |
+| Textured BSP world | Working |
+| Animated MD2 models and weapons | Working |
+| NTSC `640x448` / PAL `640x512` | Implemented, PAL under validation |
+| Cinematics | Implemented |
+| Lightmaps and dynamic lighting | Not implemented |
+| Sound | Not implemented |
+| Mipmaps | Not implemented |
+| Save/load on PS2 storage | Not implemented |
 
-The project is in active development. Menus, cinematics, gamepad input,
-textured BSP levels and animated MD2 models are running on PCSX2 and are being
-validated on real PS2 hardware.
+See [ROADMAP.md](ROADMAP.md) for milestones and [CHANGELOG](CHANGELOG) for
+completed work and known limitations.
 
-The long term goal would be to have a fully functional and playable (single-player)
-Quake II on the PlayStation 2, using only on the freely available tools and libraries.
+## Download a test build
 
-The main features still missing are:
+Open the [GitHub Actions build page](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml),
+select the latest successful run and download the `quake2-ps2-build` artifact.
+The archive contains:
 
-- Add lightmaps, model lighting and dynamic lights
-- Complete sprite, brush-entity, sky, water and transparency rendering
-- Add mipmaps and stable texture minification
-- Add sound rendering/mixing for the PS2
-- Add save/load and persistent configuration for PS2 storage
-- Optimize memory allocation/usage as much as possible
-- Optimize rendering to ensure smooth 30fps gameplay
+```text
+quake2.elf
+tools/
+```
 
-## License
+GitHub requires you to be signed in before downloading workflow artifacts.
 
-Quake II was originally released as GPL, and it remains as such. New code written
-for the PS2 port or any changes made to the original source code are also released under the
-GNU General Public License version 2. See the accompanying LICENSE file for the details.
+## Game data
 
-You can also find a copy of the GPL version 2 [in here][link_gpl_v2].
+At minimum, copy `pak0.pak` from a full, legally owned Quake II installation:
 
-[link_id_repo]: https://github.com/id-Software/Quake-2
-[link_ps2_dev]: https://github.com/ps2dev
-[link_gpl_v2]:  https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html
+```text
+baseq2/
+  pak0.pak
+  pak1.pak       # optional official update data
+  pak2.pak       # optional official update data
+  video/         # optional loose cinematics
+  players/       # optional loose player assets
+```
 
+Do not commit these files to the repository.
+
+## Run on PCSX2
+
+1. Extract `quake2.elf`.
+2. Put the `baseq2` directory beside the ELF.
+3. In PCSX2, enable **Settings → Emulation → Enable Host Filesystem**.
+4. Start `quake2.elf`.
+
+Example:
+
+```text
+quake2-test/
+  quake2.elf
+  baseq2/
+    pak0.pak
+```
+
+## Run on a real PS2
+
+Current hardware builds load game data from a FAT32 USB drive through `mass:`.
+
+1. Format a USB drive as FAT32.
+2. Put `baseq2` in the root of the drive.
+3. Copy `quake2.elf` to the drive.
+4. Start the ELF through uLaunchELF.
+
+Expected layout:
+
+```text
+mass:/
+  quake2.elf
+  baseq2/
+    pak0.pak
+    pak1.pak
+    pak2.pak
+```
+
+USB enumeration may take a few seconds. HDD, MX4SIO and memory-card game-data
+paths are not supported yet.
+
+## Default controls
+
+| Control | Action |
+| --- | --- |
+| Left stick | Look |
+| Right stick | Move / strafe |
+| Cross | Jump / confirm |
+| Circle | Crouch / back |
+| Square | Use |
+| Triangle | Help |
+| R1 | Attack |
+| L1 | Run |
+| L2 / R2 | Previous / next weapon |
+| D-pad | Inventory |
+| R3 | Center view |
+| Start | Menu |
+| Select | Console |
+
+Bindings will become configurable once persistent configuration is completed.
+
+## Build from source
+
+The port uses the open-source [PS2DEV toolchain](https://github.com/ps2dev).
+The build also requires
+[vclpp](https://github.com/glampert/vclpp) and
+[OpenVCL](https://github.com/ps2dev/openvcl) for the VU1 microprogram.
+
+With `PS2DEV` and `PS2SDK` configured:
+
+```sh
+make
+```
+
+The resulting ELF is written to:
+
+```text
+build/quake2.elf
+```
+
+Host utilities can be built separately with:
+
+```sh
+make tools
+```
+
+The GitHub Actions workflow is the reference reproducible build environment.
+
+## Development
+
+- [Roadmap](ROADMAP.md)
+- [Changelog](CHANGELOG)
+- [Builds](https://github.com/alekszverr-jpg/quake2-ps2/actions)
+- [Issues and test reports](https://github.com/alekszverr-jpg/quake2-ps2/issues)
+
+Useful reports include console model/region, launch method, storage device,
+video mode, exact reproduction steps and a photo or emulator screenshot.
+
+## License and credits
+
+Quake II source code was released under the GNU General Public License. This
+port and its modifications remain under the GNU GPL version 2; see [LICENSE](LICENSE).
+
+- Quake II by id Software:
+  [id-Software/Quake-2](https://github.com/id-Software/Quake-2)
+- Original PlayStation 2 port by Guilherme Lampert:
+  [glampert/quake2-ps2](https://github.com/glampert/quake2-ps2)
+- PlayStation 2 open-source toolchain:
+  [PS2DEV](https://github.com/ps2dev)

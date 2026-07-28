@@ -1,0 +1,91 @@
+name: Real PS2 hardware test
+description: Report a successful boot, rendering issue or crash on a real console.
+title: "[Hardware] "
+labels:
+  - hardware-test
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for testing on real hardware. Do not attach copyrighted Quake II data.
+
+  - type: input
+    id: build
+    attributes:
+      label: Build
+      description: Git commit, Actions run URL or artifact date.
+      placeholder: "Commit 4f5344b or an Actions run URL"
+    validations:
+      required: true
+
+  - type: input
+    id: console
+    attributes:
+      label: Console model and region
+      placeholder: "SCPH-50004, PAL"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: video
+    attributes:
+      label: Video output
+      options:
+        - Composite
+        - RGB SCART
+        - Component
+        - HDMI adapter
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: launcher
+    attributes:
+      label: Launch method
+      placeholder: "uLaunchELF version and launch path"
+    validations:
+      required: true
+
+  - type: input
+    id: storage
+    attributes:
+      label: Storage
+      placeholder: "FAT32 USB drive, manufacturer/capacity if known"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: result
+    attributes:
+      label: Result
+      options:
+        - Boots and plays
+        - Boots with graphical problems
+        - Sys_Error
+        - Black screen or freeze
+        - Returns to launcher
+    validations:
+      required: true
+
+  - type: textarea
+    id: details
+    attributes:
+      label: Details and reproduction steps
+      description: Include the map, actions taken, exact error text and whether it reproduces after a cold boot.
+    validations:
+      required: true
+
+  - type: textarea
+    id: media
+    attributes:
+      label: Photos, video or emulator comparison
+      description: Drag files here or paste links.
+
+  - type: checkboxes
+    id: data
+    attributes:
+      label: Game data
+      options:
+        - label: I used data files from my own legal copy of Quake II.
+          required: true

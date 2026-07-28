@@ -11,6 +11,11 @@ Development priorities and completion criteria are tracked in
 - Reactivated the project documentation.
 - Added a maintained development roadmap.
 - Replaced the legacy free-form changelog with dated, user-visible entries.
+- Rebuilt the repository landing page with current feature status, test-build
+  downloads, PCSX2/real-hardware setup, controls, build instructions and
+  upstream credits.
+- Added structured bug and real-hardware test report forms.
+- Updated the GitHub repository description, topics and issue-tracker settings.
 
 ## 2026-07-28 - First playable renderer test
 
