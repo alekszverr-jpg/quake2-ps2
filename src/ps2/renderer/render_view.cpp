@@ -28,6 +28,10 @@
 
 #include <cstring>
 
+extern "C" {
+    #include "common/q_files.h" // MD2 disk structures.
+}
+
 namespace ps2::view {
 namespace {
 
@@ -714,6 +718,179 @@ void DrawTextureChains()
 }
 
 // ------------------------------------------------------------------------------------------------
+// Alias (MD2) entity pass
+//
+// The interpolation follows the original ref_gl GL_DrawAliasFrameLerp path:
+// frame byte positions are expanded by each frame's scale/translate, while the
+// old entity origin is first expressed in the current entity's local axes.
+// The indexed MD2 triangle/ST tables are used instead of the GL command strips;
+// index_st is per triangle corner, so skin seams remain correct.
+// ------------------------------------------------------------------------------------------------
+
+math::Mat4 EntityModelMatrix(const entity_t & entity)
+{
+    // Row-vector equivalent of ref_gl's R_RotateForEntity. Alias pitch has the
+    // historical sign correction applied by R_DrawAliasModel around that call.
+    const math::Mat4 roll  = math::RotationX(math::DegToRad(-entity.angles[ROLL]));
+    const math::Mat4 pitch = math::RotationY(math::DegToRad( entity.angles[PITCH]));
+    const math::Mat4 yaw   = math::RotationZ(math::DegToRad( entity.angles[YAW]));
+    const math::Mat4 move  = math::Translation(entity.origin[0], entity.origin[1], entity.origin[2]);
+    return roll * pitch * yaw * move;
+}
+
+const tex::Texture & AliasSkin(const entity_t & entity, const mod::ModelInstance & model)
+{
+    if (entity.skin != nullptr)
+    {
+        return *reinterpret_cast<const tex::Texture *>(entity.skin);
+    }
+
+    int skinIndex = entity.skinnum;
+    if (skinIndex < 0 || skinIndex >= mod::kMaxMD2Skins || model.skins[skinIndex] == nullptr)
+    {
+        skinIndex = 0;
+    }
+    return (model.skins[skinIndex] != nullptr) ? *model.skins[skinIndex] : tex::DebugTexture();
+}
+
+void FlushAliasScratch(const math::Mat4 & mvp, const tex::Texture & texture)
+{
+    if (s_scratchVertCount == 0)
+    {
+        return;
+    }
+
+    ++s_drawStats.drawBatches;
+    vu1::DrawTriangles(mvp, texture, s_scratchVerts, s_scratchVertCount);
+    s_scratchVertCount = 0;
+}
+
+void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model)
+{
+    PS2_Assert(model.type == mod::ModelType::AliasMD2);
+    PS2_Assert(model.hunkBase != nullptr);
+
+    const auto * md2 = static_cast<const dmdl_t *>(model.hunkBase);
+
+    int frameIndex = entity.frame;
+    if (frameIndex < 0 || frameIndex >= md2->num_frames)
+    {
+        frameIndex = 0;
+    }
+
+    int oldFrameIndex = entity.oldframe;
+    if (oldFrameIndex < 0 || oldFrameIndex >= md2->num_frames)
+    {
+        oldFrameIndex = frameIndex;
+    }
+
+    float backLerp = entity.backlerp;
+    if (backLerp < 0.0f) { backLerp = 0.0f; }
+    if (backLerp > 1.0f) { backLerp = 1.0f; }
+    const float frontLerp = 1.0f - backLerp;
+
+    const auto * frame = reinterpret_cast<const daliasframe_t *>(
+        reinterpret_cast<const u8 *>(md2) + md2->ofs_frames + (frameIndex * md2->framesize));
+    const auto * oldFrame = reinterpret_cast<const daliasframe_t *>(
+        reinterpret_cast<const u8 *>(md2) + md2->ofs_frames + (oldFrameIndex * md2->framesize));
+
+    // GL_DrawAliasFrameLerp's origin interpolation, in model-local axes.
+    vec3_t delta = {
+        entity.oldorigin[0] - entity.origin[0],
+        entity.oldorigin[1] - entity.origin[1],
+        entity.oldorigin[2] - entity.origin[2]
+    };
+    vec3_t angles = { entity.angles[0], entity.angles[1], entity.angles[2] };
+    vec3_t axis[3];
+    AngleVectors(angles, axis[0], axis[1], axis[2]);
+
+    float move[3] = {
+         DotProduct(delta, axis[0]),
+        -DotProduct(delta, axis[1]),
+         DotProduct(delta, axis[2])
+    };
+    float frontScale[3];
+    float backScale[3];
+    for (int i = 0; i < 3; ++i)
+    {
+        move[i] = backLerp * (move[i] + oldFrame->translate[i])
+                + frontLerp * frame->translate[i];
+        frontScale[i] = frontLerp * frame->scale[i];
+        backScale[i]  = backLerp  * oldFrame->scale[i];
+    }
+
+    const auto * triangles = reinterpret_cast<const dtriangle_t *>(
+        reinterpret_cast<const u8 *>(md2) + md2->ofs_tris);
+    const auto * stVerts = reinterpret_cast<const dstvert_t *>(
+        reinterpret_cast<const u8 *>(md2) + md2->ofs_st);
+
+    const float invSkinW = 1.0f / static_cast<float>(md2->skinwidth);
+    const float invSkinH = 1.0f / static_cast<float>(md2->skinheight);
+    const tex::Texture & texture = AliasSkin(entity, model);
+    const math::Mat4 mvp = EntityModelMatrix(entity) * s_viewProjMatrix;
+
+    PS2_Assert(s_scratchVertCount == 0);
+    for (int t = 0; t < md2->num_tris; ++t)
+    {
+        if (s_scratchVertCount + 3 > kScratchMaxVerts)
+        {
+            FlushAliasScratch(mvp, texture);
+        }
+
+        for (int corner = 0; corner < 3; ++corner)
+        {
+            const int vertexIndex = triangles[t].index_xyz[corner];
+            const int stIndex     = triangles[t].index_st[corner];
+            PS2_Assert(vertexIndex >= 0 && vertexIndex < md2->num_xyz);
+            PS2_Assert(stIndex >= 0 && stIndex < md2->num_st);
+
+            const dtrivertx_t & v  = frame->verts[vertexIndex];
+            const dtrivertx_t & ov = oldFrame->verts[vertexIndex];
+            const dstvert_t & st   = stVerts[stIndex];
+
+            vu1::DrawVertex & out = s_scratchVerts[s_scratchVertCount++];
+            out.x = move[0] + static_cast<float>(ov.v[0]) * backScale[0]
+                            + static_cast<float>(v.v[0])  * frontScale[0];
+            out.y = move[1] + static_cast<float>(ov.v[1]) * backScale[1]
+                            + static_cast<float>(v.v[1])  * frontScale[1];
+            out.z = move[2] + static_cast<float>(ov.v[2]) * backScale[2]
+                            + static_cast<float>(v.v[2])  * frontScale[2];
+            out.w    = 1.0f;
+            out.rgba = kFullBright;
+            out.s    = static_cast<float>(st.s) * invSkinW;
+            out.t    = static_cast<float>(st.t) * invSkinH;
+            out.q    = 1.0f;
+        }
+        ++s_drawStats.trisDrawn;
+    }
+    FlushAliasScratch(mvp, texture);
+}
+
+void RenderAliasEntities(const refdef_t & viewDef)
+{
+    static const cvar_t * s_skipEntities = Cvar_Get("ps2_skip_entities", "0", 0);
+    if (s_skipEntities->value != 0.0f)
+    {
+        return;
+    }
+
+    for (int i = 0; i < viewDef.num_entities; ++i)
+    {
+        const entity_t & entity = viewDef.entities[i];
+        if (entity.model == nullptr || (entity.flags & (RF_BEAM | RF_VIEWERMODEL)) != 0)
+        {
+            continue;
+        }
+
+        const auto * model = reinterpret_cast<const mod::ModelInstance *>(entity.model);
+        if (model->type == mod::ModelType::AliasMD2)
+        {
+            DrawAliasModel(entity, *model);
+        }
+    }
+}
+
+// ------------------------------------------------------------------------------------------------
 // World model pass
 // ------------------------------------------------------------------------------------------------
 
@@ -772,8 +949,9 @@ void RenderFrame(const refdef_t & viewDef)
     SetupFrame(viewDef);
 
     RenderWorldModel(viewDef);
+    RenderAliasEntities(viewDef);
 
-    // Later milestones continue here: solid entities, translucent
+    // Later milestones continue here: brush/sprite entities, translucent
     // surfaces/entities, particles, dynamic lights.
 }
 
