@@ -14,6 +14,7 @@
 #include "ps2/hash.h"
 #include "ps2/common.h"
 
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -28,6 +29,17 @@ namespace {
 
 // Extra debug printing for cache hits / evictions.
 constexpr bool kVerboseModelCache = false;
+
+float StaticLightScale()
+{
+    // Equivalent lighting range to the original renderer's default
+    // intensity=2 texture preprocessing. Archived and read live so a map
+    // reload after changing the cvar rebuilds all corner samples consistently.
+    static const cvar_t * scale = Cvar_Get("ps2_light_scale", "2.0", CVAR_ARCHIVE);
+    if (scale->value < 0.0f) { return 0.0f; }
+    if (scale->value > 8.0f) { return 8.0f; }
+    return scale->value;
+}
 
 PS2MemTag MemTagForType(ModelType type)
 {
@@ -388,6 +400,77 @@ static ModelCache s_cache;
 // ------------------------------------------------------------------------------------------------
 // Public API
 // ------------------------------------------------------------------------------------------------
+
+u32 SampleStaticLight(const ModelSurface & surface, float sampleS, float sampleT)
+{
+    if (surface.samples == nullptr)
+    {
+        return 0x80808080u; // No light data: fullbright, like R_BuildLightMap.
+    }
+
+    const int width  = (surface.extents[0] >> 4) + 1;
+    const int height = (surface.extents[1] >> 4) + 1;
+    const int texels = width * height;
+
+    if (sampleS < 0.0f) { sampleS = 0.0f; }
+    if (sampleT < 0.0f) { sampleT = 0.0f; }
+    const float maxS = static_cast<float>(width  - 1);
+    const float maxT = static_cast<float>(height - 1);
+    if (sampleS > maxS) { sampleS = maxS; }
+    if (sampleT > maxT) { sampleT = maxT; }
+
+    const int s0 = static_cast<int>(std::floor(sampleS));
+    const int t0 = static_cast<int>(std::floor(sampleT));
+    const int s1 = (s0 + 1 < width)  ? s0 + 1 : s0;
+    const int t1 = (t0 + 1 < height) ? t0 + 1 : t0;
+    const float fracS = sampleS - static_cast<float>(s0);
+    const float fracT = sampleT - static_cast<float>(t0);
+
+    float lightRgb[3] = {};
+    int styleCount = 0;
+    const float lightScale = StaticLightScale();
+    for (int style = 0; style < kMaxLightmaps && surface.styles[style] != 255; ++style)
+    {
+        const u8 * map = surface.samples + style * texels * 3;
+        const u8 * c00 = map + (t0 * width + s0) * 3;
+        const u8 * c10 = map + (t0 * width + s1) * 3;
+        const u8 * c01 = map + (t1 * width + s0) * 3;
+        const u8 * c11 = map + (t1 * width + s1) * 3;
+
+        for (int channel = 0; channel < 3; ++channel)
+        {
+            const float top = static_cast<float>(c00[channel]) +
+                              (static_cast<float>(c10[channel]) - static_cast<float>(c00[channel])) * fracS;
+            const float bottom = static_cast<float>(c01[channel]) +
+                                 (static_cast<float>(c11[channel]) - static_cast<float>(c01[channel])) * fracS;
+            lightRgb[channel] += (top + (bottom - top) * fracT) * lightScale;
+        }
+        ++styleCount;
+    }
+
+    if (styleCount == 0)
+    {
+        return 0x80808080u;
+    }
+
+    // Match R_BuildLightMap: preserve hue when an accumulated channel exceeds
+    // full intensity by normalising all channels together.
+    float maxLight = lightRgb[0];
+    if (lightRgb[1] > maxLight) { maxLight = lightRgb[1]; }
+    if (lightRgb[2] > maxLight) { maxLight = lightRgb[2]; }
+    if (maxLight > 255.0f)
+    {
+        const float normalize = 255.0f / maxLight;
+        lightRgb[0] *= normalize;
+        lightRgb[1] *= normalize;
+        lightRgb[2] *= normalize;
+    }
+
+    const u32 r = static_cast<u32>(lightRgb[0] * (128.0f / 255.0f) + 0.5f);
+    const u32 g = static_cast<u32>(lightRgb[1] * (128.0f / 255.0f) + 0.5f);
+    const u32 b = static_cast<u32>(lightRgb[2] * (128.0f / 255.0f) + 0.5f);
+    return r | (g << 8) | (b << 16) | (0x80u << 24);
+}
 
 void Init()
 {

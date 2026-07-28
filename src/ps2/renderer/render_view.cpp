@@ -71,6 +71,10 @@ static cplane_t s_frustum[4] = {};
 // Wall texture animation frame (viewDef.time * 2, as in ref_gl).
 static int s_textureAnimFrame = 0;
 
+// Maximum lightmap-sample spacing for adaptively tessellated world triangles.
+// Refreshed from ps2_light_subdivide each frame.
+static float s_lightSamplesPerEdge = 4.0f;
+
 // Scratch for one decompressed cluster PVS, and for the two-cluster union used
 // when the camera straddles a solid water boundary. Static: 8 KB each.
 alignas(16) static u8 s_dvisPvs[MAX_MAP_LEAFS / 8];
@@ -150,6 +154,12 @@ inline bool ShouldCullBBox(float * mins, float * maxs)
 void SetupFrame(const refdef_t & viewDef)
 {
     ++s_frameCount;
+
+    static const cvar_t * lightSubdivide =
+        Cvar_Get("ps2_light_subdivide", "4", CVAR_ARCHIVE);
+    s_lightSamplesPerEdge = lightSubdivide->value;
+    if (s_lightSamplesPerEdge < 2.0f)  { s_lightSamplesPerEdge = 2.0f; }
+    if (s_lightSamplesPerEdge > 16.0f) { s_lightSamplesPerEdge = 16.0f; }
 
     // Animated walls flip frames at 2 Hz of game time (as in ref_gl).
     s_textureAnimFrame = static_cast<int>(viewDef.time * 2.0f);
@@ -510,7 +520,7 @@ inline void FlushScratch(const tex::Texture & texture)
 // camera), w+z >= 0 (far), and G*w +/- x/y >= 0 (sides, G = the VU guard-band
 // limit). Everything a vertex carries - world position, UVs, and the six
 // distances themselves - is linear under a plane cut, so a split interpolates
-// the whole ClipVertex as four quadword lerps on VU0, no scalar float math.
+// the whole ClipVertex with aligned vector lerps on VU0, no scalar float math.
 // Whole-triangle-inside is the common case and skips all of it.
 // ------------------------------------------------------------------------------------------------
 
@@ -529,16 +539,17 @@ union ClipDists
     float f[8];
 };
 
-// Everything a clipped vertex carries, laid out as four quadwords so a plane cut
-// interpolates it with four aligned vector lerps and no scalar float math at all.
+// Everything a clipped vertex carries, qword-aligned so a plane cut and the
+// lighting tessellator can use vector lerps throughout.
 struct alignas(16) ClipVertex
 {
     math::Vec4 pos; // world position, w = 1
     math::Vec4 st;  // diffuse texture coords in xy; zw unused
+    math::Vec4 lightmap; // atlas UV in xy; used to locate BSP light samples.
     math::Vec4 color; // GS modulation channels as floats in xyzw.
     ClipDists  d;
 };
-static_assert(sizeof(ClipVertex) == 80, "ClipVertex must be exactly five quadwords");
+static_assert(sizeof(ClipVertex) == 96, "ClipVertex must be exactly six quadwords");
 
 // Sutherland-Hodgman pass of a convex polygon against one plane. 'out' must
 // hold inCount + 1 vertexes. Returns the clipped vertex count.
@@ -560,6 +571,7 @@ int ClipAgainstPlane(const ClipVertex * in, const int inCount, ClipVertex * out,
             ClipVertex & o = out[outCount++];
             math::LerpTo(o.pos,    a.pos,    b.pos,    t);
             math::LerpTo(o.st,     a.st,     b.st,     t);
+            math::LerpTo(o.lightmap, a.lightmap, b.lightmap, t);
             math::LerpTo(o.color,  a.color,  b.color,  t);
             math::LerpTo(o.d.q[0], a.d.q[0], b.d.q[0], t);
             math::LerpTo(o.d.q[1], a.d.q[1], b.d.q[1], t);
@@ -585,123 +597,198 @@ inline void EmitScratchVertex(const ClipVertex & v)
     dst.q    = 1.0f;
 }
 
-// Appends a polygon's triangles to the scratch buffer, clipping the ones that
-// cross the VU clip volume and flushing when full.
-void GatherPolyTriangles(const mod::ModelPoly & poly, const tex::Texture & texture)
+constexpr float kLightmapAtlasSize = 128.0f;
+constexpr int   kMaxLightSubdivideDepth = 4;
+
+void UnpackLightColor(ClipVertex & vertex, u32 color)
+{
+    vertex.color = {
+        static_cast<float>( color        & 0xFFu),
+        static_cast<float>((color >> 8)  & 0xFFu),
+        static_cast<float>((color >> 16) & 0xFFu),
+        128.0f
+    };
+}
+
+void SampleVertexLight(ClipVertex & vertex, const mod::ModelSurface & surface)
+{
+    // model_load normalises against the original 128x128 atlas convention:
+    // uv*128 = local sample coordinate + atlas offset + half-texel.
+    const float sampleS = vertex.lightmap.x * kLightmapAtlasSize -
+                          static_cast<float>(surface.light_s) - 0.5f;
+    const float sampleT = vertex.lightmap.y * kLightmapAtlasSize -
+                          static_cast<float>(surface.light_t) - 0.5f;
+    UnpackLightColor(vertex, mod::SampleStaticLight(surface, sampleS, sampleT));
+}
+
+float LightEdgeLengthSq(const ClipVertex & a, const ClipVertex & b)
+{
+    const float ds = (a.lightmap.x - b.lightmap.x) * kLightmapAtlasSize;
+    const float dt = (a.lightmap.y - b.lightmap.y) * kLightmapAtlasSize;
+    return ds * ds + dt * dt;
+}
+
+ClipVertex LightMidpoint(const ClipVertex & a, const ClipVertex & b,
+                         const mod::ModelSurface & surface)
+{
+    ClipVertex midpoint;
+    math::LerpTo(midpoint.pos,      a.pos,      b.pos,      0.5f);
+    math::LerpTo(midpoint.st,       a.st,       b.st,       0.5f);
+    math::LerpTo(midpoint.lightmap, a.lightmap, b.lightmap, 0.5f);
+    math::LerpTo(midpoint.d.q[0],   a.d.q[0],   b.d.q[0],   0.5f);
+    math::LerpTo(midpoint.d.q[1],   a.d.q[1],   b.d.q[1],   0.5f);
+    SampleVertexLight(midpoint, surface);
+    return midpoint;
+}
+
+// Clips one already-lit triangle against the VU guard volume and appends the
+// survivors to the VU scratch batch.
+void SubmitWorldTriangle(const ClipVertex (&corners)[3], const tex::Texture & texture)
+{
+    int insidePerPlane[kNumClipPlanes] = {};
+    for (const ClipVertex & corner : corners)
+    {
+        for (int p = 0; p < kNumClipPlanes; ++p)
+        {
+            insidePerPlane[p] += (corner.d.f[p] >= 0.0f);
+        }
+    }
+
+    int insideTotal = 0;
+    bool outsideAny = false;
+    for (int p = 0; p < kNumClipPlanes; ++p)
+    {
+        insideTotal += insidePerPlane[p];
+        outsideAny  |= (insidePerPlane[p] == 0);
+    }
+
+    if (outsideAny)
+    {
+        ++s_drawStats.trisCulled;
+        return;
+    }
+
+    if (insideTotal == 3 * kNumClipPlanes)
+    {
+        ++s_drawStats.trisDrawn;
+        if (s_scratchVertCount + 3 > kScratchMaxVerts)
+        {
+            FlushScratch(texture);
+        }
+        for (const ClipVertex & corner : corners)
+        {
+            EmitScratchVertex(corner);
+        }
+        return;
+    }
+
+    ++s_drawStats.trisClipped;
+    ClipVertex bufferA[3 + kNumClipPlanes];
+    ClipVertex bufferB[3 + kNumClipPlanes];
+
+    const ClipVertex * in = corners;
+    ClipVertex * out = bufferA;
+    int count = 3;
+    for (int p = 0; p < kNumClipPlanes && count >= 3; ++p)
+    {
+        if (insidePerPlane[p] == 3)
+        {
+            continue;
+        }
+        count = ClipAgainstPlane(in, count, out, p);
+        in  = out;
+        out = (out == bufferA) ? bufferB : bufferA;
+    }
+    if (count < 3)
+    {
+        return;
+    }
+
+    if (s_scratchVertCount + (count - 2) * 3 > kScratchMaxVerts)
+    {
+        FlushScratch(texture);
+    }
+    for (int v = 1; v < count - 1; ++v)
+    {
+        EmitScratchVertex(in[0]);
+        EmitScratchVertex(in[v]);
+        EmitScratchVertex(in[v + 1]);
+    }
+    s_drawStats.trisDrawn += count - 2;
+}
+
+// Bisects the longest lightmap-space edge until RGB samples are no more than
+// four grid cells apart. Longest-edge splitting adapts to narrow BSP faces and
+// grows geometry gradually (bounded to 16 triangles per original triangle).
+void SubdivideLitTriangle(const ClipVertex (&corners)[3],
+                          const mod::ModelSurface & surface,
+                          const tex::Texture & texture, int depth)
+{
+    float edgeLengthSq[3] = {
+        LightEdgeLengthSq(corners[0], corners[1]),
+        LightEdgeLengthSq(corners[1], corners[2]),
+        LightEdgeLengthSq(corners[2], corners[0])
+    };
+    int longest = 0;
+    if (edgeLengthSq[1] > edgeLengthSq[longest]) { longest = 1; }
+    if (edgeLengthSq[2] > edgeLengthSq[longest]) { longest = 2; }
+
+    if (surface.samples == nullptr ||
+        edgeLengthSq[longest] <= s_lightSamplesPerEdge * s_lightSamplesPerEdge ||
+        depth >= kMaxLightSubdivideDepth)
+    {
+        SubmitWorldTriangle(corners, texture);
+        return;
+    }
+
+    const int edgeA = longest;
+    const int edgeB = (longest + 1) % 3;
+    const int opposite = (longest + 2) % 3;
+    const ClipVertex midpoint = LightMidpoint(corners[edgeA], corners[edgeB], surface);
+
+    const ClipVertex first[3]  = { corners[edgeA], midpoint, corners[opposite] };
+    const ClipVertex second[3] = { midpoint, corners[edgeB], corners[opposite] };
+    SubdivideLitTriangle(first,  surface, texture, depth + 1);
+    SubdivideLitTriangle(second, surface, texture, depth + 1);
+}
+
+// Appends a polygon's adaptively lit triangles to the scratch buffer.
+void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & surface,
+                         const tex::Texture & texture)
 {
     const int numTriangles = poly.numVerts - 2;
     for (int t = 0; t < numTriangles; ++t)
     {
         const mod::ModelTriangle & tri = poly.triangles[t];
-
-        // Polygons the triangulation couldn't complete leave zeroed
-        // (degenerate) triangles behind; skip them.
         if (tri.vertexes[0] == tri.vertexes[1])
         {
-            continue;
+            continue; // Degenerate placeholder left by failed triangulation.
         }
 
-        // Clip-space plane distances of the three corners (world geometry
-        // draws untransformed, so the point transform is the view-projection).
         ClipVertex corners[3];
-        int insidePerPlane[kNumClipPlanes] = {};
         for (int v = 0; v < 3; ++v)
         {
             const mod::PolyVertex & src = poly.vertexes[tri.vertexes[v]];
-            ClipVertex & c = corners[v];
+            ClipVertex & corner = corners[v];
 
-            c.pos = { src.position.x, src.position.y, src.position.z, 1.0f };
-            c.st  = { src.texture_s, src.texture_t, 0.0f, 0.0f };
-            c.color = {
-                static_cast<float>( src.lightColor        & 0xFFu),
-                static_cast<float>((src.lightColor >> 8)  & 0xFFu),
-                static_cast<float>((src.lightColor >> 16) & 0xFFu),
-                128.0f
-            };
+            corner.pos      = { src.position.x, src.position.y, src.position.z, 1.0f };
+            corner.st       = { src.texture_s, src.texture_t, 0.0f, 0.0f };
+            corner.lightmap = { src.lightmap_s, src.lightmap_t, 0.0f, 0.0f };
+            UnpackLightColor(corner, src.lightColor);
 
-            const math::Vec4 clip = math::Transform(c.pos, s_viewProjMatrix);
+            const math::Vec4 clip = math::Transform(corner.pos, s_viewProjMatrix);
             const float gw = vu1::kGuardBandNdcLimit * clip.w;
-            c.d.f[0] = (clip.w - clip.z) - kClipEpsilon; // near (and behind-camera)
-            c.d.f[1] = (clip.w + clip.z) - kClipEpsilon; // far
-            c.d.f[2] = (gw - clip.x) - kClipEpsilon;     // guard band sides
-            c.d.f[3] = (gw + clip.x) - kClipEpsilon;
-            c.d.f[4] = (gw - clip.y) - kClipEpsilon;
-            c.d.f[5] = (gw + clip.y) - kClipEpsilon;
-            c.d.f[6] = 0.0f; // Spare lanes: never read as planes, but they ride
-            c.d.f[7] = 0.0f; // along through the lerps, so keep them finite.
-
-            for (int p = 0; p < kNumClipPlanes; ++p)
-            {
-                insidePerPlane[p] += (c.d.f[p] >= 0.0f);
-            }
+            corner.d.f[0] = (clip.w - clip.z) - kClipEpsilon;
+            corner.d.f[1] = (clip.w + clip.z) - kClipEpsilon;
+            corner.d.f[2] = (gw - clip.x) - kClipEpsilon;
+            corner.d.f[3] = (gw + clip.x) - kClipEpsilon;
+            corner.d.f[4] = (gw - clip.y) - kClipEpsilon;
+            corner.d.f[5] = (gw + clip.y) - kClipEpsilon;
+            corner.d.f[6] = 0.0f;
+            corner.d.f[7] = 0.0f;
         }
 
-        int insideTotal = 0;
-        bool outsideAny = false;
-        for (int p = 0; p < kNumClipPlanes; ++p)
-        {
-            insideTotal += insidePerPlane[p];
-            outsideAny  |= (insidePerPlane[p] == 0);
-        }
-
-        if (outsideAny)
-        {
-            ++s_drawStats.trisCulled;
-            continue; // All three corners outside one plane: entirely out.
-        }
-
-        if (insideTotal == 3 * kNumClipPlanes)
-        {
-            // Whole triangle inside: the common case, no clipping.
-            ++s_drawStats.trisDrawn;
-            if (s_scratchVertCount + 3 > kScratchMaxVerts)
-            {
-                FlushScratch(texture);
-            }
-            for (const ClipVertex & c : corners)
-            {
-                EmitScratchVertex(c);
-            }
-            continue;
-        }
-
-        // Straddling triangle: clip against every plane in turn. Each pass
-        // can add one vertex (3 -> at most 9); the survivors fan-triangulate.
-        ++s_drawStats.trisClipped;
-        ClipVertex bufferA[3 + kNumClipPlanes];
-        ClipVertex bufferB[3 + kNumClipPlanes];
-
-        const ClipVertex * in = corners;
-        ClipVertex * out = bufferA;
-        int count = 3;
-        for (int p = 0; p < kNumClipPlanes && count >= 3; ++p)
-        {
-            if (insidePerPlane[p] == 3)
-            {
-                continue; // All corners inside this plane: every clipped
-                          // vertex is a convex mix of them, so none can
-                          // cross it either.
-            }
-            count = ClipAgainstPlane(in, count, out, p);
-            in  = out;
-            out = (out == bufferA) ? bufferB : bufferA;
-        }
-        if (count < 3)
-        {
-            continue;
-        }
-
-        if (s_scratchVertCount + (count - 2) * 3 > kScratchMaxVerts)
-        {
-            FlushScratch(texture);
-        }
-        for (int v = 1; v < count - 1; ++v)
-        {
-            EmitScratchVertex(in[0]);
-            EmitScratchVertex(in[v]);
-            EmitScratchVertex(in[v + 1]);
-        }
-        s_drawStats.trisDrawn += count - 2;
+        SubdivideLitTriangle(corners, surface, texture, 0);
     }
 }
 
@@ -718,7 +805,7 @@ void DrawTextureChains()
             {
                 if (poly->numVerts >= 3) // Need at least one triangle.
                 {
-                    GatherPolyTriangles(*poly, *texture);
+                    GatherPolyTriangles(*poly, *surf, *texture);
                 }
             }
         }

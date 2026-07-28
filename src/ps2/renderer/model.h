@@ -177,6 +177,12 @@ struct ModelSurface
     u8 * samples; // [numstyles * surfsize]
 };
 
+// Samples and combines a surface's static RGB lightmap at local lightmap
+// coordinates (one unit per 16 world/texture units), returning GS modulation
+// colour. Bilinear within the sample grid; animated style scaling is not yet
+// applied.
+u32 SampleStaticLight(const ModelSurface & surface, float sampleS, float sampleT);
+
 //
 // BSP world node.
 //

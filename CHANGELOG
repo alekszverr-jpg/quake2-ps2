@@ -12,6 +12,9 @@ Development priorities and completion criteria are tracked in
   textures, with mipmapped minification filtering.
 - Added a first static BSP lighting pass that samples Quake II RGB lightmap
   data at surface vertices and interpolates it through the VU1 draw path.
+- Added adaptive lightmap-space tessellation for large BSP surfaces, sampling
+  interior RGB lighting without a second GS texture pass. The archived
+  `ps2_light_subdivide` cvar controls its detail/performance balance.
 
 ### Fixed
 

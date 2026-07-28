@@ -57,18 +57,6 @@ constexpr int   kTriangulationMaxVerts = 128; // Per polygon.
 
 constexpr float kSubdivideSizeF = static_cast<float>(kSubdivideSize);
 
-float StaticLightScale()
-{
-    // The original OpenGL renderer defaults texture intensity to 2. Raw BSP
-    // light values multiplied against our unmodified palette are otherwise
-    // considerably darker. Read this at map load, so changing the archived
-    // cvar followed by a map restart is enough to tune PCSX2/CRT output.
-    static const cvar_t * scale = Cvar_Get("ps2_light_scale", "2.0", CVAR_ARCHIVE);
-    if (scale->value < 0.0f) { return 0.0f; }
-    if (scale->value > 8.0f) { return 8.0f; }
-    return scale->value;
-}
-
 // ------------------------------------------------------------------------------------------------
 // Hunk sizing and allocation
 //
@@ -598,10 +586,6 @@ void BuildPolygonFromSurface(ModelInstance & mdl, HunkAllocator & hunk, ModelSur
     const float textureBaseT = std::floor(
         (static_cast<float>(surf.textureMins[1]) + static_cast<float>(surf.extents[1]) * 0.5f) / texH);
 
-    const int lightWidth  = (surf.extents[0] >> 4) + 1;
-    const int lightHeight = (surf.extents[1] >> 4) + 1;
-    const int lightTexels = lightWidth * lightHeight;
-
     for (int i = 0; i < numVerts; ++i)
     {
         const Vec3 & pos = EdgeVertex(mdl, mdl.surfEdges[surf.firstEdge + i]);
@@ -620,66 +604,11 @@ void BuildPolygonFromSurface(ModelInstance & mdl, HunkAllocator & hunk, ModelSur
         poly->vertexes[i].lightmap_s = lms / static_cast<float>(kLightmapTextureWidth  * 16);
         poly->vertexes[i].lightmap_t = lmt / static_cast<float>(kLightmapTextureHeight * 16);
 
-        // Sample the static RGB lightmap at this BSP corner. Multiple styles
-        // occupy consecutive lightTexels*3 blocks; their base contributions
-        // are added here. Animated style scaling and finer interior
-        // tessellation are follow-up work, but this already restores genuine
-        // map lighting instead of drawing every surface fullbright.
-        float lightRgb[3] = { 255.0f, 255.0f, 255.0f };
-        if (surf.samples != nullptr)
-        {
-            lightRgb[0] = lightRgb[1] = lightRgb[2] = 0.0f;
-
-            const float sampleSf = (TexProject(pos, tex->vecs[0]) -
-                                    static_cast<float>(surf.textureMins[0])) * (1.0f / 16.0f);
-            const float sampleTf = (TexProject(pos, tex->vecs[1]) -
-                                    static_cast<float>(surf.textureMins[1])) * (1.0f / 16.0f);
-            int sampleS = static_cast<int>(std::floor(sampleSf + 0.5f));
-            int sampleT = static_cast<int>(std::floor(sampleTf + 0.5f));
-            if (sampleS < 0) { sampleS = 0; }
-            if (sampleT < 0) { sampleT = 0; }
-            if (sampleS >= lightWidth)  { sampleS = lightWidth  - 1; }
-            if (sampleT >= lightHeight) { sampleT = lightHeight - 1; }
-            const int sampleIndex = sampleT * lightWidth + sampleS;
-
-            int styleCount = 0;
-            const float lightScale = StaticLightScale();
-            for (int style = 0; style < kMaxLightmaps && surf.styles[style] != 255; ++style)
-            {
-                const u8 * sample = surf.samples + (style * lightTexels + sampleIndex) * 3;
-                for (int channel = 0; channel < 3; ++channel)
-                {
-                    lightRgb[channel] += static_cast<float>(sample[channel]) * lightScale;
-                }
-                ++styleCount;
-            }
-
-            if (styleCount == 0)
-            {
-                lightRgb[0] = lightRgb[1] = lightRgb[2] = 255.0f;
-            }
-            else
-            {
-                // Match R_BuildLightMap: if a channel exceeds full intensity,
-                // scale all three together rather than clipping them
-                // independently, preserving the light's colour.
-                float maxLight = lightRgb[0];
-                if (lightRgb[1] > maxLight) { maxLight = lightRgb[1]; }
-                if (lightRgb[2] > maxLight) { maxLight = lightRgb[2]; }
-                if (maxLight > 255.0f)
-                {
-                    const float normalize = 255.0f / maxLight;
-                    lightRgb[0] *= normalize;
-                    lightRgb[1] *= normalize;
-                    lightRgb[2] *= normalize;
-                }
-            }
-        }
-
-        const u32 r = static_cast<u32>(lightRgb[0] * (128.0f / 255.0f) + 0.5f);
-        const u32 g = static_cast<u32>(lightRgb[1] * (128.0f / 255.0f) + 0.5f);
-        const u32 b = static_cast<u32>(lightRgb[2] * (128.0f / 255.0f) + 0.5f);
-        poly->vertexes[i].lightColor = r | (g << 8) | (b << 16) | (0x80u << 24);
+        const float sampleS = (TexProject(pos, tex->vecs[0]) -
+                               static_cast<float>(surf.textureMins[0])) * (1.0f / 16.0f);
+        const float sampleT = (TexProject(pos, tex->vecs[1]) -
+                               static_cast<float>(surf.textureMins[1])) * (1.0f / 16.0f);
+        poly->vertexes[i].lightColor = SampleStaticLight(surf, sampleS, sampleT);
     }
 
     TriangulatePolygon(*poly);
