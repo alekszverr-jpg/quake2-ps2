@@ -175,8 +175,8 @@ struct ModelSurface
 
 // Samples and combines a surface's static RGB lightmap at local lightmap
 // coordinates (one unit per 16 world/texture units), returning GS modulation
-// colour. Bilinear within the sample grid; animated style scaling is not yet
-// applied.
+// colour. Bilinear within the sample grid and scaled by the current animated
+// light styles.
 u32 SampleStaticLight(const ModelSurface & surface, float sampleS, float sampleT);
 
 // Supplies the current engine light-style RGB scales (256 entries). Called
@@ -336,5 +336,11 @@ const ModelInstance * Find(const char * name);
 // NOTE: the view renderer stamps per-frame visibility into the world as it
 // draws (node/leaf/surface visFrame fields, per-texture surface chains).
 const ModelInstance * GetWorldModel();
+
+// Traces down through the world BSP and samples the first lightmapped surface
+// below a point, matching the static part of ref_gl's R_LightPoint. Returned
+// RGB values use texture-modulation units where 1.0 leaves a model skin
+// unchanged.
+Vec3 SampleWorldLight(const ModelInstance & world, const Vec3 & point);
 
 } // namespace ps2::mod

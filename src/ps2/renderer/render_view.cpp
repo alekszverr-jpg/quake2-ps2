@@ -26,6 +26,7 @@
 #include "ps2/renderer/gs.h"
 #include "ps2/math/vec_mat.h"
 
+#include <cmath>
 #include <cstring>
 
 extern "C" {
@@ -41,6 +42,10 @@ constexpr float kZFar  = 4096.0f;
 
 // Vertex colour for the not-yet-lit world: GS modulate 128 = texels unchanged.
 constexpr u32 kFullBright = vu1::PackColorRGBA(128, 128, 128, 0x80);
+
+constexpr float kAliasNormals[][3] = {
+    #include "client/anorms.h"
+};
 
 // ------------------------------------------------------------------------------------------------
 // Frame state
@@ -892,7 +897,82 @@ void FlushAliasScratch(const math::Mat4 & mvp, const tex::Texture & texture)
     s_scratchVertCount = 0;
 }
 
-void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model)
+math::Vec3 AliasModelLight(const entity_t & entity, const refdef_t & viewDef)
+{
+    math::Vec3 light;
+    if ((entity.flags & RF_FULLBRIGHT) != 0)
+    {
+        light = { 1.0f, 1.0f, 1.0f };
+    }
+    else
+    {
+        const mod::ModelInstance * world = mod::GetWorldModel();
+        light = (world != nullptr)
+            ? mod::SampleWorldLight(*world, { entity.origin[0], entity.origin[1], entity.origin[2] })
+            : math::Vec3{ 1.0f, 1.0f, 1.0f };
+    }
+
+    if ((entity.flags & RF_MINLIGHT) != 0 &&
+        light.x <= 0.1f && light.y <= 0.1f && light.z <= 0.1f)
+    {
+        light = { 0.1f, 0.1f, 0.1f };
+    }
+
+    if ((entity.flags & RF_GLOW) != 0)
+    {
+        const float pulse = 0.1f * std::sin(viewDef.time * 7.0f);
+        const float minR = light.x * 0.8f;
+        const float minG = light.y * 0.8f;
+        const float minB = light.z * 0.8f;
+        light.x += pulse;
+        light.y += pulse;
+        light.z += pulse;
+        if (light.x < minR) { light.x = minR; }
+        if (light.y < minG) { light.y = minG; }
+        if (light.z < minB) { light.z = minB; }
+    }
+
+    if ((viewDef.rdflags & RDF_IRGOGGLES) != 0 &&
+        (entity.flags & RF_IR_VISIBLE) != 0)
+    {
+        light = { 1.0f, 0.0f, 0.0f };
+    }
+    return light;
+}
+
+u32 AliasVertexColor(const math::Vec3 & modelLight, float yaw, u8 normalIndex)
+{
+    constexpr int kNumAliasNormals =
+        static_cast<int>(sizeof(kAliasNormals) / sizeof(kAliasNormals[0]));
+    if (normalIndex >= kNumAliasNormals)
+    {
+        normalIndex = 0;
+    }
+
+    // This is the formula represented by ref_gl's 16-angle shadedot table:
+    // dot(normal, normalize(cos(-yaw), sin(-yaw), 1)) + 1.
+    const float angle = math::DegToRad(-yaw);
+    constexpr float kInvSqrt2 = 0.70710678118f;
+    const float shadeX = std::cos(angle) * kInvSqrt2;
+    const float shadeY = std::sin(angle) * kInvSqrt2;
+    constexpr float shadeZ = kInvSqrt2;
+    const float * normal = kAliasNormals[normalIndex];
+    float intensity = normal[0] * shadeX + normal[1] * shadeY +
+                      normal[2] * shadeZ + 1.0f;
+    if (intensity < 0.0f) { intensity = 0.0f; }
+
+    auto channel = [intensity](float light) -> u8 {
+        float value = light * intensity;
+        if (value < 0.0f) { value = 0.0f; }
+        if (value > 1.0f) { value = 1.0f; }
+        return static_cast<u8>(value * 128.0f + 0.5f);
+    };
+    return vu1::PackColorRGBA(channel(modelLight.x), channel(modelLight.y),
+                              channel(modelLight.z), 0x80);
+}
+
+void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model,
+                    const refdef_t & viewDef)
 {
     PS2_Assert(model.type == mod::ModelType::AliasMD2);
     PS2_Assert(model.hunkBase != nullptr);
@@ -953,6 +1033,7 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model)
     const float invGsSkinH = 1.0f / static_cast<float>(GSTextureExtent(md2->skinheight));
     const tex::Texture & texture = AliasSkin(entity, model);
     const math::Mat4 mvp = EntityModelMatrix(entity) * s_viewProjMatrix;
+    const math::Vec3 modelLight = AliasModelLight(entity, viewDef);
 
     PS2_Assert(s_scratchVertCount == 0);
     for (int t = 0; t < md2->num_tris; ++t)
@@ -981,7 +1062,8 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model)
             out.z = move[2] + static_cast<float>(ov.v[2]) * backScale[2]
                             + static_cast<float>(v.v[2])  * frontScale[2];
             out.w    = 1.0f;
-            out.rgba = kFullBright;
+            out.rgba = AliasVertexColor(modelLight, entity.angles[YAW],
+                                        v.lightnormalindex);
             // The original MD2 glcmd builder samples texel centres:
             // (pixel + 0.5) / realDimension. Scale that normalised value by
             // realDimension / GS-extent, which simplifies to the expressions
@@ -1014,7 +1096,7 @@ void RenderAliasEntities(const refdef_t & viewDef)
         const auto * model = reinterpret_cast<const mod::ModelInstance *>(entity.model);
         if (model->type == mod::ModelType::AliasMD2)
         {
-            DrawAliasModel(entity, *model);
+            DrawAliasModel(entity, *model, viewDef);
         }
     }
 }

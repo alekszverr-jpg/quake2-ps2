@@ -409,6 +409,77 @@ void ModelCache::EndRegistration()
 
 static ModelCache s_cache;
 
+bool RecursiveLightPoint(const ModelInstance & world, const ModelNode * node,
+                         const Vec3 & start, const Vec3 & end, Vec3 & light)
+{
+    if (node == nullptr || node->contents != -1)
+    {
+        return false;
+    }
+
+    const cplane_s & plane = *node->plane;
+    const Vec3 normal = { plane.normal[0], plane.normal[1], plane.normal[2] };
+    const float front = math::Dot(start, normal) - plane.dist;
+    const float back  = math::Dot(end, normal) - plane.dist;
+    const int side = front < 0.0f;
+
+    if ((back < 0.0f) == (side != 0))
+    {
+        return RecursiveLightPoint(world, node->children[side], start, end, light);
+    }
+
+    const float fraction = front / (front - back);
+    const Vec3 mid = start + (end - start) * fraction;
+
+    if (RecursiveLightPoint(world, node->children[side], start, mid, light))
+    {
+        return true;
+    }
+
+    for (int i = 0; i < node->numSurfaces; ++i)
+    {
+        const ModelSurface & surface = world.surfaces[node->firstSurface + i];
+        if (HasFlag(surface.flags, SurfaceFlags::DrawSky) ||
+            HasFlag(surface.flags, SurfaceFlags::DrawTurb))
+        {
+            continue;
+        }
+
+        const ModelTexInfo & texInfo = *surface.texInfo;
+        const float s = mid.x * texInfo.vecs[0][0] +
+                        mid.y * texInfo.vecs[0][1] +
+                        mid.z * texInfo.vecs[0][2] + texInfo.vecs[0][3];
+        const float t = mid.x * texInfo.vecs[1][0] +
+                        mid.y * texInfo.vecs[1][1] +
+                        mid.z * texInfo.vecs[1][2] + texInfo.vecs[1][3];
+        const float ds = s - static_cast<float>(surface.textureMins[0]);
+        const float dt = t - static_cast<float>(surface.textureMins[1]);
+        if (ds < 0.0f || dt < 0.0f ||
+            ds > static_cast<float>(surface.extents[0]) ||
+            dt > static_cast<float>(surface.extents[1]))
+        {
+            continue;
+        }
+
+        if (surface.samples == nullptr)
+        {
+            light = { 0.0f, 0.0f, 0.0f };
+            return true;
+        }
+
+        const u32 packed = SampleStaticLight(surface, ds * (1.0f / 16.0f),
+                                             dt * (1.0f / 16.0f));
+        light = {
+            static_cast<float>( packed        & 0xFFu) * (1.0f / 128.0f),
+            static_cast<float>((packed >> 8)  & 0xFFu) * (1.0f / 128.0f),
+            static_cast<float>((packed >> 16) & 0xFFu) * (1.0f / 128.0f)
+        };
+        return true;
+    }
+
+    return RecursiveLightPoint(world, node->children[side ^ 1], mid, end, light);
+}
+
 } // namespace
 
 // ------------------------------------------------------------------------------------------------
@@ -508,6 +579,24 @@ void SetLightStyles(const lightstyle_t * styles)
         s_lightStyleRgb[style][2] = styles[style].rgb[2];
     }
     s_lightStylesInitialized = true;
+}
+
+Vec3 SampleWorldLight(const ModelInstance & world, const Vec3 & point)
+{
+    if (world.type != ModelType::Brush || world.lightData == nullptr ||
+        world.nodes == nullptr || world.firstNode < 0 ||
+        world.firstNode >= world.numNodes)
+    {
+        return { 1.0f, 1.0f, 1.0f };
+    }
+
+    const Vec3 end = { point.x, point.y, point.z - 2048.0f };
+    Vec3 light = {};
+    if (!RecursiveLightPoint(world, world.nodes + world.firstNode, point, end, light))
+    {
+        return { 0.0f, 0.0f, 0.0f };
+    }
+    return light;
 }
 
 void Init()

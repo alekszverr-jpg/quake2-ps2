@@ -20,6 +20,7 @@ Status markers:
 - [x] NTSC/PAL framebuffer selection
 - [~] Texture streaming within the PS2's 4 MB GS VRAM
 - [~] Static BSP vertex lighting
+- [~] MD2 vertex lighting
 - [ ] Sound
 
 ## Milestone 0 - Stable hardware test build
@@ -41,8 +42,8 @@ Target: levels visually match the original software/OpenGL renderer closely
 enough for normal gameplay.
 
 - [~] BSP lightmaps and static lighting
-- [ ] MD2 vertex lighting using Quake II normal tables
-- [~] Animated light styles
+- [~] MD2 vertex lighting using Quake II normal tables
+- [x] Animated light styles
 - [ ] Dynamic entity lights
 - [ ] Sprite entities and particles
 - [ ] Brush entities such as moving doors and platforms
@@ -99,9 +100,9 @@ development tools.
 
 ## Immediate priorities
 
-1. Implement BSP lightmaps.
-2. Start the PS2 audio backend.
-3. Run a complete first-level real-hardware stability test.
+1. Validate MD2 vertex lighting and animated light response in PCSX2.
+2. Implement dynamic entity lights and gameplay effects.
+3. Start the PS2 audio backend.
 4. Make diagnostic overlays optional and disabled by default.
 
 Update this file whenever priorities, milestone status or completion criteria

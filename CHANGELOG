@@ -17,6 +17,9 @@ Development priorities and completion criteria are tracked in
   `ps2_light_subdivide` cvar controls its detail/performance balance.
 - Added frame-driven Quake II light-style scaling to BSP samples, restoring
   animated flicker and pulse patterns from the original level data.
+- Confirmed animated BSP light styles and improved interior lighting in PCSX2.
+- Added the original Quake II MD2 lighting model: BSP light sampling beneath
+  entities, per-vertex normal shading, minimum-light and pulsing-item flags.
 
 ### Fixed
 
@@ -70,8 +73,8 @@ Development priorities and completion criteria are tracked in
 
 ### Known limitations
 
-- World and model rendering is currently fullbright: lightmaps, dynamic lights
-  and complete model lighting are not implemented.
+- Static BSP and MD2 lighting are implemented but still being validated;
+  dynamic lights and full lightmap rendering are not implemented.
 - Sound output is not implemented.
 - Sprite, translucent, sky, water and brush-entity rendering is incomplete.
 - Save/load and long-play stability on real hardware still need validation.
