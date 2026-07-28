@@ -20,6 +20,8 @@ Development priorities and completion criteria are tracked in
 - Confirmed animated BSP light styles and improved interior lighting in PCSX2.
 - Added the original Quake II MD2 lighting model: BSP light sampling beneath
   entities, per-vertex normal shading, minimum-light and pulsing-item flags.
+- Changed the default analog layout to a modern FPS scheme: left stick moves
+  and strafes, while the right stick controls the camera.
 
 ### Fixed
 

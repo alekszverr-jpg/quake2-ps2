@@ -109,8 +109,8 @@ paths are not supported yet.
 
 | Control | Action |
 | --- | --- |
-| Left stick | Look |
-| Right stick | Move / strafe |
+| Left stick | Move / strafe |
+| Right stick | Look |
 | Cross | Jump / confirm |
 | Circle | Crouch / back |
 | Square | Use |

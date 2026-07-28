@@ -3,8 +3,8 @@
  * Brief: Gamepad input backend, replacing null/in_null.c. Drives a single GamePad
  *        (see pad.h) and maps its state onto the engine: buttons become key events
  *        routed by input focus (menu/console navigation vs. rebindable game action
- *        keys), the left stick rotates the camera and the right stick moves the
- *        player - following the axis handling of the original win32/in_win.c.
+ *        keys), the left stick moves the player and the right stick rotates the
+ *        camera, using a conventional modern dual-stick FPS layout.
  *
  * This source code is released under the GNU GPL v2 license.
  * ================================================================================================ */
@@ -201,7 +201,7 @@ void IN_Commands()
 }
 
 // ------------------------------------------------------------------------------------------------
-// IN_Move - sticks: left rotates the camera, right moves the player
+// IN_Move - sticks: left moves the player, right rotates the camera
 // ------------------------------------------------------------------------------------------------
 
 void IN_Move(usercmd_t * cmd)
@@ -219,30 +219,30 @@ void IN_Move(usercmd_t * cmd)
     const float speed = running ? 2.0f : 1.0f;
     const float angleSpeed = speed * cls.frametime;
 
-    // Left stick rotates the camera. Stick right = turn right (yaw decreases),
+    // Right stick rotates the camera. Stick right = turn right (yaw decreases),
     // stick up = look up (pitch decreases); flip a sensitivity cvar to invert.
-    const float yaw = s_gamepad.LeftStickX();
+    const float yaw = s_gamepad.RightStickX();
     if (std::fabs(yaw) > s_yawThreshold->value)
     {
         cl.viewangles[YAW] -= yaw * s_yawSensitivity->value * angleSpeed * cl_yawspeed->value;
     }
 
-    const float pitch = s_gamepad.LeftStickY();
+    const float pitch = s_gamepad.RightStickY();
     if (std::fabs(pitch) > s_pitchThreshold->value)
     {
         cl.viewangles[PITCH] += pitch * s_pitchSensitivity->value * angleSpeed * cl_pitchspeed->value;
     }
 
-    // Right stick moves the player. CL_FinishMove clamps the pitch and packs the
+    // Left stick moves the player. CL_FinishMove clamps the pitch and packs the
     // final angles/moves after IN_Move returns.
-    const float forward = s_gamepad.RightStickY();
+    const float forward = s_gamepad.LeftStickY();
     if (std::fabs(forward) > s_forwardThreshold->value)
     {
         cmd->forwardmove = static_cast<short>(static_cast<float>(cmd->forwardmove) -
             (forward * s_forwardSensitivity->value * speed * cl_forwardspeed->value));
     }
 
-    const float side = s_gamepad.RightStickX();
+    const float side = s_gamepad.LeftStickX();
     if (std::fabs(side) > s_sideThreshold->value)
     {
         cmd->sidemove = static_cast<short>(static_cast<float>(cmd->sidemove) +
