@@ -32,6 +32,24 @@ jobs:
           ls -la "$PS2DEV"
           ls -la "$PS2SDK"
 
+      - name: Build missing PS2 VCL tools
+        run: |
+          cd /tmp
+          rm -rf vclpp openvcl
+          git clone --depth 1 https://github.com/glampert/vclpp.git
+          cd vclpp
+          make
+          install -Dm755 vclpp "$PS2DEV/bin/vclpp"
+
+          cd /tmp
+          git clone --depth 1 https://github.com/ps2dev/openvcl.git
+          cd openvcl
+          make openvcl
+          make install
+
+          "$PS2DEV/bin/vclpp" --help
+          "$PS2DEV/bin/openvcl" -h
+
       - name: Show repository structure
         run: |
           ls -la
