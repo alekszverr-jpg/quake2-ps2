@@ -24,6 +24,8 @@ Development priorities and completion criteria are tracked in
   mipmap LOD eliminate floor/wall shimmer without excessive blur.
 - Switched world mipmap minification from trilinear filtering to bilinear
   filtering with nearest-level selection to reduce GS fill cost.
+- Matched the original renderer's default light intensity for the BSP vertex
+  lighting pass and added the archived `ps2_light_scale` tuning cvar.
 
 ### Documentation
 
