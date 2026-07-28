@@ -29,7 +29,7 @@ rendering paths are still under development.
 | NTSC `640x448` / PAL `640x512` | Implemented and hardware-tested |
 | Cinematics | Implemented |
 | Static BSP vertex lighting | Implemented and validated in PCSX2 |
-| MD2 entity/weapon lighting | First pass, PCSX2 validation pending |
+| MD2 entity/weapon lighting | Implemented and validated in PCSX2 |
 | Full lightmaps and dynamic lighting | Not implemented |
 | Sound | Not implemented |
 | WAL world-texture mipmaps | Implemented and hardware-tested |
