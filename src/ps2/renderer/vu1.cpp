@@ -81,6 +81,9 @@ constexpr int kChainTailQwords  = 4;
 // 0xFFFF/32 maps z/w [-1 (far), +1 (near)] onto [0, 0xFFFF] in the 16-bit z-buffer.
 constexpr float kGsDepthScale = static_cast<float>(0xFFFF) / 32.0f;
 
+// Fixed-point (7.4) TEX1 K matching gs.cpp's -8.0 world-texture LOD bias.
+constexpr int kMipmapLodBiasFixed = -8 * 16;
+
 // Per-vertex GIF registers the microprogram outputs. RGBAQ goes through an
 // A+D qword because the native RGBAQ layout is the vertex's packed color u32
 // with Q in the word above - the VU raw-copies the color instead of spreading
@@ -144,7 +147,7 @@ u64 MakeTex1Data(const tex::Texture & texture)
                        texture.mipLevels - 1,
                        tex::GsMagFilter(texture.magFilter),
                        mipped ? LOD_MIN_LINE_MIPMAP_LINE : tex::GsMinFilter(texture.minFilter),
-                       LOD_MIPMAP_REGISTER, 0, 0);
+                       LOD_MIPMAP_REGISTER, 0, mipped ? kMipmapLodBiasFixed : 0);
 }
 
 u64 MakeMiptbp1Data(const tex::Texture & texture)

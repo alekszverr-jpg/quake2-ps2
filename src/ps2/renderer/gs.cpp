@@ -50,6 +50,13 @@ constexpr int kWidth      = 640;
 constexpr int kNtscHeight = 448;
 constexpr int kPalHeight  = 512;
 
+// Quake world textures are approximately one texel per world unit. With a
+// 640-pixel view, that reaches a roughly 1:1 texel/pixel ratio a few hundred
+// units from the camera. The GS formula is log2(1/Q) + K and our Q is 1/viewZ,
+// so K=-8 keeps nearby surfaces at level 0 and advances about one mip per
+// distance doubling instead of immediately clamping everything to level 3.
+constexpr float kMipmapLodBias = -8.0f;
+
 // Selected from the console ROM region during Init. PAL exposes 64 more
 // active lines; rendering an NTSC-height buffer there leaves a black strip.
 static int s_height = kNtscHeight;
@@ -571,7 +578,7 @@ void SetTextureFor2D(const tex::Texture & texture)
         mipped ? LOD_MIN_LINE_MIPMAP_LINE : tex::GsMinFilter(texture.minFilter));
     lod.mipmap_select = LOD_MIPMAP_REGISTER;
     lod.l             = 0;
-    lod.k             = 0.0f;
+    lod.k             = mipped ? kMipmapLodBias : 0.0f;
 
     clutbuffer_t clut;
     if (texture.format == tex::PixelFormat::Palette8)

@@ -576,14 +576,24 @@ void BuildPolygonFromSurface(ModelInstance & mdl, HunkAllocator & hunk, ModelSur
     const float texW = static_cast<float>(tex->texture->width);
     const float texH = static_cast<float>(tex->texture->height);
 
+    // The GS clamps post-divide texel coordinates to roughly [-2047, 2047]
+    // and drops mantissa precision from STQ. Quake BSP coordinates are
+    // absolute and can be much larger even though the texture repeats.
+    // Subtracting a whole-texture offset keeps this surface centred near zero
+    // without changing any sampled texel under WRAP_REPEAT.
+    const float textureBaseS = std::floor(
+        (static_cast<float>(surf.textureMins[0]) + static_cast<float>(surf.extents[0]) * 0.5f) / texW);
+    const float textureBaseT = std::floor(
+        (static_cast<float>(surf.textureMins[1]) + static_cast<float>(surf.extents[1]) * 0.5f) / texH);
+
     for (int i = 0; i < numVerts; ++i)
     {
         const Vec3 & pos = EdgeVertex(mdl, mdl.surfEdges[surf.firstEdge + i]);
         poly->vertexes[i].position = pos;
 
         // Colour texture coordinates.
-        poly->vertexes[i].texture_s = TexProject(pos, tex->vecs[0]) / texW;
-        poly->vertexes[i].texture_t = TexProject(pos, tex->vecs[1]) / texH;
+        poly->vertexes[i].texture_s = TexProject(pos, tex->vecs[0]) / texW - textureBaseS;
+        poly->vertexes[i].texture_t = TexProject(pos, tex->vecs[1]) / texH - textureBaseT;
 
         // Lightmap texture coordinates (light_s/light_t stay 0 while lightmaps
         // are stubbed, but the UVs are baked so the vertex format is complete).

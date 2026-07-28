@@ -14,6 +14,10 @@ Development priorities and completion criteria are tracked in
 ### Fixed
 
 - Confirmed full-height `640x512` PAL output and CRT framing on a real PS2.
+- Rebased repeating BSP texture coordinates per surface to stay inside the
+  real GS STQ precision/range limits and reduce texture swimming while moving.
+- Tuned world-texture LOD bias so nearby surfaces retain their high-resolution
+  mip level instead of appearing excessively blurred.
 
 ### Documentation
 

@@ -14,10 +14,10 @@
 ;
 ; Batch layout at XTOP:
 ;   +0   header: vertex count in .w
-;   +1   5 GIF tag qwords (set tag, TEST A+D, TEX1 A+D, TEX0 A+D, prim tag)
-;   +6   vertices, 2 qwords each: position, then (rgba, s, t, q)
+;   +1   6 GIF tag qwords (set tag, TEST, TEX1, TEX0, MIPTBP1, prim tag)
+;   +7   vertices, 2 qwords each: position, then (rgba, s, t, q)
 ;
-; The GS packet (the 5 GIF tags + 3 output qwords per vertex: ST,
+; The GS packet (the 6 GIF tags + 3 output qwords per vertex: ST,
 ; RGBAQ, XYZ2) is built right after the input vertices in the same
 ; buffer and sent with XGKICK. The color arrives packed in the .x
 ; word of the second input qword and is raw-copied into an A+D
