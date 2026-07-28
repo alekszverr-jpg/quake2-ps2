@@ -1,7 +1,8 @@
 
 # Quake II port for the PlayStation 2
 
-**NOTE: This project is no longer active and there are no plans to continue development.**
+Development has resumed. See the [roadmap](ROADMAP.md) for current priorities
+and the [changelog](CHANGELOG) for completed work.
 
 ![Raw level geometry](https://raw.githubusercontent.com/glampert/quake2-for-ps2/master/misc/screens/q2ps2-level-notex-2.png "Raw level geometry")
 
@@ -13,22 +14,20 @@ This is an unofficial fan made port, targeting the PS2 Console, of the original
 This port relies on the free [PS2DEV SDK][link_ps2_dev] to provide rendering,
 input, audio and system services for the Quake Engine.
 
-The project is in early development stage, but 2D rendering of menus and cinematics
-is implemented and working on both the PCSX2 Emulator and the PS2.
-
-As shown in the screenshot above, we also have some basic
-hardware-accelerated raw level geometry rendering implemented.
+The project is in active development. Menus, cinematics, gamepad input,
+textured BSP levels and animated MD2 models are running on PCSX2 and are being
+validated on real PS2 hardware.
 
 The long term goal would be to have a fully functional and playable (single-player)
 Quake II on the PlayStation 2, using only on the freely available tools and libraries.
 
-Some of the main features still missing are:
+The main features still missing are:
 
-- Finish Vector Unit-accelerated rendering
-- Add texture mapping, lightmaps and dynamic lights
+- Add lightmaps, model lighting and dynamic lights
+- Complete sprite, brush-entity, sky, water and transparency rendering
+- Add mipmaps and stable texture minification
 - Add sound rendering/mixing for the PS2
-- Add gamepad input
-- Hook `dlmalloc`
+- Add save/load and persistent configuration for PS2 storage
 - Optimize memory allocation/usage as much as possible
 - Optimize rendering to ensure smooth 30fps gameplay
 

@@ -1,31 +1,57 @@
+# Changelog
 
------------
- Misc info
------------
+This file records user-visible changes to the Quake II PlayStation 2 port.
+Development priorities and completion criteria are tracked in
+[ROADMAP.md](ROADMAP.md).
 
-- I ran Clang-Format on all the original Quake2 source files to fix multiple
-  formatting issues and replace tabs with spaces, so that it displays nicely
-  and uniformly on all browsers and editors. The Clang-Format style file used
-  can be found at the root of the project. I tried to tune it to maintain the
-  overall style used by id, so the code should look pretty much the same as
-  before, but with the advantage of uniform indenting and spacing through.
+## Unreleased
 
-- Changes made by me in the Quake2 source code are usually annotated by a nearby
-  comment stating the change made and sometimes the date when it was first
-  made. These comments will start with my name (e.g.: LAMPERT), followed
-  by a brief description.
+### Documentation
 
-- Other minor changes such as removing or adding blank lines, adding curly
-  braces to flow-control statements, adding `static` to local functions or data,
-  are not always marked with comments to avoid excessive verbosity.
+- Reactivated the project documentation.
+- Added a maintained development roadmap.
+- Replaced the legacy free-form changelog with dated, user-visible entries.
 
-- The vast majority of the code related to the PS2 port is located inside the
-  src/ps2/ directory. Changes made in the Quake2 source to account for the
-  PlayStation2 are clearly marked as such.
+## 2026-07-28 - First playable renderer test
 
-- Changed the Hunk_Alloc API so that it returns a user struct.
-  This removed the need for additional global state.
+### Added
 
-- Added GCC '__attribute__(format)' checking to the vararg functions.
-  Surprisingly few warnings were raised by that!
+- Added a reproducible GitHub Actions build that produces `quake2.elf`.
+- Added textured BSP world rendering through the VU1 triangle pipeline.
+- Added animated MD2 entity and first-person weapon rendering.
+- Added PCX, WAL and TGA loading with a shared 8-bit GS palette.
+- Added texture and model registration caches with streamed GS VRAM residency.
+- Added DualShock input through `libpad`, including gameplay and menu controls.
+- Added PCSX2 `host:` and real-console USB `mass:` game-data discovery.
+- Added draw, memory and VRAM diagnostic overlays.
+- Added cinematic playback and mixed 2D/3D frame rendering.
 
+### Fixed
+
+- Fixed NPOT MD2 skin coordinates, including the original half-texel offset.
+- Fixed MD2 data alignment for the PS2 compiler.
+- Fixed real-hardware CLUT uploads by synchronising the EE data cache before DMA.
+- Fixed VRAM exhaustion on busy frames by allowing synchronised in-frame texture
+  eviction.
+- Added full-height PAL output (`640x512`); NTSC remains `640x448`.
+- Added EE-side clipping for world triangles crossing the VU1 clip volume.
+- Fixed several inline-model, texture-cache and framebuffer/depth-buffer issues.
+
+### Known limitations
+
+- World and model rendering is currently fullbright: lightmaps, dynamic lights
+  and complete model lighting are not implemented.
+- Sound output is not implemented.
+- Mipmaps are not uploaded, so floors and other receding surfaces may shimmer
+  or alias, especially on a CRT.
+- Sprite, translucent, sky, water and brush-entity rendering is incomplete.
+- Save/load and long-play stability on real hardware still need validation.
+
+## Legacy project notes
+
+- Most PS2-specific code lives under `src/ps2/`.
+- The original source was reformatted with the repository's `_clang-format`.
+- Historical source changes may carry comments prefixed with `LAMPERT`.
+- The Hunk allocation API was changed to return a user structure, reducing
+  additional global state.
+- GCC format checking was added to variadic functions.
