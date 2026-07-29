@@ -6,6 +6,38 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.11 - 2026-07-29
+
+### Changed
+
+- Prepared each unique indexed MD2 position and vertex-lighting value once per
+  entity instead of repeating interpolation, normal lookup and lighting for
+  every triangle corner.
+- Expanded ordinary enemy and pickup triangles directly into the VU1 DMA
+  buffer while retaining the full six-plane clipped path for first-person
+  weapons carrying `RF_DEPTHHACK`.
+- Added `MD2Vert` and `MD2Corner` overlay rows. Their ratio shows how much
+  repeated per-corner work the indexed preparation avoids in the current
+  frame.
+
+### Validation target
+
+- Compare `Ent us` in the same combat scene against alpha.10 while checking
+  animated enemies, corpses, pickups and every first-person weapon for visual
+  regressions.
+- `MD2Vert` should remain substantially below `MD2Corner`; both values are
+  frame counters rather than memory usage.
+
+### Performance validation
+
+- Alpha.10 reduced the starting-area BSP phase from 36.3 ms to 10.3 ms and a
+  heavy scene from 45.0 ms to 15.3 ms, approximately 72% and 66% respectively.
+- Warm-cache captures reported `LitBuild 0`; the cache footprint ranged from
+  about 0.35 MB to 2.8 MB across the supplied scenes.
+- The new limiting phase is entity/MD2 preparation, reaching approximately
+  32 ms in busy combat scenes. Alpha.11 targets that phase without reducing
+  geometry or lighting quality.
+
 ## 0.1.0-alpha.10 - 2026-07-29
 
 ### Added

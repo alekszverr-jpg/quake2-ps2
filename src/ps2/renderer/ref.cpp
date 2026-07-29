@@ -271,6 +271,8 @@ void DrawDrawStatsOverlay()
         { "LitHit",   stats.lightCacheHits },
         { "LitBuild", stats.lightCacheBuilds },
         { "LitKB",    stats.lightCacheBytes / 1024 },
+        { "MD2Vert",  stats.aliasUniqueVerts },
+        { "MD2Corner",stats.aliasCorners },
     };
 
     constexpr int kLineHeight = kGlyphSize + 2; // Matches DrawInternalString spacing.

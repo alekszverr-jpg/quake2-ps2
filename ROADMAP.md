@@ -84,7 +84,7 @@ play on a retail console.
 - [x] Establish initial frame-time budgets for EE, VU1, GS and texture loading
 - [ ] Reduce texture upload churn and VRAM fragmentation
 - [ ] Add release builds with assertions/diagnostics disabled
-- [ ] Profile model interpolation, BSP traversal and clipping
+- [~] Profile and optimize model interpolation, BSP traversal and clipping
 - [ ] Validate long sessions for EE RAM, IOP RAM and VRAM leaks
 - [ ] Target a stable 30 FPS minimum, with 60 FPS where practical
 
@@ -101,10 +101,10 @@ development tools.
 
 ## Immediate priorities
 
-1. Validate alpha.10 BSP-lighting cache hits, memory footprint, lighting
-   animation and `World us` improvement in PCSX2.
-2. Profile and optimize the MD2/entity EE path, which reaches about 31 ms in
-   the measured combat scene.
+1. Validate alpha.11 indexed MD2 preparation in PCSX2, including weapon
+   clipping, animation, lighting and the change in `Ent us`.
+2. Continue optimizing the MD2/entity EE path if it remains near 32 ms in
+   combat after unique-vertex interpolation and lighting.
 3. Revisit VU1 overlap and texture churn only if later profiles show their
    currently small wait times growing.
 4. Make diagnostic overlays optional and disabled by default.

@@ -121,6 +121,16 @@ constexpr int kScratchMaxVerts = 3072; // whole triangles (3 * 1024); 96 KB
 alignas(16) static vu1::DrawVertex s_scratchVerts[kScratchMaxVerts];
 static int s_scratchVertCount = 0;
 
+// MD2 frames index shared positions separately from per-corner texture
+// coordinates. Prepare each unique position/light value once per entity, then
+// expand only the cheap indexed triangle corners into the DMA scratch buffer.
+struct alignas(16) PreparedAliasVertex
+{
+    math::Vec4 pos;
+    math::Vec4 color;
+};
+alignas(16) static PreparedAliasVertex s_preparedAliasVerts[MAX_VERTS];
+
 // Performance counters for the frame, reset by RenderFrame and read through
 // GetDrawStats() by the ps2_show_drawstats overlay.
 static DrawStats s_drawStats = {};
@@ -691,6 +701,15 @@ int ClipAgainstPlane(const ClipVertex * in, const int inCount, ClipVertex * out,
     return outCount;
 }
 
+inline u32 PackFloatColor(const math::Vec4 & color)
+{
+    return vu1::PackColorRGBA(
+        static_cast<u32>(color.x + 0.5f),
+        static_cast<u32>(color.y + 0.5f),
+        static_cast<u32>(color.z + 0.5f),
+        0x80);
+}
+
 inline void EmitScratchVertex(const ClipVertex & v)
 {
     vu1::DrawVertex & dst = s_scratchVerts[s_scratchVertCount++];
@@ -698,11 +717,7 @@ inline void EmitScratchVertex(const ClipVertex & v)
     dst.y    = v.pos.y;
     dst.z    = v.pos.z;
     dst.w    = 1.0f;
-    dst.rgba = vu1::PackColorRGBA(
-        static_cast<u32>(v.color.x + 0.5f),
-        static_cast<u32>(v.color.y + 0.5f),
-        static_cast<u32>(v.color.z + 0.5f),
-        0x80);
+    dst.rgba = PackFloatColor(v.color);
     dst.s    = v.st.x;
     dst.t    = v.st.y;
     dst.q    = 1.0f;
@@ -1456,45 +1471,55 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model,
         kInvSqrt2
     };
 
-    PS2_Assert(s_scratchVertCount == 0);
-    for (int t = 0; t < md2->num_tris; ++t)
+    PS2_Assert(md2->num_xyz <= MAX_VERTS);
+    for (int vertexIndex = 0; vertexIndex < md2->num_xyz; ++vertexIndex)
     {
-        ClipVertex corners[3] = {};
-        for (int corner = 0; corner < 3; ++corner)
+        const dtrivertx_t & v  = frame->verts[vertexIndex];
+        const dtrivertx_t & ov = oldFrame->verts[vertexIndex];
+        PreparedAliasVertex & out = s_preparedAliasVerts[vertexIndex];
+        out.pos = {
+            move[0] + static_cast<float>(ov.v[0]) * backScale[0]
+                    + static_cast<float>(v.v[0])  * frontScale[0],
+            move[1] + static_cast<float>(ov.v[1]) * backScale[1]
+                    + static_cast<float>(v.v[1])  * frontScale[1],
+            move[2] + static_cast<float>(ov.v[2]) * backScale[2]
+                    + static_cast<float>(v.v[2])  * frontScale[2],
+            1.0f
+        };
+        out.color =
+            AliasVertexColor(modelLight, shadeVector, v.lightnormalindex);
+    }
+    s_drawStats.aliasUniqueVerts += md2->num_xyz;
+    s_drawStats.aliasCorners += md2->num_tris * 3;
+
+    PS2_Assert(s_scratchVertCount == 0);
+    if (clipViewWeapon)
+    {
+        for (int t = 0; t < md2->num_tris; ++t)
         {
-            const int vertexIndex = triangles[t].index_xyz[corner];
-            const int stIndex     = triangles[t].index_st[corner];
-            PS2_Assert(vertexIndex >= 0 && vertexIndex < md2->num_xyz);
-            PS2_Assert(stIndex >= 0 && stIndex < md2->num_st);
-
-            const dtrivertx_t & v  = frame->verts[vertexIndex];
-            const dtrivertx_t & ov = oldFrame->verts[vertexIndex];
-            const dstvert_t & st   = stVerts[stIndex];
-
-            ClipVertex & out = corners[corner];
-            out.pos = {
-                move[0] + static_cast<float>(ov.v[0]) * backScale[0]
-                        + static_cast<float>(v.v[0])  * frontScale[0],
-                move[1] + static_cast<float>(ov.v[1]) * backScale[1]
-                        + static_cast<float>(v.v[1])  * frontScale[1],
-                move[2] + static_cast<float>(ov.v[2]) * backScale[2]
-                        + static_cast<float>(v.v[2])  * frontScale[2],
-                1.0f
-            };
-            out.color = AliasVertexColor(modelLight, shadeVector, v.lightnormalindex);
-            // The original MD2 glcmd builder samples texel centres:
-            // (pixel + 0.5) / realDimension. Scale that normalised value by
-            // realDimension / GS-extent, which simplifies to the expressions
-            // below and keeps NPOT skins inside their uploaded rectangle.
-            out.st = {
-                (static_cast<float>(st.s) + 0.5f) * invGsSkinW,
-                (static_cast<float>(st.t) + 0.5f) * invGsSkinH,
-                0.0f,
-                0.0f
-            };
-
-            if (clipViewWeapon)
+            ClipVertex corners[3] = {};
+            for (int corner = 0; corner < 3; ++corner)
             {
+                const int vertexIndex = triangles[t].index_xyz[corner];
+                const int stIndex     = triangles[t].index_st[corner];
+                PS2_Assert(vertexIndex >= 0 && vertexIndex < md2->num_xyz);
+                PS2_Assert(stIndex >= 0 && stIndex < md2->num_st);
+
+                const PreparedAliasVertex & prepared =
+                    s_preparedAliasVerts[vertexIndex];
+                const dstvert_t & st = stVerts[stIndex];
+                ClipVertex & out = corners[corner];
+                out.pos = prepared.pos;
+                out.color = prepared.color;
+                // MD2 glcmds sample texel centres. The GS extent is rounded
+                // up for NPOT skins, hence pixel coordinates divide by it.
+                out.st = {
+                    (static_cast<float>(st.s) + 0.5f) * invGsSkinW,
+                    (static_cast<float>(st.t) + 0.5f) * invGsSkinH,
+                    0.0f,
+                    0.0f
+                };
+
                 // MD2s used to rely on the VU's whole-triangle guard rejection.
                 // That hid the missing near-plane clipping until view weapons
                 // received their proper, smaller depth-hack projection: a
@@ -1511,21 +1536,37 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model,
                 out.d.f[4] = (gw - clip.y) - kClipEpsilon;
                 out.d.f[5] = (gw + clip.y) - kClipEpsilon;
             }
-        }
-
-        if (clipViewWeapon)
-        {
             SubmitWorldTriangle(corners, mvp, texture);
         }
-        else
+    }
+    else
+    {
+        for (int t = 0; t < md2->num_tris; ++t)
         {
             if (s_scratchVertCount + 3 > kScratchMaxVerts)
             {
                 FlushScratch(mvp, texture);
             }
-            for (const ClipVertex & corner : corners)
+            for (int corner = 0; corner < 3; ++corner)
             {
-                EmitScratchVertex(corner);
+                const int vertexIndex = triangles[t].index_xyz[corner];
+                const int stIndex     = triangles[t].index_st[corner];
+                PS2_Assert(vertexIndex >= 0 && vertexIndex < md2->num_xyz);
+                PS2_Assert(stIndex >= 0 && stIndex < md2->num_st);
+
+                const PreparedAliasVertex & prepared =
+                    s_preparedAliasVerts[vertexIndex];
+                const dstvert_t & st = stVerts[stIndex];
+                vu1::DrawVertex & out =
+                    s_scratchVerts[s_scratchVertCount++];
+                out.x = prepared.pos.x;
+                out.y = prepared.pos.y;
+                out.z = prepared.pos.z;
+                out.w = 1.0f;
+                out.rgba = PackFloatColor(prepared.color);
+                out.s = (static_cast<float>(st.s) + 0.5f) * invGsSkinW;
+                out.t = (static_cast<float>(st.t) + 0.5f) * invGsSkinH;
+                out.q = 1.0f;
             }
             ++s_drawStats.trisDrawn;
         }

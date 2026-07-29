@@ -30,6 +30,8 @@ struct DrawStats
     int lightCacheHits;    // Original BSP triangles reusing cached tessellation.
     int lightCacheBuilds;  // Original BSP triangles rebuilt this frame.
     int lightCacheBytes;   // Current adaptive BSP cache footprint.
+    int aliasUniqueVerts;  // MD2 vertices interpolated/lit once this frame.
+    int aliasCorners;      // Indexed MD2 triangle corners submitted this frame.
 };
 
 // Stats of the most recent RenderFrame; all zeros before the first 3D frame.
