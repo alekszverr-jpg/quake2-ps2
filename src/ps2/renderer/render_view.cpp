@@ -915,6 +915,35 @@ math::Vec3 AliasModelLight(const entity_t & entity, const refdef_t & viewDef)
             : math::Vec3{ 1.0f, 1.0f, 1.0f };
     }
 
+    // Match ref_gl's dynamic part of R_LightPoint. Static BSP samples already
+    // include ps2_light_scale, so apply the same scale to transient lights
+    // before combining them with the entity's base light.
+    static const cvar_t * lightScaleCvar =
+        Cvar_Get("ps2_light_scale", "2.0", CVAR_ARCHIVE);
+    float lightScale = lightScaleCvar->value;
+    if (lightScale < 0.0f) { lightScale = 0.0f; }
+    if (lightScale > 8.0f) { lightScale = 8.0f; }
+
+    if (viewDef.dlights != nullptr)
+    {
+        for (int i = 0; i < viewDef.num_dlights; ++i)
+        {
+            const dlight_t & dynamicLight = viewDef.dlights[i];
+            const float dx = entity.origin[0] - dynamicLight.origin[0];
+            const float dy = entity.origin[1] - dynamicLight.origin[1];
+            const float dz = entity.origin[2] - dynamicLight.origin[2];
+            const float distance = std::sqrt(dx * dx + dy * dy + dz * dz);
+            const float contribution =
+                (dynamicLight.intensity - distance) * (lightScale / 256.0f);
+            if (contribution > 0.0f)
+            {
+                light.x += contribution * dynamicLight.color[0];
+                light.y += contribution * dynamicLight.color[1];
+                light.z += contribution * dynamicLight.color[2];
+            }
+        }
+    }
+
     if ((entity.flags & RF_MINLIGHT) != 0 &&
         light.x <= 0.1f && light.y <= 0.1f && light.z <= 0.1f)
     {

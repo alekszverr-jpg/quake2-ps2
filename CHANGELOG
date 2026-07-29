@@ -22,6 +22,8 @@ Development priorities and completion criteria are tracked in
   entities, per-vertex normal shading, minimum-light and pulsing-item flags.
 - Confirmed in PCSX2 that enemies and first-person weapons correctly respond
   to the surrounding BSP lighting.
+- Added original Quake II distance-attenuated dynamic lights to MD2 entities,
+  restoring coloured illumination from muzzle flashes and explosions.
 - Changed the default analog layout to a modern FPS scheme: left stick moves
   and strafes, while the right stick controls the camera.
 
@@ -77,8 +79,9 @@ Development priorities and completion criteria are tracked in
 
 ### Known limitations
 
-- Static BSP and MD2 lighting are implemented but still being validated;
-  dynamic lights and full lightmap rendering are not implemented.
+- Static BSP and MD2 lighting are implemented; dynamic lights currently affect
+  MD2 entities only, while dynamic world lighting and full lightmap rendering
+  are not implemented.
 - Sound output is not implemented.
 - Sprite, translucent, sky, water and brush-entity rendering is incomplete.
 - Save/load and long-play stability on real hardware still need validation.

@@ -30,7 +30,8 @@ rendering paths are still under development.
 | Cinematics | Implemented |
 | Static BSP vertex lighting | Implemented and validated in PCSX2 |
 | MD2 entity/weapon lighting | Implemented and validated in PCSX2 |
-| Full lightmaps and dynamic lighting | Not implemented |
+| Dynamic MD2 lighting | First pass, PCSX2 validation pending |
+| Full lightmaps and dynamic world lighting | Not implemented |
 | Sound | Not implemented |
 | WAL world-texture mipmaps | Implemented and hardware-tested |
 | Save/load on PS2 storage | Not implemented |
