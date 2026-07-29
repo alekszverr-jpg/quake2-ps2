@@ -6,6 +6,27 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.4 - 2026-07-29
+
+### Changed
+
+- Replaced uniform BSP lightmap-space subdivision with error-driven adaptive
+  tessellation. The renderer now compares real midpoint and centroid lightmap
+  samples against linearly interpolated vertex light and adds detail only
+  where the difference is visible.
+- Increased the maximum local subdivision depth from 16 to 64 triangles per
+  original triangle while allowing evenly lit surfaces to stop earlier.
+- Changed the default coarse light probe spacing to eight lightmap cells and
+  added the archived `ps2_light_error` tolerance setting. Both use playable
+  defaults and require no console input.
+
+### Expected result
+
+- Large indoor BSP surfaces should retain more local lamp and shadow variation
+  without globally increasing gamma or overexposing already bright areas.
+- Triangle counts may rise around complex lighting, but should not increase
+  uniformly across flat or linearly lit surfaces.
+
 ### Validation
 
 - Confirmed in PCSX2 that alpha.3 removes the severe GS depth/rendering

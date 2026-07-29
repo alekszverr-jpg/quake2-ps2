@@ -19,7 +19,7 @@ Status markers:
 - [x] Animated MD2 enemies, corpses and first-person weapons
 - [x] NTSC/PAL framebuffer selection
 - [~] Texture streaming within the PS2's 4 MB GS VRAM
-- [~] Static BSP vertex lighting
+- [~] Adaptive BSP vertex/lightmap lighting
 - [x] MD2 vertex lighting
 - [ ] Sound
 
@@ -41,7 +41,7 @@ without crashes or severe rendering corruption.
 Target: levels visually match the original software/OpenGL renderer closely
 enough for normal gameplay.
 
-- [~] BSP lightmaps and static lighting
+- [~] BSP lightmaps and adaptive static lighting
 - [x] MD2 vertex lighting using Quake II normal tables
 - [x] Animated light styles
 - [x] Dynamic entity lights
@@ -101,8 +101,7 @@ development tools.
 
 ## Immediate priorities
 
-1. Improve BSP lightmap fidelity with error-driven adaptive tessellation,
-   concentrating extra samples only where local lighting changes.
+1. Validate alpha.4 adaptive BSP lighting and triangle counts in PCSX2.
 2. Implement brush entities such as moving doors and platforms.
 3. Implement sky surfaces and skyboxes.
 4. Start the PS2 audio backend.

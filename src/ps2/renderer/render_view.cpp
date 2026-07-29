@@ -80,9 +80,11 @@ static cplane_t s_frustum[4] = {};
 // Wall texture animation frame (viewDef.time * 2, as in ref_gl).
 static int s_textureAnimFrame = 0;
 
-// Maximum lightmap-sample spacing for adaptively tessellated world triangles.
-// Refreshed from ps2_light_subdivide each frame.
-static float s_lightSamplesPerEdge = 4.0f;
+// Adaptive BSP-lighting controls, refreshed from archived cvars each frame.
+// Large triangles are probed at most this many lightmap cells apart; within
+// that grid only regions whose sampled light is non-linear keep subdividing.
+static float s_lightMaxSamplesPerEdge = 8.0f;
+static float s_lightErrorTolerance    = 5.0f;
 
 // Scratch for one decompressed cluster PVS, and for the two-cluster union used
 // when the camera straddles a solid water boundary. Static: 8 KB each.
@@ -167,10 +169,15 @@ void SetupFrame(const refdef_t & viewDef)
     mod::SetLightStyles(viewDef.lightstyles);
 
     static const cvar_t * lightSubdivide =
-        Cvar_Get("ps2_light_subdivide", "4", CVAR_ARCHIVE);
-    s_lightSamplesPerEdge = lightSubdivide->value;
-    if (s_lightSamplesPerEdge < 2.0f)  { s_lightSamplesPerEdge = 2.0f; }
-    if (s_lightSamplesPerEdge > 16.0f) { s_lightSamplesPerEdge = 16.0f; }
+        Cvar_Get("ps2_light_subdivide", "8", CVAR_ARCHIVE);
+    static const cvar_t * lightError =
+        Cvar_Get("ps2_light_error", "5", CVAR_ARCHIVE);
+    s_lightMaxSamplesPerEdge = lightSubdivide->value;
+    s_lightErrorTolerance = lightError->value;
+    if (s_lightMaxSamplesPerEdge < 4.0f)  { s_lightMaxSamplesPerEdge = 4.0f; }
+    if (s_lightMaxSamplesPerEdge > 16.0f) { s_lightMaxSamplesPerEdge = 16.0f; }
+    if (s_lightErrorTolerance < 1.0f)  { s_lightErrorTolerance = 1.0f; }
+    if (s_lightErrorTolerance > 24.0f) { s_lightErrorTolerance = 24.0f; }
 
     // Animated walls flip frames at 2 Hz of game time (as in ref_gl).
     s_textureAnimFrame = static_cast<int>(viewDef.time * 2.0f);
@@ -609,7 +616,8 @@ inline void EmitScratchVertex(const ClipVertex & v)
 }
 
 constexpr float kLightmapAtlasSize = 128.0f;
-constexpr int   kMaxLightSubdivideDepth = 4;
+constexpr float kMinLightSamplesPerEdge = 2.0f;
+constexpr int   kMaxLightSubdivideDepth = 6;
 
 void UnpackLightColor(ClipVertex & vertex, u32 color)
 {
@@ -650,6 +658,40 @@ ClipVertex LightMidpoint(const ClipVertex & a, const ClipVertex & b,
     math::LerpTo(midpoint.d.q[1],   a.d.q[1],   b.d.q[1],   0.5f);
     SampleVertexLight(midpoint, surface);
     return midpoint;
+}
+
+ClipVertex LightCentroid(const ClipVertex (&corners)[3],
+                         const mod::ModelSurface & surface)
+{
+    // lerp(lerp(a,b,1/2),c,1/3) == (a+b+c)/3. Keep every interpolant in
+    // lockstep so a centroid chosen for lighting is also a valid split probe
+    // after clipping and projection.
+    ClipVertex edgeMidpoint;
+    ClipVertex centroid;
+    math::LerpTo(edgeMidpoint.pos,      corners[0].pos,      corners[1].pos,      0.5f);
+    math::LerpTo(edgeMidpoint.st,       corners[0].st,       corners[1].st,       0.5f);
+    math::LerpTo(edgeMidpoint.lightmap, corners[0].lightmap, corners[1].lightmap, 0.5f);
+    math::LerpTo(edgeMidpoint.d.q[0],   corners[0].d.q[0],   corners[1].d.q[0],   0.5f);
+    math::LerpTo(edgeMidpoint.d.q[1],   corners[0].d.q[1],   corners[1].d.q[1],   0.5f);
+
+    math::LerpTo(centroid.pos,      edgeMidpoint.pos,      corners[2].pos,      1.0f / 3.0f);
+    math::LerpTo(centroid.st,       edgeMidpoint.st,       corners[2].st,       1.0f / 3.0f);
+    math::LerpTo(centroid.lightmap, edgeMidpoint.lightmap, corners[2].lightmap, 1.0f / 3.0f);
+    math::LerpTo(centroid.d.q[0],   edgeMidpoint.d.q[0],   corners[2].d.q[0],   1.0f / 3.0f);
+    math::LerpTo(centroid.d.q[1],   edgeMidpoint.d.q[1],   corners[2].d.q[1],   1.0f / 3.0f);
+    SampleVertexLight(centroid, surface);
+    return centroid;
+}
+
+float MaxLightError(const math::Vec4 & actual, float expectedR,
+                    float expectedG, float expectedB)
+{
+    float error = std::fabs(actual.x - expectedR);
+    const float errorG = std::fabs(actual.y - expectedG);
+    const float errorB = std::fabs(actual.z - expectedB);
+    if (errorG > error) { error = errorG; }
+    if (errorB > error) { error = errorB; }
+    return error;
 }
 
 // Clips one already-lit triangle against the VU guard volume and appends the
@@ -728,9 +770,12 @@ void SubmitWorldTriangle(const ClipVertex (&corners)[3], const tex::Texture & te
     s_drawStats.trisDrawn += count - 2;
 }
 
-// Bisects the longest lightmap-space edge until RGB samples are no more than
-// four grid cells apart. Longest-edge splitting adapts to narrow BSP faces and
-// grows geometry gradually (bounded to 16 triangles per original triangle).
+// Bisects the longest lightmap-space edge. A coarse maximum spacing makes sure
+// large faces are actually probed; once inside it, midpoint and centroid
+// samples are compared with the colour that linear vertex interpolation would
+// produce. Only non-linear regions keep splitting down to the two-cell floor.
+// This spends triangles around lamps and shadows instead of uniformly across
+// already-linear walls (bounded to 64 triangles per original triangle).
 void SubdivideLitTriangle(const ClipVertex (&corners)[3],
                           const mod::ModelSurface & surface,
                           const tex::Texture & texture, int depth)
@@ -744,9 +789,9 @@ void SubdivideLitTriangle(const ClipVertex (&corners)[3],
     if (edgeLengthSq[1] > edgeLengthSq[longest]) { longest = 1; }
     if (edgeLengthSq[2] > edgeLengthSq[longest]) { longest = 2; }
 
-    if (surface.samples == nullptr ||
-        edgeLengthSq[longest] <= s_lightSamplesPerEdge * s_lightSamplesPerEdge ||
-        depth >= kMaxLightSubdivideDepth)
+    if (surface.samples == nullptr || depth >= kMaxLightSubdivideDepth ||
+        edgeLengthSq[longest] <=
+            kMinLightSamplesPerEdge * kMinLightSamplesPerEdge)
     {
         SubmitWorldTriangle(corners, texture);
         return;
@@ -756,6 +801,32 @@ void SubdivideLitTriangle(const ClipVertex (&corners)[3],
     const int edgeB = (longest + 1) % 3;
     const int opposite = (longest + 2) % 3;
     const ClipVertex midpoint = LightMidpoint(corners[edgeA], corners[edgeB], surface);
+
+    bool shouldSplit =
+        edgeLengthSq[longest] >
+        s_lightMaxSamplesPerEdge * s_lightMaxSamplesPerEdge;
+    if (!shouldSplit)
+    {
+        const float midpointError = MaxLightError(
+            midpoint.color,
+            (corners[edgeA].color.x + corners[edgeB].color.x) * 0.5f,
+            (corners[edgeA].color.y + corners[edgeB].color.y) * 0.5f,
+            (corners[edgeA].color.z + corners[edgeB].color.z) * 0.5f);
+        const ClipVertex centroid = LightCentroid(corners, surface);
+        const float centroidError = MaxLightError(
+            centroid.color,
+            (corners[0].color.x + corners[1].color.x + corners[2].color.x) / 3.0f,
+            (corners[0].color.y + corners[1].color.y + corners[2].color.y) / 3.0f,
+            (corners[0].color.z + corners[1].color.z + corners[2].color.z) / 3.0f);
+        shouldSplit = midpointError > s_lightErrorTolerance ||
+                      centroidError > s_lightErrorTolerance;
+    }
+
+    if (!shouldSplit)
+    {
+        SubmitWorldTriangle(corners, texture);
+        return;
+    }
 
     const ClipVertex first[3]  = { corners[edgeA], midpoint, corners[opposite] };
     const ClipVertex second[3] = { midpoint, corners[edgeB], corners[opposite] };
