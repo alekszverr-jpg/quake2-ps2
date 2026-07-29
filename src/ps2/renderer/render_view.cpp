@@ -1141,18 +1141,6 @@ const T * MD2DataAt(const dmdl_t & md2, int byteOffset)
     return static_cast<const T *>(aligned);
 }
 
-void FlushAliasScratch(const math::Mat4 & mvp, const tex::Texture & texture)
-{
-    if (s_scratchVertCount == 0)
-    {
-        return;
-    }
-
-    ++s_drawStats.drawBatches;
-    vu1::DrawTriangles(mvp, texture, s_scratchVerts, s_scratchVertCount);
-    s_scratchVertCount = 0;
-}
-
 math::Vec3 AliasModelLight(const entity_t & entity, const refdef_t & viewDef)
 {
     math::Vec3 light;
@@ -1225,8 +1213,8 @@ math::Vec3 AliasModelLight(const entity_t & entity, const refdef_t & viewDef)
     return light;
 }
 
-u32 AliasVertexColor(const math::Vec3 & modelLight,
-                     const math::Vec3 & shadeVector, u8 normalIndex)
+math::Vec4 AliasVertexColor(const math::Vec3 & modelLight,
+                            const math::Vec3 & shadeVector, u8 normalIndex)
 {
     constexpr int kNumAliasNormals =
         static_cast<int>(sizeof(kAliasNormals) / sizeof(kAliasNormals[0]));
@@ -1243,14 +1231,18 @@ u32 AliasVertexColor(const math::Vec3 & modelLight,
                       normal[2] * shadeVector.z + 1.0f;
     if (intensity < 0.0f) { intensity = 0.0f; }
 
-    auto channel = [intensity](float light) -> u8 {
+    auto channel = [intensity](float light) -> float {
         float value = light * intensity;
         if (value < 0.0f) { value = 0.0f; }
         if (value > 1.0f) { value = 1.0f; }
-        return static_cast<u8>(value * 128.0f + 0.5f);
+        return value * 128.0f;
     };
-    return vu1::PackColorRGBA(channel(modelLight.x), channel(modelLight.y),
-                              channel(modelLight.z), 0x80);
+    return {
+        channel(modelLight.x),
+        channel(modelLight.y),
+        channel(modelLight.z),
+        128.0f
+    };
 }
 
 void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model,
@@ -1318,6 +1310,7 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model,
         ((entity.flags & RF_DEPTHHACK) != 0)
             ? s_weaponViewProjMatrix
             : s_viewProjMatrix;
+    const bool clipViewWeapon = (entity.flags & RF_DEPTHHACK) != 0;
     const math::Mat4 mvp = EntityModelMatrix(entity) * viewProj;
     const math::Vec3 modelLight = AliasModelLight(entity, viewDef);
     const float shadeAngle = math::DegToRad(-entity.angles[YAW]);
@@ -1331,11 +1324,7 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model,
     PS2_Assert(s_scratchVertCount == 0);
     for (int t = 0; t < md2->num_tris; ++t)
     {
-        if (s_scratchVertCount + 3 > kScratchMaxVerts)
-        {
-            FlushAliasScratch(mvp, texture);
-        }
-
+        ClipVertex corners[3] = {};
         for (int corner = 0; corner < 3; ++corner)
         {
             const int vertexIndex = triangles[t].index_xyz[corner];
@@ -1347,26 +1336,66 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model,
             const dtrivertx_t & ov = oldFrame->verts[vertexIndex];
             const dstvert_t & st   = stVerts[stIndex];
 
-            vu1::DrawVertex & out = s_scratchVerts[s_scratchVertCount++];
-            out.x = move[0] + static_cast<float>(ov.v[0]) * backScale[0]
-                            + static_cast<float>(v.v[0])  * frontScale[0];
-            out.y = move[1] + static_cast<float>(ov.v[1]) * backScale[1]
-                            + static_cast<float>(v.v[1])  * frontScale[1];
-            out.z = move[2] + static_cast<float>(ov.v[2]) * backScale[2]
-                            + static_cast<float>(v.v[2])  * frontScale[2];
-            out.w    = 1.0f;
-            out.rgba = AliasVertexColor(modelLight, shadeVector, v.lightnormalindex);
+            ClipVertex & out = corners[corner];
+            out.pos = {
+                move[0] + static_cast<float>(ov.v[0]) * backScale[0]
+                        + static_cast<float>(v.v[0])  * frontScale[0],
+                move[1] + static_cast<float>(ov.v[1]) * backScale[1]
+                        + static_cast<float>(v.v[1])  * frontScale[1],
+                move[2] + static_cast<float>(ov.v[2]) * backScale[2]
+                        + static_cast<float>(v.v[2])  * frontScale[2],
+                1.0f
+            };
+            out.color = AliasVertexColor(modelLight, shadeVector, v.lightnormalindex);
             // The original MD2 glcmd builder samples texel centres:
             // (pixel + 0.5) / realDimension. Scale that normalised value by
             // realDimension / GS-extent, which simplifies to the expressions
             // below and keeps NPOT skins inside their uploaded rectangle.
-            out.s    = (static_cast<float>(st.s) + 0.5f) * invGsSkinW;
-            out.t    = (static_cast<float>(st.t) + 0.5f) * invGsSkinH;
-            out.q    = 1.0f;
+            out.st = {
+                (static_cast<float>(st.s) + 0.5f) * invGsSkinW,
+                (static_cast<float>(st.t) + 0.5f) * invGsSkinH,
+                0.0f,
+                0.0f
+            };
+
+            if (clipViewWeapon)
+            {
+                // MD2s used to rely on the VU's whole-triangle guard rejection.
+                // That hid the missing near-plane clipping until view weapons
+                // received their proper, smaller depth-hack projection: a
+                // vertex close to w=0 then survived and exploded after the
+                // perspective divide. Feed view weapons through the same
+                // six-plane EE clipper as the BSP world, interpolating position,
+                // texture coordinates and lighting at every cut.
+                const math::Vec4 clip = math::Transform(out.pos, mvp);
+                const float gw = vu1::kGuardBandNdcLimit * clip.w;
+                out.d.f[0] = (clip.w - clip.z) - kClipEpsilon;
+                out.d.f[1] = (clip.w + clip.z) - kClipEpsilon;
+                out.d.f[2] = (gw - clip.x) - kClipEpsilon;
+                out.d.f[3] = (gw + clip.x) - kClipEpsilon;
+                out.d.f[4] = (gw - clip.y) - kClipEpsilon;
+                out.d.f[5] = (gw + clip.y) - kClipEpsilon;
+            }
         }
-        ++s_drawStats.trisDrawn;
+
+        if (clipViewWeapon)
+        {
+            SubmitWorldTriangle(corners, mvp, texture);
+        }
+        else
+        {
+            if (s_scratchVertCount + 3 > kScratchMaxVerts)
+            {
+                FlushScratch(mvp, texture);
+            }
+            for (const ClipVertex & corner : corners)
+            {
+                EmitScratchVertex(corner);
+            }
+            ++s_drawStats.trisDrawn;
+        }
     }
-    FlushAliasScratch(mvp, texture);
+    FlushScratch(mvp, texture);
 }
 
 void DrawSpriteModel(const entity_t & entity, const mod::ModelInstance & model)

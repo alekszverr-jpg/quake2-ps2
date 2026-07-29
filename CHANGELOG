@@ -6,6 +6,23 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.8 - 2026-07-29
+
+### Fixed
+
+- Added six-plane EE clipping for first-person MD2 models carrying
+  `RF_DEPTHHACK`. Triangles crossing the camera or VU guard band are now cut
+  with interpolated texture coordinates and vertex colours instead of
+  exploding across the screen after perspective division.
+- Kept enemies, pickups and other ordinary MD2 entities on the existing fast
+  path so the additional clipping work is limited to the active view weapon.
+
+### Validation
+
+- Confirmed that alpha.7 removes the reported holes in cliff and wall geometry.
+- Confirmed that alpha.7 prevents the railgun from being cut off, but exposed
+  missing MD2 near-plane clipping as severe stretched weapon triangles.
+
 ## 0.1.0-alpha.7 - 2026-07-29
 
 ### Fixed
@@ -22,7 +39,7 @@ Development priorities and completion criteria are tracked in
 
 - Sky surfaces and skyboxes are still not rendered. The purple clear colour
   remains visible through real sky openings until the next renderer pass.
-- The new rock triangulation and weapon depth range require PCSX2 validation.
+- View-weapon clipping is completed by alpha.8.
 
 ### Validation
 

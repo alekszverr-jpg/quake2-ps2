@@ -101,8 +101,8 @@ development tools.
 
 ## Immediate priorities
 
-1. Validate BSP rock-face triangulation and the railgun/view-weapon depth range
-   in PCSX2.
+1. Validate clipped view weapons from alpha.8 in PCSX2, especially railgun,
+   rocket launcher and weapon switching.
 2. Implement sky surfaces and skyboxes.
 3. Start the PS2 audio backend.
 4. Make diagnostic overlays optional and disabled by default.
