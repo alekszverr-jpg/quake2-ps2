@@ -155,8 +155,13 @@ int CurrentContext()
 
 u64 DepthBufferRegisterData(bool writeEnabled)
 {
-    return GS_SET_ZBUF(s_zbuffer.address >> 11, s_zbuffer.zsm,
-                       writeEnabled ? 0 : 1);
+    // ZBUF: ZBP[0:8] in 2048-word pages, PSM[24:27], ZMSK[32].
+    // ps2sdk exposes the descriptor but not a GS_SET_ZBUF helper in every
+    // supported release, so keep the documented register packing here.
+    const u64 zbp  = (static_cast<u64>(s_zbuffer.address) >> 11) & 0x1FFu;
+    const u64 psm  = (static_cast<u64>(s_zbuffer.zsm) & 0x0Fu) << 24;
+    const u64 mask = static_cast<u64>(writeEnabled ? 0 : 1) << 32;
+    return zbp | psm | mask;
 }
 
 int DepthTestMethod()
