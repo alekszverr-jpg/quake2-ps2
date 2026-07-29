@@ -51,7 +51,7 @@ enough for normal gameplay.
 - [ ] Sky surfaces and skybox
 - [ ] Transparent surfaces and entity alpha
 - [ ] Turbulent water/lava/slime surfaces
-- [ ] Weapon depth-range and view-model render flags
+- [~] Weapon depth-range and view-model render flags
 - [x] WAL mipmaps and stable minification filtering
 - [ ] Frustum/entity culling and renderer performance pass
 
@@ -101,10 +101,12 @@ development tools.
 
 ## Immediate priorities
 
-1. Implement sky surfaces and skyboxes.
-2. Start the PS2 audio backend.
-3. Make diagnostic overlays optional and disabled by default.
-4. Revisit BSP lightmap fidelity and tessellation cost during the renderer
+1. Validate BSP rock-face triangulation and the railgun/view-weapon depth range
+   in PCSX2.
+2. Implement sky surfaces and skyboxes.
+3. Start the PS2 audio backend.
+4. Make diagnostic overlays optional and disabled by default.
+5. Revisit BSP lightmap fidelity and tessellation cost during the renderer
    performance pass.
 
 Update this file whenever priorities, milestone status or completion criteria

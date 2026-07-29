@@ -6,6 +6,24 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.7 - 2026-07-29
+
+### Fixed
+
+- Replaced the failure-prone generic ear-clipping path with deterministic
+  triangle fans for Quake II's convex BSP faces. Numerically awkward cliff and
+  rock polygons can no longer leave zeroed triangles and clear-colour wedges.
+- Added the original `RF_DEPTHHACK` behaviour for first-person weapons.
+  View-models now use a smaller near plane and the nearest 30 percent of the
+  depth range, preventing close railgun and BFG geometry from being rejected
+  by the VU clipping guard.
+
+### Known limitations
+
+- Sky surfaces and skyboxes are still not rendered. The purple clear colour
+  remains visible through real sky openings until the next renderer pass.
+- The new rock triangulation and weapon depth range require PCSX2 validation.
+
 ### Validation
 
 - Confirmed in PCSX2 that alpha.6 renders and animates opaque doors, compound

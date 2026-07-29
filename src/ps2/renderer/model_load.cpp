@@ -52,9 +52,6 @@ constexpr u32 AlignUp(u32 value, u32 alignment)
 constexpr int kLightmapTextureWidth  = 128;
 constexpr int kLightmapTextureHeight = 128;
 
-constexpr float kTriangulationEpsilon  = 0.001f;
-constexpr int   kTriangulationMaxVerts = 128; // Per polygon.
-
 constexpr float kSubdivideSizeF = static_cast<float>(kSubdivideSize);
 
 // ------------------------------------------------------------------------------------------------
@@ -349,211 +346,29 @@ void CalcSurfaceExtents(const ModelInstance & mdl, ModelSurface & surf)
 }
 
 // ------------------------------------------------------------------------------------------------
-// Polygon triangulation (ear clipping)
+// Polygon triangulation
 //
-// The renderer draws indexed triangles, so each BSP polygon is triangulated at
-// load time. Adapted from the sample code in Eric Lengyel's "Mathematics for 3D
-// Game Programming and Computer Graphics" (Listing 9.2).
+// A Quake BSP face is convex by construction and its surfedges already form an
+// ordered boundary. A simple fan is therefore exact and cannot fail. The old
+// generic ear clipper could reject numerically awkward rock faces and leave
+// zeroed triangles, producing clear-colour wedges in otherwise solid cliffs.
 // ------------------------------------------------------------------------------------------------
-
-// Polygon normal via the sum of edge cross products (see iquilezles.org/articles/areas).
-Vec3 ComputePolygonNormal(const ModelPoly & poly)
-{
-    Vec3 normal = { 0.0f, 0.0f, 0.0f };
-    for (int v = 0; v < poly.numVerts; ++v)
-    {
-        const int vNext = (v + 1) % poly.numVerts;
-        normal = normal + math::Cross(poly.vertexes[v].position, poly.vertexes[vNext].position);
-    }
-    return math::Normalize(normal);
-}
-
-int NextActive(int x, const int numVerts, const bool * const active)
-{
-    for (;;)
-    {
-        if (++x == numVerts) { x = 0; }
-        if (active[x]) { return x; }
-    }
-}
-
-int PrevActive(int x, const int numVerts, const bool * const active)
-{
-    for (;;)
-    {
-        if (--x == -1) { x = numVerts - 1; }
-        if (active[x]) { return x; }
-    }
-}
-
-bool TestTriangle(int pi1, int pi2, int pi3,
-                  const Vec3 & p1, const Vec3 & p2, const Vec3 & p3, const Vec3 & normal,
-                  const bool * const active, const ModelPoly & poly, float epsilon)
-{
-    const Vec3 n1 = math::Cross(normal, math::Normalize(p2 - p1));
-    if (math::Dot(n1, p3 - p1) <= epsilon)
-    {
-        return false;
-    }
-
-    const Vec3 n2 = math::Cross(normal, math::Normalize(p3 - p2));
-    const Vec3 n3 = math::Cross(normal, math::Normalize(p1 - p3));
-
-    for (int v = 0; v < poly.numVerts; ++v)
-    {
-        // Reject the triangle if any other active vertex lies inside it.
-        if (active[v] && v != pi1 && v != pi2 && v != pi3)
-        {
-            const Vec3 & pv = poly.vertexes[v].position;
-            if (math::Dot(n1, math::Normalize(pv - p1)) > -epsilon &&
-                math::Dot(n2, math::Normalize(pv - p2)) > -epsilon &&
-                math::Dot(n3, math::Normalize(pv - p3)) > -epsilon)
-            {
-                return false;
-            }
-        }
-    }
-
-    return true;
-}
 
 void TriangulatePolygon(ModelPoly & poly)
 {
-    // Already a triangle, or a degenerate polygon.
-    if (poly.numVerts <= 3)
+    if (poly.numVerts < 3)
     {
-        if (poly.numVerts == 3)
-        {
-            PS2_Assert(poly.triangles != nullptr);
-            poly.triangles->vertexes[0] = 0;
-            poly.triangles->vertexes[1] = 1;
-            poly.triangles->vertexes[2] = 2;
-        }
-        else
-        {
-            // Broken polygons are left with zeroed triangles (skipped at draw time).
-            Com_Printf("WARNING: Broken polygon found in brush model!\n");
-        }
+        Com_Printf("WARNING: Broken polygon found in brush model!\n");
         return;
     }
 
-    const int numVerts     = poly.numVerts;
-    const int numTriangles = numVerts - 2;
-
-    if (numVerts > kTriangulationMaxVerts)
+    PS2_Assert(poly.triangles != nullptr);
+    for (int triangle = 0; triangle < poly.numVerts - 2; ++triangle)
     {
-        // Just make kTriangulationMaxVerts bigger if this ever fires (1 byte/entry).
-        Com_Printf("ERROR: TriangulatePolygon: kTriangulationMaxVerts (%i) exceeded!\n", kTriangulationMaxVerts);
-        return;
-    }
-
-    const Vec3 normal = ComputePolygonNormal(poly);
-
-    int start = 0;
-    int p1 = 0;
-    int p2 = 1;
-    int m1 = numVerts - 1;
-    int m2 = numVerts - 2;
-    bool lastPositive = false;
-
-    int triesDone = 0;
-    ModelTriangle * trisPtr = poly.triangles;
-
-    // BSP polygons are small (under ~20 verts), so a stack buffer avoids a malloc.
-    bool active[kTriangulationMaxVerts];
-    for (int i = 0; i < numVerts; ++i)
-    {
-        active[i] = true;
-    }
-
-    auto EmitTriangle = [&triesDone, numTriangles, &trisPtr](int v0, int v1, int v2)
-    {
-        if (triesDone == numTriangles)
-        {
-            Com_Printf("ERROR: TriangulatePolygon: Triangle list overflowed!\n");
-            return;
-        }
-        trisPtr->vertexes[0] = static_cast<u16>(v0);
-        trisPtr->vertexes[1] = static_cast<u16>(v1);
-        trisPtr->vertexes[2] = static_cast<u16>(v2);
-        ++trisPtr;
-        ++triesDone;
-    };
-
-    for (;;)
-    {
-        if (p2 == m2)
-        {
-            // Only three vertexes remain.
-            EmitTriangle(m1, p1, p2);
-            break;
-        }
-
-        const Vec3 & vp1 = poly.vertexes[p1].position;
-        const Vec3 & vp2 = poly.vertexes[p2].position;
-        const Vec3 & vm1 = poly.vertexes[m1].position;
-        const Vec3 & vm2 = poly.vertexes[m2].position;
-
-        bool positive = TestTriangle(p1, p2, m1, vp2, vm1, vp1, normal, active, poly, kTriangulationEpsilon);
-        bool negative = TestTriangle(m1, m2, p1, vp1, vm2, vm1, normal, active, poly, kTriangulationEpsilon);
-
-        // If both are valid, keep the one with the larger smallest angle.
-        if (positive && negative)
-        {
-            const float pDot = math::Dot(math::Normalize(vp2 - vm1), math::Normalize(vm2 - vm1));
-            const float mDot = math::Dot(math::Normalize(vm2 - vp1), math::Normalize(vp2 - vp1));
-
-            if (math::Fabsf(pDot - mDot) < kTriangulationEpsilon)
-            {
-                if (lastPositive) { positive = false; }
-                else              { negative = false; }
-            }
-            else if (pDot < mDot) { negative = false; }
-            else                  { positive = false; }
-        }
-
-        if (positive)
-        {
-            active[p1] = false;
-            EmitTriangle(m1, p1, p2);
-            p1 = NextActive(p1, numVerts, active);
-            p2 = NextActive(p2, numVerts, active);
-            lastPositive = true;
-            start = -1;
-        }
-        else if (negative)
-        {
-            active[m1] = false;
-            EmitTriangle(m2, m1, p1);
-            m1 = PrevActive(m1, numVerts, active);
-            m2 = PrevActive(m2, numVerts, active);
-            lastPositive = false;
-            start = -1;
-        }
-        else // No valid triangle yet; advance the working set.
-        {
-            if (start == -1)
-            {
-                start = p2;
-            }
-            else if (p2 == start)
-            {
-                // Went all the way around without finding a valid triangle.
-                break;
-            }
-
-            m2 = m1;
-            m1 = p1;
-            p1 = p2;
-            p2 = NextActive(p2, numVerts, active);
-        }
-    }
-
-    // Not a hard error: the algorithm may fail to produce the expected count on
-    // pathological polygons. The unused triangles stay zeroed.
-    if (triesDone != numTriangles)
-    {
-        Com_Printf("WARNING: TriangulatePolygon: Unexpected triangle count!\n");
+        ModelTriangle & out = poly.triangles[triangle];
+        out.vertexes[0] = 0;
+        out.vertexes[1] = static_cast<u16>(triangle + 1);
+        out.vertexes[2] = static_cast<u16>(triangle + 2);
     }
 }
 

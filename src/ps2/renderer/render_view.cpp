@@ -40,6 +40,7 @@ namespace {
 // Depth range for the world projection (ref_gl's values).
 constexpr float kZNear = 4.0f;
 constexpr float kZFar  = 4096.0f;
+constexpr float kWeaponZNear = 0.5f;
 
 // Vertex colour for the not-yet-lit world: GS modulate 128 = texels unchanged.
 constexpr u32 kFullBright = vu1::PackColorRGBA(128, 128, 128, 0x80);
@@ -73,6 +74,7 @@ static vec3_t s_upVec      = {};
 
 // World-to-clip transform for the frame (world geometry draws in world space).
 static math::Mat4 s_viewProjMatrix = {};
+static math::Mat4 s_weaponViewProjMatrix = {};
 
 // View frustum side planes (left, right, bottom, top) for bounding-box culling.
 static cplane_t s_frustum[4] = {};
@@ -221,6 +223,20 @@ void SetupFrame(const refdef_t & viewDef)
         kZNear, kZFar);
 
     s_viewProjMatrix = view * proj;
+
+    // View weapons need a smaller near plane so close railgun/BFG triangles
+    // are clipped rather than rejected whole by the VU guard test. Match
+    // ref_gl's RF_DEPTHHACK by remapping the complete weapon depth interval to
+    // the nearest 30% of our reversed GS range: ndc z' = 0.3*z + 0.7*w.
+    const math::Mat4 weaponProj = math::PerspectiveProjection(
+        math::DegToRad(viewDef.fov_y),
+        static_cast<float>(viewDef.width) / static_cast<float>(viewDef.height),
+        static_cast<float>(gs::Width()), static_cast<float>(gs::Height()),
+        kWeaponZNear, kZFar);
+    math::Mat4 weaponDepthRange = math::Identity();
+    weaponDepthRange.m[2][2] = 0.3f;
+    weaponDepthRange.m[3][2] = 0.7f;
+    s_weaponViewProjMatrix = view * weaponProj * weaponDepthRange;
 
     SetUpFrustum(viewDef);
 }
@@ -1298,7 +1314,11 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model,
     const float invGsSkinW = 1.0f / static_cast<float>(GSTextureExtent(md2->skinwidth));
     const float invGsSkinH = 1.0f / static_cast<float>(GSTextureExtent(md2->skinheight));
     const tex::Texture & texture = AliasSkin(entity, model);
-    const math::Mat4 mvp = EntityModelMatrix(entity) * s_viewProjMatrix;
+    const math::Mat4 & viewProj =
+        ((entity.flags & RF_DEPTHHACK) != 0)
+            ? s_weaponViewProjMatrix
+            : s_viewProjMatrix;
+    const math::Mat4 mvp = EntityModelMatrix(entity) * viewProj;
     const math::Vec3 modelLight = AliasModelLight(entity, viewDef);
     const float shadeAngle = math::DegToRad(-entity.angles[YAW]);
     constexpr float kInvSqrt2 = 0.70710678118f;
