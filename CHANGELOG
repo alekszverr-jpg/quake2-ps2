@@ -6,6 +6,15 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+### Validation
+
+- Confirmed in PCSX2 that alpha.6 renders and animates opaque doors, compound
+  door panels, lifts and their brush-based buttons correctly.
+- Confirmed that brush textures remain attached during movement and no missing
+  faces or new depth artifacts were visible in the supplied scenes.
+- Observed approximately 3,000 drawn triangles at 20–30 FPS in the tested
+  door and lift areas.
+
 ## 0.1.0-alpha.6 - 2026-07-29
 
 ### Added

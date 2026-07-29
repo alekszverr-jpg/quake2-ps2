@@ -32,7 +32,7 @@ rendering paths are still under development.
 | Static BSP vertex lighting | Implemented and validated in PCSX2 |
 | MD2 entity/weapon lighting | Implemented and validated in PCSX2 |
 | Dynamic MD2 lighting | Implemented and validated in PCSX2 |
-| Moving doors/platforms | Opaque brush pass, PCSX2 validation pending |
+| Moving doors/platforms | Opaque brush pass working in PCSX2 |
 | Sprite entities | First pass, PCSX2 validation pending |
 | Particles and sprite alpha | First pass working in PCSX2 |
 | Full lightmaps and dynamic world lighting | Not implemented |

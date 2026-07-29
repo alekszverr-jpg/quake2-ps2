@@ -47,7 +47,7 @@ enough for normal gameplay.
 - [x] Dynamic entity lights
 - [~] Sprite entities
 - [x] Particles
-- [~] Opaque brush entities such as moving doors and platforms
+- [x] Opaque brush entities such as moving doors and platforms
 - [ ] Sky surfaces and skybox
 - [ ] Transparent surfaces and entity alpha
 - [ ] Turbulent water/lava/slime surfaces
@@ -101,11 +101,10 @@ development tools.
 
 ## Immediate priorities
 
-1. Validate alpha.6 moving doors, lifts and rotating brush entities in PCSX2.
-2. Implement sky surfaces and skyboxes.
-3. Start the PS2 audio backend.
-4. Make diagnostic overlays optional and disabled by default.
-5. Revisit BSP lightmap fidelity and tessellation cost during the renderer
+1. Implement sky surfaces and skyboxes.
+2. Start the PS2 audio backend.
+3. Make diagnostic overlays optional and disabled by default.
+4. Revisit BSP lightmap fidelity and tessellation cost during the renderer
    performance pass.
 
 Update this file whenever priorities, milestone status or completion criteria
