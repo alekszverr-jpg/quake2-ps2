@@ -42,6 +42,7 @@
 #include <draw2d.h>
 #include <draw_buffers.h>
 #include <draw_sampling.h>
+#include <cmath>
 
 namespace ps2::gs {
 namespace {
@@ -103,7 +104,32 @@ static const tex::Texture * s_currentTex = nullptr;
 // arrangement: within each 32-entry group the two middle 8-entry blocks swap
 // (index bits 3 and 4 exchange).
 alignas(16) static u32 s_clutData[256];
-static vram::Address s_clutVramAddr = vram::Address::Invalid;
+alignas(16) static u32 s_litClutData[256];
+static vram::Address s_clutVramAddr    = vram::Address::Invalid;
+static vram::Address s_litClutVramAddr = vram::Address::Invalid;
+
+u8 GammaChannel(u8 value, float gamma)
+{
+    const float corrected =
+        255.0f * std::pow((static_cast<float>(value) + 0.5f) / 255.5f, gamma) + 0.5f;
+    if (corrected <= 0.0f) { return 0; }
+    if (corrected >= 255.0f) { return 255; }
+    return static_cast<u8>(corrected);
+}
+
+u32 AdjustPaletteColor(u32 color, float gamma, float intensity)
+{
+    const auto channel = [gamma, intensity](u32 value) -> u32 {
+        float scaled = static_cast<float>(value) * intensity;
+        if (scaled > 255.0f) { scaled = 255.0f; }
+        return GammaChannel(static_cast<u8>(scaled), gamma);
+    };
+
+    const u32 r = channel( color        & 0xFFu);
+    const u32 g = channel((color >> 8)  & 0xFFu);
+    const u32 b = channel((color >> 16) & 0xFFu);
+    return r | (g << 8) | (b << 16) | (color & 0xFF000000u);
+}
 
 // Pixel stride the texture occupies VRAM with (the TEX0 TBW and transfer DBW).
 // 8-bit textures must use a multiple of 128 (TBW must be even for PSMT8/4);
@@ -153,17 +179,6 @@ int CurrentContext()
     return s_drawCtx;
 }
 
-u64 DepthBufferRegisterData(bool writeEnabled)
-{
-    // ZBUF: ZBP[0:8] in 2048-word pages, PSM[24:27], ZMSK[32].
-    // ps2sdk exposes the descriptor but not a GS_SET_ZBUF helper in every
-    // supported release, so keep the documented register packing here.
-    const u64 zbp  = (static_cast<u64>(s_zbuffer.address) >> 11) & 0x1FFu;
-    const u64 psm  = (static_cast<u64>(s_zbuffer.zsm) & 0x0Fu) << 24;
-    const u64 mask = static_cast<u64>(writeEnabled ? 0 : 1) << 32;
-    return zbp | psm | mask;
-}
-
 int DepthTestMethod()
 {
     return static_cast<int>(s_zbuffer.method);
@@ -206,13 +221,16 @@ void Init()
     s_zbuffer.zsm     = GS_ZBUF_16S;
     s_zbuffer.address = static_cast<unsigned int>(graph_vram_allocate(kWidth, s_height, GS_ZBUF_16S, GRAPH_ALIGN_PAGE));
 
-    // The global-palette CLUT lives with the fixed allocations (a 16x16
-    // PSMCT32 image, 256 words); the streamed texture heap takes everything
-    // after it, rounded up to a page so its footprint math stays page-aligned
-    // (the rest of the CLUT's page is unused).
-    const int clutVramAddr = graph_vram_allocate(16, 16, GS_PSM_32, GRAPH_ALIGN_BLOCK);
-    vram::Init((clutVramAddr + ArrayLength(s_clutData) + 2047) & ~2047);
+    // Two fixed palette CLUTs: UI/effects use gamma only, while world/model
+    // textures use ref_gl's intensity preprocessing as well. The streamed
+    // texture heap begins after both, rounded to a page.
+    const int clutVramAddr =
+        graph_vram_allocate(16, 16, GS_PSM_32, GRAPH_ALIGN_BLOCK);
+    const int litClutVramAddr =
+        graph_vram_allocate(16, 16, GS_PSM_32, GRAPH_ALIGN_BLOCK);
+    vram::Init((litClutVramAddr + ArrayLength(s_litClutData) + 2047) & ~2047);
     s_clutVramAddr = vram::Address(clutVramAddr);
+    s_litClutVramAddr = vram::Address(litClutVramAddr);
 
     // Display framebuffer 0 first; auto-detects NTSC/PAL.
     graph_initialize(static_cast<int>(s_frame[0].address), kWidth, s_height, GS_PSM_32, 0, 0);
@@ -242,23 +260,41 @@ void Init()
     dma_wait_fast();
     draw_wait_finish();
 
-    // Build and upload the global-palette CLUT (it never changes). The CSM1
-    // reorder swaps entry index bits 3 and 4 - the arrangement the GS reads
-    // the CLUT buffer with (see ps2stuff GS::ReorderClut).
+    // Build and upload the two global-palette CLUTs (they never change during
+    // a run). ref_gl defaults texture intensity to 2.0. A 0.70 gamma default
+    // compensates for the PS2 output path without requiring console input;
+    // both are archived startup settings for future menu exposure.
+    const cvar_t * gammaCvar =
+        Cvar_Get("ps2_gamma", "0.70", CVAR_ARCHIVE);
+    const cvar_t * intensityCvar =
+        Cvar_Get("ps2_texture_intensity", "2.0", CVAR_ARCHIVE);
+    float gamma = gammaCvar->value;
+    float intensity = intensityCvar->value;
+    if (gamma < 0.25f) { gamma = 0.25f; }
+    if (gamma > 3.0f) { gamma = 3.0f; }
+    if (intensity < 1.0f) { intensity = 1.0f; }
+    if (intensity > 4.0f) { intensity = 4.0f; }
+
+    // CSM1 swaps entry index bits 3 and 4 - the arrangement the GS reads.
     for (int i = 0; i < ArrayLength(s_clutData); ++i)
     {
         const int csm1 = (i & ~0x18) | ((i & 0x08) << 1) | ((i & 0x10) >> 1);
-        s_clutData[csm1] = global_palette[i];
+        s_clutData[csm1] = AdjustPaletteColor(global_palette[i], gamma, 1.0f);
+        s_litClutData[csm1] =
+            AdjustPaletteColor(global_palette[i], gamma, intensity);
     }
 
     // The EE just populated this buffer through its data cache. PCSX2 observes
     // those writes directly, but the real GIF DMA reads main memory and would
     // otherwise upload stale (usually zero/black) palette entries.
     SyncDCache(s_clutData, s_clutData + ArrayLength(s_clutData));
+    SyncDCache(s_litClutData, s_litClutData + ArrayLength(s_litClutData));
 
     RenderPacket & upload = s_texUploadPacket;
     upload.Reset();
     upload.TextureTransfer(s_clutData, 16, 16, GS_PSM_32, s_clutVramAddr, 64);
+    upload.TextureTransfer(s_litClutData, 16, 16, GS_PSM_32,
+                           s_litClutVramAddr, 64);
     upload.TextureFlush();
 
     upload.SendChain();
@@ -271,6 +307,11 @@ void Init()
 vram::Address GlobalClutAddress()
 {
     return s_clutVramAddr;
+}
+
+vram::Address LitClutAddress()
+{
+    return s_litClutVramAddr;
 }
 
 void BeginFrame()

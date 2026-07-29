@@ -46,10 +46,10 @@ void ResetLightStyles()
 
 float StaticLightScale()
 {
-    // Equivalent lighting range to the original renderer's default
-    // intensity=2 texture preprocessing. Archived and read live so a map
-    // reload after changing the cvar rebuilds all corner samples consistently.
-    static const cvar_t * scale = Cvar_Get("ps2_light_scale", "2.0", CVAR_ARCHIVE);
+    // Equivalent to the original renderer's gl_modulate=1. Texture intensity
+    // is applied separately by the lit palette in gs.cpp, as ref_gl does.
+    // Archived and read live so a map reload rebuilds all samples consistently.
+    static const cvar_t * scale = Cvar_Get("ps2_light_scale", "1.0", CVAR_ARCHIVE);
     if (scale->value < 0.0f) { return 0.0f; }
     if (scale->value > 8.0f) { return 8.0f; }
     return scale->value;

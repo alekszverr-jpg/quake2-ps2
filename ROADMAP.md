@@ -46,7 +46,7 @@ enough for normal gameplay.
 - [x] Animated light styles
 - [x] Dynamic entity lights
 - [~] Sprite entities
-- [~] Particles
+- [x] Particles
 - [ ] Brush entities such as moving doors and platforms
 - [ ] Sky surfaces and skybox
 - [ ] Transparent surfaces and entity alpha
@@ -101,7 +101,7 @@ development tools.
 
 ## Immediate priorities
 
-1. Validate particles and translucent sprite effects in PCSX2.
+1. Validate the corrected alpha.3 lighting and VU1 rendering in PCSX2.
 2. Implement brush entities such as moving doors and platforms.
 3. Start the PS2 audio backend.
 4. Make diagnostic overlays optional and disabled by default.

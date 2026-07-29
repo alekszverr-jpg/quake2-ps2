@@ -6,6 +6,32 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.3 - 2026-07-29
+
+### Added
+
+- Added separate gamma-only and light-scaled Quake palette CLUTs. Mipmapped
+  world and MD2 textures now receive the original renderer's `intensity=2`
+  preprocessing, while UI, particles and sprites retain their correct colour
+  treatment.
+- Added a PS2-oriented startup gamma default that does not require access to
+  the developer console. The archived `ps2_gamma` and
+  `ps2_texture_intensity` settings are ready for later menu exposure.
+
+### Changed
+
+- Restored the BSP and dynamic-light multiplier to the original renderer's
+  `gl_modulate=1` equivalent; texture intensity is now applied at the correct
+  stage instead of being folded into light samples.
+- Confirmed camera-facing particles and their fading alpha in PCSX2.
+
+### Fixed
+
+- Fixed the severe world and view-model corruption introduced in alpha.2 by
+  unsafe per-batch GS Z-buffer programming.
+- Restored the proven compact VU1 packet layout while retaining source-alpha
+  blending for particles and translucent sprites.
+
 ## 0.1.0-alpha.2 - 2026-07-29
 
 ### Added

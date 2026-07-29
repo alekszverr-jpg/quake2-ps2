@@ -22,7 +22,7 @@
  *      8-999  the two XTOP double buffers (VIF1 BASE=8, OFFSET=496)
  *
  *  Batch layout inside a double buffer (relative to XTOP): input is one header
- *  qword (vertex count in .w), 8 GIF/AD tag qwords, then 2 qwords per vertex;
+ *  qword (vertex count in .w), 6 GIF/AD tag qwords, then 2 qwords per vertex;
  *  the microprogram builds the GS packet in the same buffer after the input.
  *  The A+D block programs TEST as well as TEX0/TEX1, so a batch draws with the
  *  proper z-test no matter what state the surrounding 2D packets left behind.
@@ -51,7 +51,7 @@ namespace {
 // size. Bounded by the VU double buffer: input (7 + 2n) plus output (6 + 3n)
 // qwords must fit in one 496-qword buffer half, so n <= 97 - and chunks are
 // whole triangles, hence 96.
-constexpr int kMaxVertsPerBatch = 93;
+constexpr int kMaxVertsPerBatch = 96;
 
 // VIF1 double-buffer registers: two 496-qword buffers above the constants.
 constexpr int kDoubleBufferBase   = 8;
@@ -62,8 +62,8 @@ constexpr int kFrameConstantsAddr = 0;
 
 // Batch layout, relative to the current double buffer (XTOP).
 constexpr int kBatchHeaderAddr = 0; // vertex count in .w
-constexpr int kGifTagsAddr     = 1; // 8 qwords: set tag, 6 A+D writes, prim tag
-constexpr int kVertexDataAddr  = kGifTagsAddr + 8;
+constexpr int kGifTagsAddr     = 1; // 6 qwords: set tag, 4 A+D writes, prim tag
+constexpr int kVertexDataAddr  = kGifTagsAddr + 6;
 
 // The chain is tags plus small per-chunk inline unpacks; constants and
 // vertices are referenced in place. Sized so a DrawTriangles call fits ~30
@@ -127,6 +127,13 @@ u64 MakeTex0Data(const tex::Texture & texture)
     // leaves the CLUT fields zero (as gs::SetTextureFor2D).
     const bool palettized = (texture.format == tex::PixelFormat::Palette8);
 
+    const bool lightScaled =
+        texture.type == tex::ImageType::Wall ||
+        texture.type == tex::ImageType::Skin ||
+        texture.type == tex::ImageType::Sky;
+    const vram::Address clutAddress =
+        lightScaled ? gs::LitClutAddress() : gs::GlobalClutAddress();
+
     return GS_SET_TEX0(texture.texbuf.address >> 6,
                        texture.texbuf.width >> 6,
                        texture.texbuf.psm,
@@ -134,7 +141,7 @@ u64 MakeTex0Data(const tex::Texture & texture)
                        texture.texbuf.info.height,
                        texture.texbuf.info.components,
                        texture.texbuf.info.function,
-                       palettized ? ((int)gs::GlobalClutAddress() >> 6) : 0,
+                       palettized ? (static_cast<int>(clutAddress) >> 6) : 0,
                        GS_PSM_32, // CPSM; only read for palettized PSMs (and == 0 anyway)
                        CLUT_STORAGE_MODE1, 0,
                        palettized ? CLUT_LOAD : CLUT_NO_LOAD);
@@ -182,18 +189,24 @@ void AddBatchChunk(VifPacket & pkt, const tex::Texture & texture, int ctx,
         pkt.AddU32(0);
         pkt.AddU32(static_cast<u32>(vertCount));
 
-        // Six A+D register writes: pixel tests, texture bind, standard source
-        // alpha blending, and per-batch depth-write control.
-        // this context...
-        pkt.AddQword(GIF_SET_TAG(6, 0, 0, 0, GIF_FLG_PACKED, 1), GIF_REG_AD);
+        // Four A+D writes: pixel tests and texture bind. Opaque mipmapped
+        // batches need MIPTBP1; translucent effects are non-mipmapped and use
+        // that slot to install their source-alpha blend equation. Keeping the
+        // compact, proven packet layout avoids touching ZBUF from PATH1.
+        pkt.AddQword(GIF_SET_TAG(4, 0, 0, 0, GIF_FLG_PACKED, 1), GIF_REG_AD);
         pkt.AddQword(MakeTestData(), static_cast<u64>(GS_REG_TEST + ctx));
         pkt.AddQword(MakeTex1Data(texture), static_cast<u64>(GS_REG_TEX1 + ctx));
         pkt.AddQword(MakeTex0Data(texture), static_cast<u64>(GS_REG_TEX0 + ctx));
-        pkt.AddQword(MakeMiptbp1Data(texture), static_cast<u64>(GS_REG_MIPTBP1 + ctx));
-        pkt.AddQword(GS_SET_ALPHA(0, 1, 0, 1, 0),
-                     static_cast<u64>(GS_REG_ALPHA + ctx));
-        pkt.AddQword(gs::DepthBufferRegisterData(!alphaBlend),
-                     static_cast<u64>(GS_REG_ZBUF + ctx));
+        if (alphaBlend)
+        {
+            pkt.AddQword(GS_SET_ALPHA(0, 1, 0, 1, 0),
+                         static_cast<u64>(GS_REG_ALPHA + ctx));
+        }
+        else
+        {
+            pkt.AddQword(MakeMiptbp1Data(texture),
+                         static_cast<u64>(GS_REG_MIPTBP1 + ctx));
+        }
 
         // ...then the drawing tag: gouraud textured triangle list, STQ mapping,
         // with the per-vertex registers of kVertexRegList.

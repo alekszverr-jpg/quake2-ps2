@@ -917,10 +917,10 @@ math::Vec3 AliasModelLight(const entity_t & entity, const refdef_t & viewDef)
     }
 
     // Match ref_gl's dynamic part of R_LightPoint. Static BSP samples already
-    // include ps2_light_scale, so apply the same scale to transient lights
-    // before combining them with the entity's base light.
+    // include ps2_light_scale, so apply the same gl_modulate-equivalent scale
+    // to transient lights before combining them with the entity's base light.
     static const cvar_t * lightScaleCvar =
-        Cvar_Get("ps2_light_scale", "2.0", CVAR_ARCHIVE);
+        Cvar_Get("ps2_light_scale", "1.0", CVAR_ARCHIVE);
     float lightScale = lightScaleCvar->value;
     if (lightScale < 0.0f) { lightScale = 0.0f; }
     if (lightScale > 8.0f) { lightScale = 8.0f; }
