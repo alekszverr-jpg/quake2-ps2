@@ -22,7 +22,7 @@ rendering paths are still under development.
 | Area | Status |
 | --- | --- |
 | PCSX2 boot from `host:` | Working |
-| Real PS2 boot from FAT32 USB | Working, under validation |
+| Real PS2 boot from FAT32 USB | Working and hardware-tested |
 | Menus, HUD and console | Working |
 | DualShock input | Working |
 | Textured BSP world | Working |
@@ -33,7 +33,7 @@ rendering paths are still under development.
 | MD2 entity/weapon lighting | Implemented and validated in PCSX2 |
 | Dynamic MD2 lighting | Implemented and validated in PCSX2 |
 | Moving doors/platforms | Opaque brush pass working in PCSX2 |
-| Weapon depth range | First pass, PCSX2 validation pending |
+| Weapon depth range | Working in PCSX2 and on real PS2 |
 | Sprite entities | First pass, PCSX2 validation pending |
 | Particles and sprite alpha | First pass working in PCSX2 |
 | Full lightmaps and dynamic world lighting | Not implemented |

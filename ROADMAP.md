@@ -13,7 +13,7 @@ Status markers:
 
 - [x] Reproducible `quake2.elf` build in GitHub Actions
 - [x] PCSX2 boot from `host:` with `baseq2` beside the ELF
-- [~] Real PS2 boot from a FAT32 USB drive through uLaunchELF
+- [x] Real PS2 boot from a FAT32 USB drive through uLaunchELF
 - [x] Menus, HUD, console and gamepad controls
 - [x] Textured BSP world geometry
 - [x] Animated MD2 enemies, corpses and first-person weapons
@@ -51,7 +51,7 @@ enough for normal gameplay.
 - [ ] Sky surfaces and skybox
 - [ ] Transparent surfaces and entity alpha
 - [ ] Turbulent water/lava/slime surfaces
-- [~] Weapon depth-range and view-model render flags
+- [x] Weapon depth-range and view-model render flags
 - [x] WAL mipmaps and stable minification filtering
 - [ ] Frustum/entity culling and renderer performance pass
 
@@ -101,13 +101,16 @@ development tools.
 
 ## Immediate priorities
 
-1. Validate clipped view weapons from alpha.8 in PCSX2, especially railgun,
-   rocket launcher and weapon switching.
-2. Implement sky surfaces and skyboxes.
-3. Start the PS2 audio backend.
-4. Make diagnostic overlays optional and disabled by default.
-5. Revisit BSP lightmap fidelity and tessellation cost during the renderer
-   performance pass.
+1. Establish repeatable alpha.8 performance baselines using the existing
+   triangle, batch, texture-upload and FPS counters.
+2. Cache or otherwise remove repeated per-frame adaptive BSP tessellation and
+   static-light sampling without reducing the validated lighting quality.
+3. Reduce synchronous VU1 waits between texture batches and investigate EE/VU
+   overlap.
+4. Reduce texture upload churn and GS stalls within the 4 MB VRAM budget.
+5. Make diagnostic overlays optional and disabled by default.
+6. Resume renderer completeness with sky surfaces and skyboxes after the first
+   measurable optimization pass.
 
 Update this file whenever priorities, milestone status or completion criteria
 change. Record completed user-visible work in `CHANGELOG` in the same commit.

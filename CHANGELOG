@@ -6,6 +6,17 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+### Validation
+
+- Confirmed in both PCSX2 and on a real PlayStation 2 that alpha.8 removes the
+  stretched view-weapon triangles while keeping the railgun intact.
+- Confirmed on real hardware that the BSP face triangulation fix remains
+  correct and the current renderer looks visually stable.
+- Real-hardware performance has become the primary blocker as renderer
+  completeness increased. The next development pass is now focused on
+  measurable CPU/VU/GS and texture-streaming improvements before sky and audio
+  add more load.
+
 ## 0.1.0-alpha.8 - 2026-07-29
 
 ### Fixed
