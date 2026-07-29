@@ -6,6 +6,25 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.6 - 2026-07-29
+
+### Added
+
+- Added the first opaque inline BSP/brush entity renderer for moving doors,
+  lifts, platforms and other map submodels.
+- Added per-entity translation and rotation using Quake II's original brush
+  pitch/roll convention, local-space backface tests and conservative rotated
+  bounds culling.
+- Reused animated wall textures, animated light styles, BSP gamma correction,
+  adaptive light sampling, clipping, texture batching and VU1 submission for
+  brush entities.
+
+### Known limitations
+
+- Translucent, sky and turbulent brush surfaces remain deferred until their
+  dedicated sorted rendering passes are implemented.
+- Dynamic lights do not yet affect brush surfaces.
+
 ### Validation
 
 - Confirmed in PCSX2 that alpha.5 makes the starting indoor area noticeably

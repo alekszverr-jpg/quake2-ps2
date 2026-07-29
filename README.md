@@ -1,7 +1,7 @@
 # Quake II for PlayStation 2
 
 [![Build](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml/badge.svg)](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml)
-[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.5-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
+[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.6-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](LICENSE)
 
 An active continuation of the unofficial Quake II port for the Sony
@@ -32,6 +32,7 @@ rendering paths are still under development.
 | Static BSP vertex lighting | Implemented and validated in PCSX2 |
 | MD2 entity/weapon lighting | Implemented and validated in PCSX2 |
 | Dynamic MD2 lighting | Implemented and validated in PCSX2 |
+| Moving doors/platforms | Opaque brush pass, PCSX2 validation pending |
 | Sprite entities | First pass, PCSX2 validation pending |
 | Particles and sprite alpha | First pass working in PCSX2 |
 | Full lightmaps and dynamic world lighting | Not implemented |

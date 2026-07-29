@@ -402,7 +402,7 @@ void MarkLeaves(const mod::ModelInstance & world)
 // Returns the texture a surface draws with this frame, following the animation
 // chain for animated walls (torches, screens). Never null: the model loader
 // substitutes the debug checkerboard for missing wall textures.
-const tex::Texture * TextureAnimation(const mod::ModelTexInfo * texInfo)
+const tex::Texture * TextureAnimation(const mod::ModelTexInfo * texInfo, int frame)
 {
     PS2_Assert(texInfo != nullptr && texInfo->texture != nullptr);
 
@@ -411,12 +411,31 @@ const tex::Texture * TextureAnimation(const mod::ModelTexInfo * texInfo)
         return texInfo->texture; // Not animated.
     }
 
-    int c = s_textureAnimFrame % texInfo->numFrames;
+    int c = frame % texInfo->numFrames;
+    if (c < 0)
+    {
+        c += texInfo->numFrames;
+    }
     while (c-- > 0)
     {
         texInfo = texInfo->next;
     }
     return texInfo->texture;
+}
+
+void ChainOpaqueSurface(mod::ModelSurface & surface, int animationFrame)
+{
+    ++s_drawStats.surfaces;
+    const tex::Texture * texture =
+        TextureAnimation(surface.texInfo, animationFrame);
+    if (texture->textureChain == nullptr)
+    {
+        PS2_AssertMsg(s_chainTextureCount < kMaxChainTextures,
+                      "Out of texture chain slots!");
+        s_chainTextures[s_chainTextureCount++] = texture;
+    }
+    surface.textureChain  = texture->textureChain;
+    texture->textureChain = &surface;
 }
 
 // Recursively marks and chains the visible world surfaces: walks the BSP
@@ -517,16 +536,7 @@ void RecursiveWorldNode(const refdef_t & viewDef, const mod::ModelInstance & wor
         }
 
         // Opaque: thread onto its texture's draw chain.
-        ++s_drawStats.surfaces;
-        const tex::Texture * texture = TextureAnimation(surf->texInfo);
-        if (texture->textureChain == nullptr)
-        {
-            // First surface for this texture this frame; remember the chain.
-            PS2_AssertMsg(s_chainTextureCount < kMaxChainTextures, "Out of texture chain slots!");
-            s_chainTextures[s_chainTextureCount++] = texture;
-        }
-        surf->textureChain    = texture->textureChain;
-        texture->textureChain = surf;
+        ChainOpaqueSurface(*surf, s_textureAnimFrame);
     }
 
     // ...and finally recurse down the far side.
@@ -538,12 +548,12 @@ void RecursiveWorldNode(const refdef_t & viewDef, const mod::ModelInstance & wor
 // ------------------------------------------------------------------------------------------------
 
 // Sends the gathered scratch triangles as one batch and empties the buffer.
-inline void FlushScratch(const tex::Texture & texture)
+inline void FlushScratch(const math::Mat4 & mvp, const tex::Texture & texture)
 {
     if (s_scratchVertCount > 0)
     {
         ++s_drawStats.drawBatches;
-        vu1::DrawTriangles(s_viewProjMatrix, texture, s_scratchVerts, s_scratchVertCount);
+        vu1::DrawTriangles(mvp, texture, s_scratchVerts, s_scratchVertCount);
         s_scratchVertCount = 0;
     }
 }
@@ -724,7 +734,8 @@ float MaxLightError(const math::Vec4 & actual, float expectedR,
 
 // Clips one already-lit triangle against the VU guard volume and appends the
 // survivors to the VU scratch batch.
-void SubmitWorldTriangle(const ClipVertex (&corners)[3], const tex::Texture & texture)
+void SubmitWorldTriangle(const ClipVertex (&corners)[3], const math::Mat4 & mvp,
+                         const tex::Texture & texture)
 {
     int insidePerPlane[kNumClipPlanes] = {};
     for (const ClipVertex & corner : corners)
@@ -754,7 +765,7 @@ void SubmitWorldTriangle(const ClipVertex (&corners)[3], const tex::Texture & te
         ++s_drawStats.trisDrawn;
         if (s_scratchVertCount + 3 > kScratchMaxVerts)
         {
-            FlushScratch(texture);
+            FlushScratch(mvp, texture);
         }
         for (const ClipVertex & corner : corners)
         {
@@ -787,7 +798,7 @@ void SubmitWorldTriangle(const ClipVertex (&corners)[3], const tex::Texture & te
 
     if (s_scratchVertCount + (count - 2) * 3 > kScratchMaxVerts)
     {
-        FlushScratch(texture);
+        FlushScratch(mvp, texture);
     }
     for (int v = 1; v < count - 1; ++v)
     {
@@ -806,7 +817,8 @@ void SubmitWorldTriangle(const ClipVertex (&corners)[3], const tex::Texture & te
 // already-linear walls (bounded to 64 triangles per original triangle).
 void SubdivideLitTriangle(const ClipVertex (&corners)[3],
                           const mod::ModelSurface & surface,
-                          const tex::Texture & texture, int depth)
+                          const math::Mat4 & mvp, const tex::Texture & texture,
+                          int depth)
 {
     float edgeLengthSq[3] = {
         LightEdgeLengthSq(corners[0], corners[1]),
@@ -821,7 +833,7 @@ void SubdivideLitTriangle(const ClipVertex (&corners)[3],
         edgeLengthSq[longest] <=
             kMinLightSamplesPerEdge * kMinLightSamplesPerEdge)
     {
-        SubmitWorldTriangle(corners, texture);
+        SubmitWorldTriangle(corners, mvp, texture);
         return;
     }
 
@@ -852,19 +864,19 @@ void SubdivideLitTriangle(const ClipVertex (&corners)[3],
 
     if (!shouldSplit)
     {
-        SubmitWorldTriangle(corners, texture);
+        SubmitWorldTriangle(corners, mvp, texture);
         return;
     }
 
     const ClipVertex first[3]  = { corners[edgeA], midpoint, corners[opposite] };
     const ClipVertex second[3] = { midpoint, corners[edgeB], corners[opposite] };
-    SubdivideLitTriangle(first,  surface, texture, depth + 1);
-    SubdivideLitTriangle(second, surface, texture, depth + 1);
+    SubdivideLitTriangle(first,  surface, mvp, texture, depth + 1);
+    SubdivideLitTriangle(second, surface, mvp, texture, depth + 1);
 }
 
 // Appends a polygon's adaptively lit triangles to the scratch buffer.
 void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & surface,
-                         const tex::Texture & texture)
+                         const math::Mat4 & mvp, const tex::Texture & texture)
 {
     const int numTriangles = poly.numVerts - 2;
     for (int t = 0; t < numTriangles; ++t)
@@ -886,7 +898,7 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
             corner.lightmap = { src.lightmap_s, src.lightmap_t, 0.0f, 0.0f };
             SampleVertexLight(corner, surface);
 
-            const math::Vec4 clip = math::Transform(corner.pos, s_viewProjMatrix);
+            const math::Vec4 clip = math::Transform(corner.pos, mvp);
             const float gw = vu1::kGuardBandNdcLimit * clip.w;
             corner.d.f[0] = (clip.w - clip.z) - kClipEpsilon;
             corner.d.f[1] = (clip.w + clip.z) - kClipEpsilon;
@@ -898,12 +910,12 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
             corner.d.f[7] = 0.0f;
         }
 
-        SubdivideLitTriangle(corners, surface, texture, 0);
+        SubdivideLitTriangle(corners, surface, mvp, texture, 0);
     }
 }
 
 // Draws every texture chain built by RecursiveWorldNode and resets them.
-void DrawTextureChains()
+void DrawTextureChains(const math::Mat4 & mvp)
 {
     for (int i = 0; i < s_chainTextureCount; ++i)
     {
@@ -915,11 +927,11 @@ void DrawTextureChains()
             {
                 if (poly->numVerts >= 3) // Need at least one triangle.
                 {
-                    GatherPolyTriangles(*poly, *surf, *texture);
+                    GatherPolyTriangles(*poly, *surf, mvp, *texture);
                 }
             }
         }
-        FlushScratch(*texture);
+        FlushScratch(mvp, *texture);
 
         texture->textureChain = nullptr; // Reset for the next frame.
     }
@@ -945,6 +957,131 @@ math::Mat4 EntityModelMatrix(const entity_t & entity)
     const math::Mat4 yaw   = math::RotationZ(math::DegToRad( entity.angles[YAW]));
     const math::Mat4 move  = math::Translation(entity.origin[0], entity.origin[1], entity.origin[2]);
     return roll * pitch * yaw * move;
+}
+
+math::Mat4 BrushModelMatrix(const entity_t & entity)
+{
+    // R_DrawBrushModel temporarily negates pitch and roll before calling the
+    // shared OpenGL entity transform. Preserve that Quake II convention while
+    // expressing it in our row-vector matrix order.
+    const math::Mat4 roll  = math::RotationX(math::DegToRad( entity.angles[ROLL]));
+    const math::Mat4 pitch = math::RotationY(math::DegToRad(-entity.angles[PITCH]));
+    const math::Mat4 yaw   = math::RotationZ(math::DegToRad( entity.angles[YAW]));
+    const math::Mat4 move  =
+        math::Translation(entity.origin[0], entity.origin[1], entity.origin[2]);
+    return roll * pitch * yaw * move;
+}
+
+math::Vec3 BrushCameraLocal(const entity_t & entity, const refdef_t & viewDef)
+{
+    const math::Vec3 relative = {
+        viewDef.vieworg[0] - entity.origin[0],
+        viewDef.vieworg[1] - entity.origin[1],
+        viewDef.vieworg[2] - entity.origin[2]
+    };
+    if (entity.angles[0] == 0.0f &&
+        entity.angles[1] == 0.0f &&
+        entity.angles[2] == 0.0f)
+    {
+        return relative;
+    }
+
+    vec3_t angles = {
+        entity.angles[0], entity.angles[1], entity.angles[2]
+    };
+    vec3_t forward;
+    vec3_t right;
+    vec3_t up;
+    AngleVectors(angles, forward, right, up);
+    return {
+         relative.x * forward[0] + relative.y * forward[1] + relative.z * forward[2],
+        -(relative.x * right[0]   + relative.y * right[1]   + relative.z * right[2]),
+         relative.x * up[0]      + relative.y * up[1]      + relative.z * up[2]
+    };
+}
+
+bool CullBrushEntity(const entity_t & entity, const mod::ModelInstance & model)
+{
+    float mins[3];
+    float maxs[3];
+    const bool rotated =
+        entity.angles[0] != 0.0f ||
+        entity.angles[1] != 0.0f ||
+        entity.angles[2] != 0.0f;
+    if (rotated)
+    {
+        for (int axis = 0; axis < 3; ++axis)
+        {
+            mins[axis] = entity.origin[axis] - model.radius;
+            maxs[axis] = entity.origin[axis] + model.radius;
+        }
+    }
+    else
+    {
+        mins[0] = entity.origin[0] + model.mins.x;
+        mins[1] = entity.origin[1] + model.mins.y;
+        mins[2] = entity.origin[2] + model.mins.z;
+        maxs[0] = entity.origin[0] + model.maxs.x;
+        maxs[1] = entity.origin[1] + model.maxs.y;
+        maxs[2] = entity.origin[2] + model.maxs.z;
+    }
+    return ShouldCullBBox(mins, maxs);
+}
+
+void DrawBrushModel(const entity_t & entity, const mod::ModelInstance & model,
+                    const refdef_t & viewDef)
+{
+    PS2_Assert(model.type == mod::ModelType::Brush);
+    if (model.numModelSurfaces <= 0 ||
+        (entity.flags & RF_TRANSLUCENT) != 0)
+    {
+        return; // Translucent brush entities need the later sorted alpha pass.
+    }
+    if (CullBrushEntity(entity, model))
+    {
+        return;
+    }
+
+    PS2_Assert(model.surfaces != nullptr);
+    PS2_Assert(model.firstModelSurface >= 0);
+    PS2_Assert(model.firstModelSurface + model.numModelSurfaces <= model.numSurfaces);
+    PS2_Assert(s_scratchVertCount == 0 && s_chainTextureCount == 0);
+
+    const math::Vec3 cameraLocal = BrushCameraLocal(entity, viewDef);
+    mod::ModelSurface * surface =
+        model.surfaces + model.firstModelSurface;
+    for (int i = 0; i < model.numModelSurfaces; ++i, ++surface)
+    {
+        const cplane_t & plane = *surface->plane;
+        const float dot =
+            cameraLocal.x * plane.normal[0] +
+            cameraLocal.y * plane.normal[1] +
+            cameraLocal.z * plane.normal[2] - plane.dist;
+        const bool planeBack =
+            HasFlag(surface->flags, mod::SurfaceFlags::PlaneBack);
+        const bool facing = planeBack
+            ? dot < -mod::kBackFaceEpsilon
+            : dot >  mod::kBackFaceEpsilon;
+        if (!facing)
+        {
+            continue;
+        }
+
+        const int texFlags = surface->texInfo->flags;
+        if ((texFlags & SURF_SKY) != 0)
+        {
+            continue; // Sky bounds are still a later renderer milestone.
+        }
+        if ((texFlags & (SURF_TRANS33 | SURF_TRANS66 | SURF_WARP)) != 0)
+        {
+            ++s_drawStats.surfacesAlpha;
+            continue;
+        }
+        ChainOpaqueSurface(*surface, entity.frame);
+    }
+
+    const math::Mat4 mvp = BrushModelMatrix(entity) * s_viewProjMatrix;
+    DrawTextureChains(mvp);
 }
 
 const tex::Texture & AliasSkin(const entity_t & entity, const mod::ModelInstance & model)
@@ -1283,7 +1420,7 @@ void DrawSpriteModel(const entity_t & entity, const mod::ModelInstance & model)
     s_scratchVertCount = 0;
 }
 
-void RenderAliasEntities(const refdef_t & viewDef)
+void RenderEntities(const refdef_t & viewDef)
 {
     static const cvar_t * s_skipEntities = Cvar_Get("ps2_skip_entities", "0", 0);
     if (s_skipEntities->value != 0.0f)
@@ -1300,7 +1437,11 @@ void RenderAliasEntities(const refdef_t & viewDef)
         }
 
         const auto * model = reinterpret_cast<const mod::ModelInstance *>(entity.model);
-        if (model->type == mod::ModelType::AliasMD2)
+        if (model->type == mod::ModelType::Brush)
+        {
+            DrawBrushModel(entity, *model, viewDef);
+        }
+        else if (model->type == mod::ModelType::AliasMD2)
         {
             DrawAliasModel(entity, *model, viewDef);
         }
@@ -1420,7 +1561,7 @@ void RenderWorldModel(const refdef_t & viewDef)
     SetUpViewClusters(viewDef, *world);
     MarkLeaves(*world);
     RecursiveWorldNode(viewDef, *world, world->nodes);
-    DrawTextureChains();
+    DrawTextureChains(s_viewProjMatrix);
 }
 
 } // namespace
@@ -1454,11 +1595,11 @@ void RenderFrame(const refdef_t & viewDef)
     SetupFrame(viewDef);
 
     RenderWorldModel(viewDef);
-    RenderAliasEntities(viewDef);
+    RenderEntities(viewDef);
     RenderParticles(viewDef);
 
-    // Later milestones continue here: brush entities, translucent
-    // surfaces/entities, sky, water and dynamic world lights.
+    // Later milestones continue here: translucent surfaces/entities, sky,
+    // water and dynamic world lights.
 }
 
 } // namespace ps2::view
