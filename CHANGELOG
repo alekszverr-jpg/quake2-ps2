@@ -6,6 +6,15 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+### Validation
+
+- Confirmed in PCSX2 that alpha.5 makes the starting indoor area noticeably
+  brighter while retaining dark doorways and avoiding visible clipping in
+  already bright outdoor areas.
+- Observed approximately 4,500–9,200 drawn triangles and 12–15 FPS in the
+  supplied scenes. Gamma correction itself adds no geometry; the variation
+  comes from adaptive BSP lighting and scene visibility.
+
 ## 0.1.0-alpha.5 - 2026-07-29
 
 ### Added

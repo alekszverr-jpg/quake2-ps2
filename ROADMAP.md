@@ -101,12 +101,12 @@ development tools.
 
 ## Immediate priorities
 
-1. Validate alpha.5 BSP shadow/midtone gamma in the starting area and ensure
-   already bright outdoor surfaces remain below clipping.
-2. Implement brush entities such as moving doors and platforms.
-3. Implement sky surfaces and skyboxes.
-4. Start the PS2 audio backend.
-5. Make diagnostic overlays optional and disabled by default.
+1. Implement brush entities such as moving doors and platforms.
+2. Implement sky surfaces and skyboxes.
+3. Start the PS2 audio backend.
+4. Make diagnostic overlays optional and disabled by default.
+5. Revisit BSP lightmap fidelity and tessellation cost during the renderer
+   performance pass.
 
 Update this file whenever priorities, milestone status or completion criteria
 change. Record completed user-visible work in `CHANGELOG` in the same commit.
