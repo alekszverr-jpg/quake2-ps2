@@ -15,6 +15,11 @@ namespace ps2::tex { struct Texture; }
 
 namespace ps2::vu1 {
 
+struct TimingStats
+{
+    int waitMicros; // EE wall time blocked waiting for VIF1/VU1 DMA.
+};
+
 // Declares the linker symbols bracketing an assembled VU microprogram in the
 // ELF's .vudata section. 'progName' must match the #vuprog name in the .vcl.
 #define PS2_DECLARE_VU_MICROPROGRAM(progName) \
@@ -55,6 +60,10 @@ constexpr float kGuardBandNdcLimit = 0.8f;
 // Brings up the VIF1 DMA channel, uploads the microprogram to VU1 micro memory
 // and programs the double-buffer registers. Call once, after gs::Init().
 void Init();
+
+// Per-frame profiling. Reset from PS2_BeginFrame before any 3D submission.
+void BeginFrameStats();
+const TimingStats & GetTimingStats();
 
 // Draws a batch of triangles (3 verts each, triangle list) through VU1 with
 // the given transform and texture (uploaded to GS VRAM on demand). Any whole-

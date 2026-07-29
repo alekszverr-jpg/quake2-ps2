@@ -247,6 +247,8 @@ void DrawDrawStatsOverlay()
     }
 
     const ps2::view::DrawStats & stats = ps2::view::GetDrawStats();
+    const ps2::vu1::TimingStats & vuTiming = ps2::vu1::GetTimingStats();
+    const ps2::gs::TimingStats & gsTiming = ps2::gs::GetTimingStats();
 
     const struct { const char * label; int value; } rows[] = {
         { "Nodes",   stats.nodesWalked   },
@@ -257,6 +259,15 @@ void DrawDrawStatsOverlay()
         { "Culled",  stats.trisCulled    },
         { "Batches", stats.drawBatches   },
         { "BoxCull", stats.boxesCulled   },
+        { "Setup us", stats.setupMicros },
+        { "World us", stats.worldMicros },
+        { "Ent us",   stats.entityMicros },
+        { "Part us",  stats.particleMicros },
+        { "3D us",    stats.setupMicros + stats.worldMicros +
+                      stats.entityMicros + stats.particleMicros },
+        { "VUwait",   vuTiming.waitMicros },
+        { "TexDMA",   gsTiming.textureUploadMicros },
+        { "VRAMwait", gsTiming.vramStallMicros },
     };
 
     constexpr int kLineHeight = kGlyphSize + 2; // Matches DrawInternalString spacing.
@@ -447,6 +458,7 @@ void PS2_CinematicSetPalette(const unsigned char * palette)
 void PS2_BeginFrame(float cameraSeparation)
 {
     (void)cameraSeparation;
+    ps2::vu1::BeginFrameStats();
     ps2::gs::BeginFrame();
     // 2D and 3D now draw freely between here and PS2_EndFrame: 2D primitives
     // open the deferred overlay batch lazily and it flushes automatically at

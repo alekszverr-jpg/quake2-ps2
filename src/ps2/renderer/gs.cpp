@@ -30,6 +30,7 @@
 #include "ps2/common.h"
 #include "ps2/renderer/gs.h"
 #include "ps2/renderer/render_packet.h"
+#include "ps2/renderer/timing.h"
 #include "ps2/renderer/texture.h"
 #include "ps2/renderer/vram.h"
 #include "ps2/builtin/builtin.h" // global_palette
@@ -79,6 +80,7 @@ static zbuffer_t     s_zbuffer;
 static RenderPacket s_framePacket[2];   // double-buffered per-frame packets
 static RenderPacket s_texUploadPacket;  // scratch packet for texture uploads
 static RenderPacket s_clearPacket;      // per-frame color+depth clear
+static TimingStats s_timingStats = {};
 
 static int s_drawCtx   = 1; // which framebuffer/context we render into this frame
 static int s_packetIdx = 0; // which frame packet is being filled
@@ -317,6 +319,7 @@ vram::Address LitClutAddress()
 void BeginFrame()
 {
     PS2_AssertMsg(!s_frameStarted, "BeginFrame: frame already started!");
+    s_timingStats = {};
     s_frameStarted = true;
 
     s_packetIdx ^= 1;
@@ -344,6 +347,11 @@ void BeginFrame()
     // The GS is idle now, so nothing queued can reference reused VRAM anymore.
     s_vramReuseHazard = false;
     vram::BeginFrame();
+}
+
+const TimingStats & GetTimingStats()
+{
+    return s_timingStats;
 }
 
 // Opens the pending 2D batch on demand: the first 2D primitive after a flush
@@ -442,6 +450,7 @@ void FillRect(int x, int y, int w, int h, u8 r, u8 g, u8 b, u8 a)
 // the GS has finished rasterizing them).
 static void SyncGsBeforeVramReuse()
 {
+    const timing::Stamp waitStart = timing::Now();
     if (s_in2D)
     {
         RenderPacket & pkt = FramePacket();
@@ -463,6 +472,7 @@ static void SyncGsBeforeVramReuse()
         pkt.SendNormal();
         draw_wait_finish();
     }
+    s_timingStats.vramStallMicros += timing::ElapsedMicros(waitStart);
     s_vramReuseHazard = false;
 }
 
@@ -578,7 +588,9 @@ void EnsureTextureResident(const tex::Texture & texture)
     pkt.TextureFlush();
 
     pkt.SendChain();
+    const timing::Stamp uploadStart = timing::Now();
     dma_wait_fast();
+    s_timingStats.textureUploadMicros += timing::ElapsedMicros(uploadStart);
 
     vram::NoteTextureUpload(); // for the debug overlay's per-frame upload count
 }

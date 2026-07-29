@@ -17,6 +17,12 @@ namespace ps2::tex { struct Texture; }
 
 namespace ps2::gs {
 
+struct TimingStats
+{
+    int textureUploadMicros; // Texture-transfer DMA wait time this frame.
+    int vramStallMicros;     // Full GS waits before reusing resident VRAM.
+};
+
 // Brings up the GS: allocates two 32-bit framebuffers, initialises the video
 // mode and height from the console region (640x448 NTSC, 640x512 PAL), and
 // sets up both drawing contexts. Call once.
@@ -51,6 +57,7 @@ void SetClearColor(u8 r, u8 g, u8 b);
 // vsync and flips to the front. 2D and 3D may be drawn in any order between them.
 void BeginFrame();
 void EndFrame();
+const TimingStats & GetTimingStats();
 
 // 2D draws (FillRect/SetTextureFor2D/DrawTexturedRect) accumulate into a
 // deferred "pending batch" with an always-pass z-test, so it draws on top; the

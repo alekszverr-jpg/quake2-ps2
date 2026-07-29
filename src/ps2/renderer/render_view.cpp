@@ -24,6 +24,7 @@
 #include "ps2/renderer/model.h"
 #include "ps2/renderer/vu1.h"
 #include "ps2/renderer/gs.h"
+#include "ps2/renderer/timing.h"
 #include "ps2/math/vec_mat.h"
 #include "ps2/builtin/builtin.h"
 
@@ -1641,11 +1642,21 @@ void RenderFrame(const refdef_t & viewDef)
 
     s_drawStats = {};
 
+    timing::Stamp phaseStart = timing::Now();
     SetupFrame(viewDef);
+    s_drawStats.setupMicros = timing::ElapsedMicros(phaseStart);
 
+    phaseStart = timing::Now();
     RenderWorldModel(viewDef);
+    s_drawStats.worldMicros = timing::ElapsedMicros(phaseStart);
+
+    phaseStart = timing::Now();
     RenderEntities(viewDef);
+    s_drawStats.entityMicros = timing::ElapsedMicros(phaseStart);
+
+    phaseStart = timing::Now();
     RenderParticles(viewDef);
+    s_drawStats.particleMicros = timing::ElapsedMicros(phaseStart);
 
     // Later milestones continue here: translucent surfaces/entities, sky,
     // water and dynamic world lights.

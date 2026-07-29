@@ -81,7 +81,7 @@ Target: the single-player campaign is functionally completable.
 Target: stable frame pacing with no memory exhaustion during normal campaign
 play on a retail console.
 
-- [ ] Establish frame-time budgets for EE, VU1, GS and USB loading
+- [~] Establish frame-time budgets for EE, VU1, GS and USB loading
 - [ ] Reduce texture upload churn and VRAM fragmentation
 - [ ] Add release builds with assertions/diagnostics disabled
 - [ ] Profile model interpolation, BSP traversal and clipping
@@ -101,8 +101,8 @@ development tools.
 
 ## Immediate priorities
 
-1. Establish repeatable alpha.8 performance baselines using the existing
-   triangle, batch, texture-upload and FPS counters.
+1. Establish repeatable alpha.9 performance baselines using the new EE phase,
+   VU1 wait, texture-DMA, VRAM-stall, triangle, batch, upload and FPS counters.
 2. Cache or otherwise remove repeated per-frame adaptive BSP tessellation and
    static-light sampling without reducing the validated lighting quality.
 3. Reduce synchronous VU1 waits between texture batches and investigate EE/VU

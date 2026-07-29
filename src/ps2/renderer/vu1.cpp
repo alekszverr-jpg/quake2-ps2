@@ -33,6 +33,7 @@
 #include "ps2/common.h"
 #include "ps2/renderer/vu1.h"
 #include "ps2/renderer/gs.h"
+#include "ps2/renderer/timing.h"
 #include "ps2/renderer/texture.h"
 
 #include <dma.h>
@@ -46,6 +47,8 @@ namespace ps2::vu1 {
 PS2_DECLARE_VU_MICROPROGRAM(VU1Prog_TexturedTriangles);
 
 namespace {
+
+static TimingStats s_timingStats = {};
 
 // Vertices per VU run: DrawTriangles splits larger draws into chunks of this
 // size. Bounded by the VU double buffer: input (7 + 2n) plus output (6 + 3n)
@@ -229,7 +232,9 @@ void SendChainAndWait(VifPacket & pkt)
     pkt.AddFlush();
     pkt.AddEndTag();
     pkt.Send();
+    const timing::Stamp waitStart = timing::Now();
     pkt.Wait();
+    s_timingStats.waitMicros += timing::ElapsedMicros(waitStart);
 }
 
 } // namespace
@@ -259,6 +264,16 @@ void Init()
     pkt.AddEndTag();
     pkt.Send();
     pkt.Wait();
+}
+
+void BeginFrameStats()
+{
+    s_timingStats = {};
+}
+
+const TimingStats & GetTimingStats()
+{
+    return s_timingStats;
 }
 
 void DrawTriangles(const math::Mat4 & mvp, const tex::Texture & texture,

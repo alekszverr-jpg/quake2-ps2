@@ -23,6 +23,10 @@ struct DrawStats
     int trisCulled;    // Triangles dropped whole, entirely outside the view volume.
     int boxesCulled;   // Whole meshes culled via bounding box checks.
     int drawBatches;   // vu1::DrawTriangles calls (one or more per texture).
+    int setupMicros;   // Camera/frustum setup on the EE.
+    int worldMicros;   // BSP walk, lighting, clipping and world submission.
+    int entityMicros;  // Alias/brush/sprite entity preparation and submission.
+    int particleMicros;// Particle preparation and submission.
 };
 
 // Stats of the most recent RenderFrame; all zeros before the first 3D frame.

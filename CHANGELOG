@@ -6,6 +6,25 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.9 - 2026-07-29
+
+### Added
+
+- Added microsecond timing for camera setup, BSP/world rendering, entities,
+  particles and the complete 3D view pass to the always-visible draw overlay.
+- Added separate counters for time the EE spends waiting on VIF1/VU1, texture
+  transfer DMA and full GS stalls required before evicted VRAM can be reused.
+- Reset all timing counters automatically at frame start; profiling requires
+  no developer console or keyboard.
+
+### Notes
+
+- Phase timings include any VU/texture waits occurring inside the phase.
+  Dedicated wait rows expose that overlap so CPU work and pipeline stalls can
+  be distinguished from a screenshot.
+- This build intentionally changes instrumentation only. It establishes the
+  baseline needed to choose the first visual-quality-neutral optimization.
+
 ### Validation
 
 - Confirmed in both PCSX2 and on a real PlayStation 2 that alpha.8 removes the
