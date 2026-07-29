@@ -86,6 +86,14 @@ static int s_textureAnimFrame = 0;
 static float s_lightMaxSamplesPerEdge = 8.0f;
 static float s_lightErrorTolerance    = 5.0f;
 
+// GS texture modulation happens after the palette lookup. Applying gamma only
+// to that palette therefore leaves the light multiplier linear, unlike a
+// display gamma curve over the final lit pixel. This small LUT applies the
+// matching curve to BSP vertex light (0..128) without thousands of pow() calls
+// per frame.
+static float s_worldLightGammaTable[129];
+static float s_worldLightGamma = -1.0f;
+
 // Scratch for one decompressed cluster PVS, and for the two-cluster union used
 // when the camera straddles a solid water boundary. Static: 8 KB each.
 alignas(16) static u8 s_dvisPvs[MAX_MAP_LEAFS / 8];
@@ -178,6 +186,22 @@ void SetupFrame(const refdef_t & viewDef)
     if (s_lightMaxSamplesPerEdge > 16.0f) { s_lightMaxSamplesPerEdge = 16.0f; }
     if (s_lightErrorTolerance < 1.0f)  { s_lightErrorTolerance = 1.0f; }
     if (s_lightErrorTolerance > 24.0f) { s_lightErrorTolerance = 24.0f; }
+
+    static const cvar_t * worldLightGammaCvar =
+        Cvar_Get("ps2_world_light_gamma", "0.70", CVAR_ARCHIVE);
+    float worldLightGamma = worldLightGammaCvar->value;
+    if (worldLightGamma < 0.25f) { worldLightGamma = 0.25f; }
+    if (worldLightGamma > 2.0f)  { worldLightGamma = 2.0f; }
+    if (worldLightGamma != s_worldLightGamma)
+    {
+        for (int i = 0; i <= 128; ++i)
+        {
+            const float normalized = static_cast<float>(i) * (1.0f / 128.0f);
+            s_worldLightGammaTable[i] =
+                std::pow(normalized, worldLightGamma) * 128.0f;
+        }
+        s_worldLightGamma = worldLightGamma;
+    }
 
     // Animated walls flip frames at 2 Hz of game time (as in ref_gl).
     s_textureAnimFrame = static_cast<int>(viewDef.time * 2.0f);
@@ -621,10 +645,14 @@ constexpr int   kMaxLightSubdivideDepth = 6;
 
 void UnpackLightColor(ClipVertex & vertex, u32 color)
 {
+    const u32 r =  color        & 0xFFu;
+    const u32 g = (color >> 8)  & 0xFFu;
+    const u32 b = (color >> 16) & 0xFFu;
+    PS2_Assert(r <= 128 && g <= 128 && b <= 128);
     vertex.color = {
-        static_cast<float>( color        & 0xFFu),
-        static_cast<float>((color >> 8)  & 0xFFu),
-        static_cast<float>((color >> 16) & 0xFFu),
+        s_worldLightGammaTable[r],
+        s_worldLightGammaTable[g],
+        s_worldLightGammaTable[b],
         128.0f
     };
 }

@@ -101,7 +101,8 @@ development tools.
 
 ## Immediate priorities
 
-1. Validate alpha.4 adaptive BSP lighting and triangle counts in PCSX2.
+1. Validate alpha.5 BSP shadow/midtone gamma in the starting area and ensure
+   already bright outdoor surfaces remain below clipping.
 2. Implement brush entities such as moving doors and platforms.
 3. Implement sky surfaces and skyboxes.
 4. Start the PS2 audio backend.

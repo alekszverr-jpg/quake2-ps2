@@ -6,6 +6,24 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.5 - 2026-07-29
+
+### Added
+
+- Added a 129-entry gamma lookup table for BSP light coefficients. This
+  approximates applying the display curve after `texture × light`, lifting
+  dark and middle lightmap values while preserving black and full brightness.
+- Added the archived `ps2_world_light_gamma` setting with a console-free
+  default of `0.70`; the table is rebuilt only when the value changes.
+
+### Validation
+
+- Confirmed that alpha.4 improves local BSP light variation and remains free
+  of the alpha.2 depth corruption.
+- Observed roughly 3,700 to 8,000 drawn triangles and 12–20 FPS in the supplied
+  PCSX2 scenes. The starting indoor area remained too dark, showing that the
+  remaining mismatch was tonal rather than insufficient tessellation.
+
 ## 0.1.0-alpha.4 - 2026-07-29
 
 ### Changed
