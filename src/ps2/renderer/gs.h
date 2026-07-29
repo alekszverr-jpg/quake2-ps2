@@ -34,6 +34,11 @@ int CurrentContext();
 // that program the TEST register themselves (the VU1 3D batches).
 int DepthTestMethod();
 
+// Complete ZBUF register value for a VU1 batch. Translucent effects keep the
+// depth test but mask depth writes so overlapping particles do not occlude
+// each other or later transparent geometry.
+u64 DepthBufferRegisterData(bool writeEnabled);
+
 // GS VRAM word address of the 256-entry global-palette CLUT (Quake's shared
 // 8-bit palette), uploaded once by Init() to a fixed spot outside the texture
 // heap. PixelFormat::Palette8 textures sample through it.

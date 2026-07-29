@@ -64,6 +64,7 @@ void Init();
 // the GS has consumed the batch, so the vertex data only needs to stay valid
 // for the duration of the call. Call between gs::Begin/EndFrame.
 void DrawTriangles(const math::Mat4 & mvp, const tex::Texture & texture,
-                   const DrawVertex * verts, int vertCount);
+                   const DrawVertex * verts, int vertCount,
+                   bool alphaBlend = false);
 
 } // namespace ps2::vu1

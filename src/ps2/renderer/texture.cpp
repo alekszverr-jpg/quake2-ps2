@@ -162,6 +162,31 @@ const u16 * MakeCheckerPattern(int variant)
     return buffer;
 }
 
+const u32 * MakeParticlePattern()
+{
+    constexpr u8 dots[8][8] = {
+        { 0,0,0,0,0,0,0,0 },
+        { 0,0,1,1,0,0,0,0 },
+        { 0,1,1,1,1,0,0,0 },
+        { 0,1,1,1,1,0,0,0 },
+        { 0,0,1,1,0,0,0,0 },
+        { 0,0,0,0,0,0,0,0 },
+        { 0,0,0,0,0,0,0,0 },
+        { 0,0,0,0,0,0,0,0 },
+    };
+    alignas(16) static u32 pixels[8 * 8];
+    for (int y = 0; y < 8; ++y)
+    {
+        for (int x = 0; x < 8; ++x)
+        {
+            // GS channels use 0x80 as 1.0. This neutral white preserves the
+            // palette colour supplied per particle while carrying dot alpha.
+            pixels[x + y * 8] = dots[x][y] ? 0x80808080u : 0x00808080u;
+        }
+    }
+    return pixels;
+}
+
 // Owns the texture pool and the name lookup. Internal singleton (s_cache);
 // the module API below is the public face.
 class TextureCache final
@@ -433,6 +458,7 @@ void TextureCache::Init()
         { "pics/backtile.pcx",  backtile_data,         backtile_width,  backtile_height,  PixelFormat::Palette8, TexComponents::RGB  },
         { "pics/inventory.pcx", inventory_data,        inventory_width, inventory_height, PixelFormat::Palette8, TexComponents::RGB  },
         { "pics/help.pcx",      help_data,             help_width,      help_height,      PixelFormat::Palette8, TexComponents::RGB  },
+        { "pics/particle.pcx",  MakeParticlePattern(), 8,               8,                PixelFormat::RGBA32,   TexComponents::RGBA },
         { "pics/debug0.pcx",    MakeCheckerPattern(0), kCheckerDim,     kCheckerDim,      PixelFormat::RGB16,    TexComponents::RGB  },
         { "pics/debug1.pcx",    MakeCheckerPattern(1), kCheckerDim,     kCheckerDim,      PixelFormat::RGB16,    TexComponents::RGB  },
         { "pics/debug2.pcx",    MakeCheckerPattern(2), kCheckerDim,     kCheckerDim,      PixelFormat::RGB16,    TexComponents::RGB  },
@@ -495,6 +521,13 @@ void TouchTexture(const Texture & texture)
 const Texture & DebugTexture(int index)
 {
     return s_cache.DebugTexture(index);
+}
+
+const Texture & ParticleTexture()
+{
+    const Texture * texture = s_cache.Find("particle", ImageType::Pic);
+    PS2_Assert(texture != nullptr);
+    return *texture;
 }
 
 } // namespace ps2::tex

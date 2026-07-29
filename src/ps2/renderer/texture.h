@@ -154,4 +154,7 @@ constexpr int kNumDebugTextures = 6;
 // several distinct textures to exercise VRAM streaming.
 const Texture & DebugTexture(int index = 0);
 
+// Original Quake II 8x8 dot texture used by the 3D particle pass.
+const Texture & ParticleTexture();
+
 } // namespace ps2::tex

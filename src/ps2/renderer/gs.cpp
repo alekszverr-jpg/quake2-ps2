@@ -153,6 +153,12 @@ int CurrentContext()
     return s_drawCtx;
 }
 
+u64 DepthBufferRegisterData(bool writeEnabled)
+{
+    return GS_SET_ZBUF(s_zbuffer.address >> 11, s_zbuffer.zsm,
+                       writeEnabled ? 0 : 1);
+}
+
 int DepthTestMethod()
 {
     return static_cast<int>(s_zbuffer.method);

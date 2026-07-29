@@ -25,6 +25,7 @@
 #include "ps2/renderer/vu1.h"
 #include "ps2/renderer/gs.h"
 #include "ps2/math/vec_mat.h"
+#include "ps2/builtin/builtin.h"
 
 #include <cmath>
 #include <cstring>
@@ -1154,6 +1155,12 @@ void DrawSpriteModel(const entity_t & entity, const mod::ModelInstance & model)
     constexpr int indices[6] = { 0, 1, 2, 0, 2, 3 };
     const float texS[4] = { 0.0f, 0.0f, maxS, maxS };
     const float texT[4] = { maxT, 0.0f, 0.0f, maxT };
+    const bool translucent = (entity.flags & RF_TRANSLUCENT) != 0;
+    float alpha = translucent ? entity.alpha : 1.0f;
+    if (alpha < 0.0f) { alpha = 0.0f; }
+    if (alpha > 1.0f) { alpha = 1.0f; }
+    const u32 color = vu1::PackColorRGBA(
+        128, 128, 128, static_cast<u32>(alpha * 128.0f + 0.5f));
 
     PS2_Assert(s_scratchVertCount == 0);
     for (int i = 0; i < 6; ++i)
@@ -1164,14 +1171,17 @@ void DrawSpriteModel(const entity_t & entity, const mod::ModelInstance & model)
         out.y = corners[corner].y;
         out.z = corners[corner].z;
         out.w = 1.0f;
-        out.rgba = kFullBright;
+        out.rgba = color;
         out.s = texS[corner];
         out.t = texT[corner];
         out.q = 1.0f;
     }
 
     s_drawStats.trisDrawn += 2;
-    FlushAliasScratch(s_viewProjMatrix, texture);
+    ++s_drawStats.drawBatches;
+    vu1::DrawTriangles(s_viewProjMatrix, texture, s_scratchVerts,
+                       s_scratchVertCount, translucent);
+    s_scratchVertCount = 0;
 }
 
 void RenderAliasEntities(const refdef_t & viewDef)
@@ -1199,6 +1209,90 @@ void RenderAliasEntities(const refdef_t & viewDef)
         {
             DrawSpriteModel(entity, *model);
         }
+    }
+}
+
+void RenderParticles(const refdef_t & viewDef)
+{
+    if (viewDef.particles == nullptr || viewDef.num_particles <= 0)
+    {
+        return;
+    }
+
+    const tex::Texture & texture = tex::ParticleTexture();
+    const math::Vec3 camera = {
+        viewDef.vieworg[0], viewDef.vieworg[1], viewDef.vieworg[2]
+    };
+    const math::Vec3 forward = {
+        s_forwardVec[0], s_forwardVec[1], s_forwardVec[2]
+    };
+    const math::Vec3 baseUp = {
+        s_upVec[0] * 1.5f, s_upVec[1] * 1.5f, s_upVec[2] * 1.5f
+    };
+    const math::Vec3 baseRight = {
+        s_rightVec[0] * 1.5f, s_rightVec[1] * 1.5f, s_rightVec[2] * 1.5f
+    };
+
+    PS2_Assert(s_scratchVertCount == 0);
+    for (int i = 0; i < viewDef.num_particles; ++i)
+    {
+        const particle_t & particle = viewDef.particles[i];
+        if (particle.alpha <= 0.0f)
+        {
+            continue;
+        }
+        if (s_scratchVertCount + 3 > kScratchMaxVerts)
+        {
+            ++s_drawStats.drawBatches;
+            vu1::DrawTriangles(s_viewProjMatrix, texture, s_scratchVerts,
+                               s_scratchVertCount, true);
+            s_scratchVertCount = 0;
+        }
+
+        const math::Vec3 origin = {
+            particle.origin[0], particle.origin[1], particle.origin[2]
+        };
+        const float distance = math::Dot(origin - camera, forward);
+        const float scale = (distance < 20.0f) ? 1.0f
+                                               : 1.0f + distance * 0.004f;
+        const math::Vec3 points[3] = {
+            origin,
+            origin + baseUp * scale,
+            origin + baseRight * scale
+        };
+
+        const u32 palette = global_palette[particle.color & 0xFF];
+        const u32 r = palette & 0xFFu;
+        const u32 g = (palette >> 8) & 0xFFu;
+        const u32 b = (palette >> 16) & 0xFFu;
+        float alpha = particle.alpha;
+        if (alpha > 1.0f) { alpha = 1.0f; }
+        const u32 packedColor = vu1::PackColorRGBA(
+            r, g, b, static_cast<u32>(alpha * 128.0f + 0.5f));
+
+        constexpr float texS[3] = { 0.0625f, 1.0f, 0.0625f };
+        constexpr float texT[3] = { 0.0625f, 0.0625f, 1.0f };
+        for (int corner = 0; corner < 3; ++corner)
+        {
+            vu1::DrawVertex & out = s_scratchVerts[s_scratchVertCount++];
+            out.x = points[corner].x;
+            out.y = points[corner].y;
+            out.z = points[corner].z;
+            out.w = 1.0f;
+            out.rgba = packedColor;
+            out.s = texS[corner];
+            out.t = texT[corner];
+            out.q = 1.0f;
+        }
+        ++s_drawStats.trisDrawn;
+    }
+
+    if (s_scratchVertCount != 0)
+    {
+        ++s_drawStats.drawBatches;
+        vu1::DrawTriangles(s_viewProjMatrix, texture, s_scratchVerts,
+                           s_scratchVertCount, true);
+        s_scratchVertCount = 0;
     }
 }
 
@@ -1262,9 +1356,10 @@ void RenderFrame(const refdef_t & viewDef)
 
     RenderWorldModel(viewDef);
     RenderAliasEntities(viewDef);
+    RenderParticles(viewDef);
 
-    // Later milestones continue here: brush/sprite entities, translucent
-    // surfaces/entities, particles, dynamic lights.
+    // Later milestones continue here: brush entities, translucent
+    // surfaces/entities, sky, water and dynamic world lights.
 }
 
 } // namespace ps2::view

@@ -6,6 +6,16 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.2 - 2026-07-29
+
+### Added
+
+- Added the original Quake II particle dot texture and camera-facing particle
+  triangles using the engine-provided palette colors and alpha values.
+- Added source-alpha blending and depth-write masking to translucent VU1
+  batches, enabling faded particles and translucent SP2 sprite entities.
+- Confirmed the first SP2 sprite pass with the BFG projectile in PCSX2.
+
 ## 0.1.0-alpha.1 - 2026-07-29
 
 ### Added
@@ -89,8 +99,8 @@ Development priorities and completion criteria are tracked in
   MD2 entities only, while dynamic world lighting and full lightmap rendering
   are not implemented.
 - Sound output is not implemented.
-- Sprite rendering is in its first validation pass; particles, translucent
-  blending, sky, water and brush-entity rendering remain incomplete.
+- Sprite and particle rendering are in their first validation passes; sky,
+  water and brush-entity rendering remain incomplete.
 - Save/load and long-play stability on real hardware still need validation.
 
 ## Legacy project notes
