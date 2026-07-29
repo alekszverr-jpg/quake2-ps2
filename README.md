@@ -1,6 +1,7 @@
 # Quake II for PlayStation 2
 
 [![Build](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml/badge.svg)](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml)
+[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.1-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](LICENSE)
 
 An active continuation of the unofficial Quake II port for the Sony
@@ -30,7 +31,8 @@ rendering paths are still under development.
 | Cinematics | Implemented |
 | Static BSP vertex lighting | Implemented and validated in PCSX2 |
 | MD2 entity/weapon lighting | Implemented and validated in PCSX2 |
-| Dynamic MD2 lighting | First pass, PCSX2 validation pending |
+| Dynamic MD2 lighting | Implemented and validated in PCSX2 |
+| Sprite entities | First pass, PCSX2 validation pending |
 | Full lightmaps and dynamic world lighting | Not implemented |
 | Sound | Not implemented |
 | WAL world-texture mipmaps | Implemented and hardware-tested |
@@ -119,6 +121,7 @@ paths are not supported yet.
 | R1 | Attack |
 | L1 | Run |
 | L2 / R2 | Previous / next weapon |
+| L3 | Give all weapons, ammo and items (test helper) |
 | D-pad | Inventory |
 | R3 | Center view |
 | Start | Menu |

@@ -6,6 +6,8 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.1 - 2026-07-29
+
 ### Added
 
 - Added upload and GS binding of all four mip levels stored in WAL world
@@ -24,8 +26,12 @@ Development priorities and completion criteria are tracked in
   to the surrounding BSP lighting.
 - Added original Quake II distance-attenuated dynamic lights to MD2 entities,
   restoring coloured illumination from muzzle flashes and explosions.
+- Confirmed muzzle-flash dynamic lighting in PCSX2.
 - Changed the default analog layout to a modern FPS scheme: left stick moves
   and strafes, while the right stick controls the camera.
+- Added an L3 test shortcut for the single-player `give all` command.
+- Added a first camera-facing sprite-entity renderer with animated SP2 frames
+  and palette-index transparency.
 
 ### Fixed
 
@@ -83,7 +89,8 @@ Development priorities and completion criteria are tracked in
   MD2 entities only, while dynamic world lighting and full lightmap rendering
   are not implemented.
 - Sound output is not implemented.
-- Sprite, translucent, sky, water and brush-entity rendering is incomplete.
+- Sprite rendering is in its first validation pass; particles, translucent
+  blending, sky, water and brush-entity rendering remain incomplete.
 - Save/load and long-play stability on real hardware still need validation.
 
 ## Legacy project notes

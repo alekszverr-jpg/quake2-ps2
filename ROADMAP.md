@@ -44,8 +44,9 @@ enough for normal gameplay.
 - [~] BSP lightmaps and static lighting
 - [x] MD2 vertex lighting using Quake II normal tables
 - [x] Animated light styles
-- [~] Dynamic entity lights
-- [ ] Sprite entities and particles
+- [x] Dynamic entity lights
+- [~] Sprite entities
+- [ ] Particles
 - [ ] Brush entities such as moving doors and platforms
 - [ ] Sky surfaces and skybox
 - [ ] Transparent surfaces and entity alpha
@@ -100,8 +101,8 @@ development tools.
 
 ## Immediate priorities
 
-1. Validate dynamic light response on weapons, enemies and items in PCSX2.
-2. Implement sprite entities and particles for gameplay effects.
+1. Validate sprite entities and the L3 `give all` helper in PCSX2.
+2. Implement particles for gameplay effects.
 3. Start the PS2 audio backend.
 4. Make diagnostic overlays optional and disabled by default.
 

@@ -1112,6 +1112,68 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model,
     FlushAliasScratch(mvp, texture);
 }
 
+void DrawSpriteModel(const entity_t & entity, const mod::ModelInstance & model)
+{
+    PS2_Assert(model.type == mod::ModelType::Sprite);
+    PS2_Assert(model.hunkBase != nullptr);
+
+    const auto * sprite = static_cast<const dsprite_t *>(model.hunkBase);
+    if (sprite->numframes <= 0)
+    {
+        return;
+    }
+
+    int frameIndex = entity.frame % sprite->numframes;
+    if (frameIndex < 0)
+    {
+        frameIndex += sprite->numframes;
+    }
+    const dsprframe_t & frame = sprite->frames[frameIndex];
+    const tex::Texture & texture =
+        (model.skins[frameIndex] != nullptr) ? *model.skins[frameIndex]
+                                             : tex::DebugTexture();
+
+    const math::Vec3 origin = { entity.origin[0], entity.origin[1], entity.origin[2] };
+    const math::Vec3 right  = { s_rightVec[0], s_rightVec[1], s_rightVec[2] };
+    const math::Vec3 up     = { s_upVec[0], s_upVec[1], s_upVec[2] };
+    const float left   = -static_cast<float>(frame.origin_x);
+    const float rightEdge = static_cast<float>(frame.width - frame.origin_x);
+    const float bottom = -static_cast<float>(frame.origin_y);
+    const float top    = static_cast<float>(frame.height - frame.origin_y);
+
+    const math::Vec3 corners[4] = {
+        origin + up * bottom + right * left,
+        origin + up * top    + right * left,
+        origin + up * top    + right * rightEdge,
+        origin + up * bottom + right * rightEdge
+    };
+    const float maxS = static_cast<float>(frame.width) /
+                       static_cast<float>(GSTextureExtent(texture.width));
+    const float maxT = static_cast<float>(frame.height) /
+                       static_cast<float>(GSTextureExtent(texture.height));
+    constexpr int indices[6] = { 0, 1, 2, 0, 2, 3 };
+    const float texS[4] = { 0.0f, 0.0f, maxS, maxS };
+    const float texT[4] = { maxT, 0.0f, 0.0f, maxT };
+
+    PS2_Assert(s_scratchVertCount == 0);
+    for (int i = 0; i < 6; ++i)
+    {
+        const int corner = indices[i];
+        vu1::DrawVertex & out = s_scratchVerts[s_scratchVertCount++];
+        out.x = corners[corner].x;
+        out.y = corners[corner].y;
+        out.z = corners[corner].z;
+        out.w = 1.0f;
+        out.rgba = kFullBright;
+        out.s = texS[corner];
+        out.t = texT[corner];
+        out.q = 1.0f;
+    }
+
+    s_drawStats.trisDrawn += 2;
+    FlushAliasScratch(s_viewProjMatrix, texture);
+}
+
 void RenderAliasEntities(const refdef_t & viewDef)
 {
     static const cvar_t * s_skipEntities = Cvar_Get("ps2_skip_entities", "0", 0);
@@ -1132,6 +1194,10 @@ void RenderAliasEntities(const refdef_t & viewDef)
         if (model->type == mod::ModelType::AliasMD2)
         {
             DrawAliasModel(entity, *model, viewDef);
+        }
+        else if (model->type == mod::ModelType::Sprite)
+        {
+            DrawSpriteModel(entity, *model);
         }
     }
 }

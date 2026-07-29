@@ -68,7 +68,7 @@ constexpr ButtonMapping kButtonMap[] = {
     { PAD_R1,       K_PGDN,       K_AUX1,   "+attack"    },
     { PAD_L2,       K_AUX4,       K_AUX4,   "weapprev"   },
     { PAD_R2,       K_AUX3,       K_AUX3,   "weapnext"   },
-    { PAD_L3,       K_AUX9,       K_AUX9,   nullptr      },
+    { PAD_L3,       K_AUX9,       K_AUX9,   "give all"   }, // test helper
     { PAD_R3,       K_AUX10,      K_AUX10,  "centerview" },
     { PAD_START,    K_ESCAPE,     K_ESCAPE, nullptr      },
     { PAD_SELECT,   '`',          '`',      nullptr      }
