@@ -6,6 +6,39 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.10 - 2026-07-29
+
+### Added
+
+- Added a camera-independent cache for adaptively tessellated BSP triangles,
+  including their diffuse coordinates and final gamma-corrected vertex
+  colours. Stable surfaces no longer repeat recursive subdivision and
+  bilinear lightmap sampling every frame.
+- Keyed each cached surface by only the animated light styles it uses plus the
+  lighting-quality settings. Blinking lamps invalidate their own affected
+  faces without flushing constant world lighting.
+- Added `LitHit`, `LitBuild` and `LitKB` profiling rows for cache reuse,
+  rebuilds and EE-memory footprint.
+- Freed all renderer-owned cache allocations before replacing the world model
+  during map registration.
+
+### Expected result
+
+- After the first visible frame warms the cache, `World us` should fall while
+  geometry, lighting, clipping, animated lamps and texture quality remain
+  unchanged.
+- The first visit to a new area can still build previously unseen entries;
+  animated light styles can produce small, targeted rebuild counts.
+
+### Performance baseline
+
+- Alpha.9 heavy combat scene: 11 FPS, 76.0 ms in the 3D pass, with 45.0 ms in
+  the BSP/world phase and 30.6 ms in entities.
+- Alpha.9 starting area: 15 FPS, 48.8 ms in the 3D pass, with 36.3 ms in the
+  BSP/world phase and 11.8 ms in entities.
+- VU1, texture-DMA and VRAM-reuse waits were below 0.5 ms in both captures,
+  confirming that the current bottleneck is EE-side geometry preparation.
+
 ## 0.1.0-alpha.9 - 2026-07-29
 
 ### Added

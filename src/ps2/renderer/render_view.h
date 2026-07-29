@@ -27,6 +27,9 @@ struct DrawStats
     int worldMicros;   // BSP walk, lighting, clipping and world submission.
     int entityMicros;  // Alias/brush/sprite entity preparation and submission.
     int particleMicros;// Particle preparation and submission.
+    int lightCacheHits;    // Original BSP triangles reusing cached tessellation.
+    int lightCacheBuilds;  // Original BSP triangles rebuilt this frame.
+    int lightCacheBytes;   // Current adaptive BSP cache footprint.
 };
 
 // Stats of the most recent RenderFrame; all zeros before the first 3D frame.

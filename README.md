@@ -1,7 +1,7 @@
 # Quake II for PlayStation 2
 
 [![Build](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml/badge.svg)](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml)
-[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.9-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
+[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.10-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](LICENSE)
 
 An active continuation of the unofficial Quake II port for the Sony
@@ -37,6 +37,7 @@ rendering paths are still under development.
 | Sprite entities | First pass, PCSX2 validation pending |
 | Particles and sprite alpha | First pass working in PCSX2 |
 | On-screen renderer profiling | EE phases, VU wait and VRAM transfer/stall timing |
+| Adaptive BSP lighting cache | First optimization pass, validation pending |
 | Full lightmaps and dynamic world lighting | Not implemented |
 | Sound | Not implemented |
 | WAL world-texture mipmaps | Implemented and hardware-tested |

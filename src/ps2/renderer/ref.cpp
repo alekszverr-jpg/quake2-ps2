@@ -268,6 +268,9 @@ void DrawDrawStatsOverlay()
         { "VUwait",   vuTiming.waitMicros },
         { "TexDMA",   gsTiming.textureUploadMicros },
         { "VRAMwait", gsTiming.vramStallMicros },
+        { "LitHit",   stats.lightCacheHits },
+        { "LitBuild", stats.lightCacheBuilds },
+        { "LitKB",    stats.lightCacheBytes / 1024 },
     };
 
     constexpr int kLineHeight = kGlyphSize + 2; // Matches DrawInternalString spacing.
@@ -344,9 +347,11 @@ void PS2_AppActivate(qboolean activate) { (void)activate; }
 
 void PS2_BeginRegistration(const char * mapName)
 {
+    // Release renderer-owned pointers while the previous world hunk is still
+    // alive; mod::BeginRegistration may replace that hunk with the new map.
+    ps2::view::BeginRegistration();
     ps2::tex::BeginRegistration();
     ps2::mod::BeginRegistration(mapName);
-    ps2::view::BeginRegistration();
 }
 
 void PS2_EndRegistration()

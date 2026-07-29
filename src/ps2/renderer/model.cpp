@@ -564,6 +564,44 @@ u32 SampleStaticLight(const ModelSurface & surface, float sampleS, float sampleT
     return r | (g << 8) | (b << 16) | (0x80u << 24);
 }
 
+u32 StaticLightStyleKey(const ModelSurface & surface)
+{
+    if (!s_lightStylesInitialized)
+    {
+        ResetLightStyles();
+    }
+
+    constexpr u32 kFnvOffset = 2166136261u;
+    constexpr u32 kFnvPrime  = 16777619u;
+    u32 hash = kFnvOffset;
+    auto mix = [&hash](u32 value)
+    {
+        for (int byte = 0; byte < 4; ++byte)
+        {
+            hash ^= (value >> (byte * 8)) & 0xFFu;
+            hash *= kFnvPrime;
+        }
+    };
+
+    float lightScale = StaticLightScale();
+    u32 scaleBits;
+    std::memcpy(&scaleBits, &lightScale, sizeof(scaleBits));
+    mix(scaleBits);
+
+    for (int slot = 0; slot < kMaxLightmaps && surface.styles[slot] != 255; ++slot)
+    {
+        const int style = surface.styles[slot];
+        mix(static_cast<u32>(style));
+        for (int channel = 0; channel < 3; ++channel)
+        {
+            u32 valueBits;
+            std::memcpy(&valueBits, &s_lightStyleRgb[style][channel], sizeof(valueBits));
+            mix(valueBits);
+        }
+    }
+    return hash;
+}
+
 void SetLightStyles(const lightstyle_t * styles)
 {
     if (styles == nullptr)

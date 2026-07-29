@@ -104,6 +104,13 @@ struct ModelVertex
 struct ModelTriangle
 {
     u16 vertexes[3];
+
+    // Renderer-owned adaptive-lighting cache. Mutable because model geometry
+    // is otherwise immutable after load; cleared before the world hunk dies.
+    mutable void * litCacheVertices;
+    mutable u32 litCacheKey;
+    mutable u16 litCacheVertexCount;
+    mutable u16 litCacheCapacity;
 };
 
 //
@@ -178,6 +185,11 @@ struct ModelSurface
 // colour. Bilinear within the sample grid and scaled by the current animated
 // light styles.
 u32 SampleStaticLight(const ModelSurface & surface, float sampleS, float sampleT);
+
+// Hashes only the animated light styles used by this surface plus the static
+// light scale. Stable surfaces therefore keep their renderer cache while a
+// blinking style invalidates only the faces that actually reference it.
+u32 StaticLightStyleKey(const ModelSurface & surface);
 
 // Supplies the current engine light-style RGB scales (256 entries). Called
 // once per rendered frame; nullptr restores the all-ones load-time default.

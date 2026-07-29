@@ -30,6 +30,7 @@
 
 #include <cmath>
 #include <cstring>
+#include <vector>
 
 extern "C" {
     #include "common/q_files.h" // MD2 disk structures.
@@ -594,6 +595,7 @@ inline void FlushScratch(const math::Mat4 & mvp, const tex::Texture & texture)
 // ------------------------------------------------------------------------------------------------
 
 constexpr int kNumClipPlanes = 6;
+constexpr int kMaxLightSubdivideDepth = 6;
 
 // Clip a hair early so the VU's judgement never flags a vertex this clipper
 // just placed on the boundary (clip-space units, i.e. ~world units here).
@@ -619,6 +621,46 @@ struct alignas(16) ClipVertex
     ClipDists  d;
 };
 static_assert(sizeof(ClipVertex) == 96, "ClipVertex must be exactly six quadwords");
+
+// Camera-independent output of adaptive BSP lighting. Positions, diffuse UVs
+// and final vertex colours can be reused until one of the surface's own light
+// styles changes; clip distances still have to be rebuilt for the current MVP.
+struct alignas(16) CachedLitVertex
+{
+    math::Vec4 pos;
+    math::Vec4 st;
+    math::Vec4 color;
+};
+static_assert(sizeof(CachedLitVertex) == 48,
+              "CachedLitVertex must be exactly three quadwords");
+
+constexpr int kMaxCachedVertsPerTriangle =
+    3 * (1 << kMaxLightSubdivideDepth);
+static CachedLitVertex s_litBuildVerts[kMaxCachedVertsPerTriangle];
+static int s_litBuildVertCount = 0;
+static std::vector<const mod::ModelTriangle *> s_cachedLitTriangles;
+static int s_litCacheBytes = 0;
+
+void ClearLitTriangleCaches()
+{
+    for (const mod::ModelTriangle * triangle : s_cachedLitTriangles)
+    {
+        if (triangle->litCacheVertices != nullptr)
+        {
+            PS2_MemFree(
+                triangle->litCacheVertices,
+                static_cast<size_t>(triangle->litCacheCapacity) *
+                    sizeof(CachedLitVertex),
+                MEMTAG_MDL_WORLD);
+        }
+        triangle->litCacheVertices = nullptr;
+        triangle->litCacheKey = 0;
+        triangle->litCacheVertexCount = 0;
+        triangle->litCacheCapacity = 0;
+    }
+    s_cachedLitTriangles.clear();
+    s_litCacheBytes = 0;
+}
 
 // Sutherland-Hodgman pass of a convex polygon against one plane. 'out' must
 // hold inCount + 1 vertexes. Returns the clipped vertex count.
@@ -668,7 +710,6 @@ inline void EmitScratchVertex(const ClipVertex & v)
 
 constexpr float kLightmapAtlasSize = 128.0f;
 constexpr float kMinLightSamplesPerEdge = 2.0f;
-constexpr int   kMaxLightSubdivideDepth = 6;
 
 void UnpackLightColor(ClipVertex & vertex, u32 color)
 {
@@ -826,16 +867,40 @@ void SubmitWorldTriangle(const ClipVertex (&corners)[3], const math::Mat4 & mvp,
     s_drawStats.trisDrawn += count - 2;
 }
 
-// Bisects the longest lightmap-space edge. A coarse maximum spacing makes sure
-// large faces are actually probed; once inside it, midpoint and centroid
-// samples are compared with the colour that linear vertex interpolation would
-// produce. Only non-linear regions keep splitting down to the two-cell floor.
-// This spends triangles around lamps and shadows instead of uniformly across
-// already-linear walls (bounded to 64 triangles per original triangle).
-void SubdivideLitTriangle(const ClipVertex (&corners)[3],
-                          const mod::ModelSurface & surface,
-                          const math::Mat4 & mvp, const tex::Texture & texture,
-                          int depth)
+u32 LitTriangleCacheKey(const mod::ModelSurface & surface)
+{
+    u32 key = mod::StaticLightStyleKey(surface);
+    auto mixFloat = [&key](float value)
+    {
+        u32 bits;
+        std::memcpy(&bits, &value, sizeof(bits));
+        key ^= bits + 0x9E3779B9u + (key << 6) + (key >> 2);
+    };
+    mixFloat(s_lightMaxSamplesPerEdge);
+    mixFloat(s_lightErrorTolerance);
+    mixFloat(s_worldLightGamma);
+    return key;
+}
+
+void AppendCachedTriangle(const ClipVertex (&corners)[3])
+{
+    PS2_Assert(s_litBuildVertCount + 3 <= kMaxCachedVertsPerTriangle);
+    for (const ClipVertex & corner : corners)
+    {
+        CachedLitVertex & out = s_litBuildVerts[s_litBuildVertCount++];
+        out.pos = corner.pos;
+        out.st = corner.st;
+        out.color = corner.color;
+    }
+}
+
+// Bisects the longest lightmap-space edge and stores the resulting leaf
+// triangles without camera-dependent clip data. A coarse maximum spacing makes
+// sure large faces are probed; midpoint and centroid samples then retain detail
+// around lamps and shadows. The expensive recursion and light sampling run only
+// when this surface's relevant animated styles actually change.
+void BuildCachedLitTriangle(const ClipVertex (&corners)[3],
+                            const mod::ModelSurface & surface, int depth)
 {
     float edgeLengthSq[3] = {
         LightEdgeLengthSq(corners[0], corners[1]),
@@ -850,7 +915,7 @@ void SubdivideLitTriangle(const ClipVertex (&corners)[3],
         edgeLengthSq[longest] <=
             kMinLightSamplesPerEdge * kMinLightSamplesPerEdge)
     {
-        SubmitWorldTriangle(corners, mvp, texture);
+        AppendCachedTriangle(corners);
         return;
     }
 
@@ -881,19 +946,20 @@ void SubdivideLitTriangle(const ClipVertex (&corners)[3],
 
     if (!shouldSplit)
     {
-        SubmitWorldTriangle(corners, mvp, texture);
+        AppendCachedTriangle(corners);
         return;
     }
 
     const ClipVertex first[3]  = { corners[edgeA], midpoint, corners[opposite] };
     const ClipVertex second[3] = { midpoint, corners[edgeB], corners[opposite] };
-    SubdivideLitTriangle(first,  surface, mvp, texture, depth + 1);
-    SubdivideLitTriangle(second, surface, mvp, texture, depth + 1);
+    BuildCachedLitTriangle(first,  surface, depth + 1);
+    BuildCachedLitTriangle(second, surface, depth + 1);
 }
 
 // Appends a polygon's adaptively lit triangles to the scratch buffer.
 void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & surface,
-                         const math::Mat4 & mvp, const tex::Texture & texture)
+                         const math::Mat4 & mvp, const tex::Texture & texture,
+                         const u32 cacheKey)
 {
     const int numTriangles = poly.numVerts - 2;
     for (int t = 0; t < numTriangles; ++t)
@@ -904,30 +970,97 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
             continue; // Degenerate placeholder left by failed triangulation.
         }
 
-        ClipVertex corners[3];
-        for (int v = 0; v < 3; ++v)
+        if (tri.litCacheVertices == nullptr || tri.litCacheKey != cacheKey)
         {
-            const mod::PolyVertex & src = poly.vertexes[tri.vertexes[v]];
-            ClipVertex & corner = corners[v];
+            ++s_drawStats.lightCacheBuilds;
+            ClipVertex sourceCorners[3] = {};
+            for (int v = 0; v < 3; ++v)
+            {
+                const mod::PolyVertex & src = poly.vertexes[tri.vertexes[v]];
+                ClipVertex & corner = sourceCorners[v];
+                corner.pos = {
+                    src.position.x, src.position.y, src.position.z, 1.0f
+                };
+                corner.st = {
+                    src.texture_s, src.texture_t, 0.0f, 0.0f
+                };
+                corner.lightmap = {
+                    src.lightmap_s, src.lightmap_t, 0.0f, 0.0f
+                };
+                SampleVertexLight(corner, surface);
+            }
 
-            corner.pos      = { src.position.x, src.position.y, src.position.z, 1.0f };
-            corner.st       = { src.texture_s, src.texture_t, 0.0f, 0.0f };
-            corner.lightmap = { src.lightmap_s, src.lightmap_t, 0.0f, 0.0f };
-            SampleVertexLight(corner, surface);
+            s_litBuildVertCount = 0;
+            BuildCachedLitTriangle(sourceCorners, surface, 0);
+            PS2_Assert(s_litBuildVertCount >= 3 &&
+                       (s_litBuildVertCount % 3) == 0);
 
-            const math::Vec4 clip = math::Transform(corner.pos, mvp);
-            const float gw = vu1::kGuardBandNdcLimit * clip.w;
-            corner.d.f[0] = (clip.w - clip.z) - kClipEpsilon;
-            corner.d.f[1] = (clip.w + clip.z) - kClipEpsilon;
-            corner.d.f[2] = (gw - clip.x) - kClipEpsilon;
-            corner.d.f[3] = (gw + clip.x) - kClipEpsilon;
-            corner.d.f[4] = (gw - clip.y) - kClipEpsilon;
-            corner.d.f[5] = (gw + clip.y) - kClipEpsilon;
-            corner.d.f[6] = 0.0f;
-            corner.d.f[7] = 0.0f;
+            const bool firstAllocation = tri.litCacheCapacity == 0;
+            if (s_litBuildVertCount > tri.litCacheCapacity)
+            {
+                if (tri.litCacheVertices != nullptr)
+                {
+                    s_litCacheBytes -=
+                        static_cast<int>(tri.litCacheCapacity) *
+                        static_cast<int>(sizeof(CachedLitVertex));
+                    PS2_MemFree(
+                        tri.litCacheVertices,
+                        static_cast<size_t>(tri.litCacheCapacity) *
+                            sizeof(CachedLitVertex),
+                        MEMTAG_MDL_WORLD);
+                }
+                tri.litCacheVertices = PS2_MemAllocAligned(
+                    16,
+                    static_cast<size_t>(s_litBuildVertCount) *
+                        sizeof(CachedLitVertex),
+                    MEMTAG_MDL_WORLD);
+                tri.litCacheCapacity = static_cast<u16>(s_litBuildVertCount);
+                s_litCacheBytes +=
+                    s_litBuildVertCount *
+                    static_cast<int>(sizeof(CachedLitVertex));
+            }
+            if (firstAllocation)
+            {
+                s_cachedLitTriangles.push_back(&tri);
+            }
+
+            std::memcpy(
+                tri.litCacheVertices,
+                s_litBuildVerts,
+                static_cast<size_t>(s_litBuildVertCount) *
+                    sizeof(CachedLitVertex));
+            tri.litCacheVertexCount = static_cast<u16>(s_litBuildVertCount);
+            tri.litCacheKey = cacheKey;
+        }
+        else
+        {
+            ++s_drawStats.lightCacheHits;
         }
 
-        SubdivideLitTriangle(corners, surface, mvp, texture, 0);
+        const auto * cached =
+            static_cast<const CachedLitVertex *>(tri.litCacheVertices);
+        for (int first = 0; first < tri.litCacheVertexCount; first += 3)
+        {
+            ClipVertex corners[3] = {};
+            for (int v = 0; v < 3; ++v)
+            {
+                const CachedLitVertex & src = cached[first + v];
+                ClipVertex & corner = corners[v];
+                corner.pos = src.pos;
+                corner.st = src.st;
+                corner.color = src.color;
+
+                const math::Vec4 clip = math::Transform(corner.pos, mvp);
+                const float gw = vu1::kGuardBandNdcLimit * clip.w;
+                corner.d.f[0] = (clip.w - clip.z) - kClipEpsilon;
+                corner.d.f[1] = (clip.w + clip.z) - kClipEpsilon;
+                corner.d.f[2] = (gw - clip.x) - kClipEpsilon;
+                corner.d.f[3] = (gw + clip.x) - kClipEpsilon;
+                corner.d.f[4] = (gw - clip.y) - kClipEpsilon;
+                corner.d.f[5] = (gw + clip.y) - kClipEpsilon;
+            }
+            SubmitWorldTriangle(corners, mvp, texture);
+        }
     }
 }
 
@@ -940,11 +1073,12 @@ void DrawTextureChains(const math::Mat4 & mvp)
 
         for (const mod::ModelSurface * surf = texture->textureChain; surf != nullptr; surf = surf->textureChain)
         {
+            const u32 cacheKey = LitTriangleCacheKey(*surf);
             for (const mod::ModelPoly * poly = surf->polys; poly != nullptr; poly = poly->next)
             {
                 if (poly->numVerts >= 3) // Need at least one triangle.
                 {
-                    GatherPolyTriangles(*poly, *surf, mvp, *texture);
+                    GatherPolyTriangles(*poly, *surf, mvp, *texture, cacheKey);
                 }
             }
         }
@@ -1622,6 +1756,7 @@ void RenderWorldModel(const refdef_t & viewDef)
 
 void BeginRegistration()
 {
+    ClearLitTriangleCaches();
     s_drawStats = {};
 
     // New map: forget the previous map's clusters so the first frame re-marks.
@@ -1657,6 +1792,7 @@ void RenderFrame(const refdef_t & viewDef)
     phaseStart = timing::Now();
     RenderParticles(viewDef);
     s_drawStats.particleMicros = timing::ElapsedMicros(phaseStart);
+    s_drawStats.lightCacheBytes = s_litCacheBytes;
 
     // Later milestones continue here: translucent surfaces/entities, sky,
     // water and dynamic world lights.

@@ -81,7 +81,7 @@ Target: the single-player campaign is functionally completable.
 Target: stable frame pacing with no memory exhaustion during normal campaign
 play on a retail console.
 
-- [~] Establish frame-time budgets for EE, VU1, GS and USB loading
+- [x] Establish initial frame-time budgets for EE, VU1, GS and texture loading
 - [ ] Reduce texture upload churn and VRAM fragmentation
 - [ ] Add release builds with assertions/diagnostics disabled
 - [ ] Profile model interpolation, BSP traversal and clipping
@@ -101,16 +101,15 @@ development tools.
 
 ## Immediate priorities
 
-1. Establish repeatable alpha.9 performance baselines using the new EE phase,
-   VU1 wait, texture-DMA, VRAM-stall, triangle, batch, upload and FPS counters.
-2. Cache or otherwise remove repeated per-frame adaptive BSP tessellation and
-   static-light sampling without reducing the validated lighting quality.
-3. Reduce synchronous VU1 waits between texture batches and investigate EE/VU
-   overlap.
-4. Reduce texture upload churn and GS stalls within the 4 MB VRAM budget.
-5. Make diagnostic overlays optional and disabled by default.
-6. Resume renderer completeness with sky surfaces and skyboxes after the first
-   measurable optimization pass.
+1. Validate alpha.10 BSP-lighting cache hits, memory footprint, lighting
+   animation and `World us` improvement in PCSX2.
+2. Profile and optimize the MD2/entity EE path, which reaches about 31 ms in
+   the measured combat scene.
+3. Revisit VU1 overlap and texture churn only if later profiles show their
+   currently small wait times growing.
+4. Make diagnostic overlays optional and disabled by default.
+5. Resume renderer completeness with sky surfaces and skyboxes after the first
+   measured optimization passes.
 
 Update this file whenever priorities, milestone status or completion criteria
 change. Record completed user-visible work in `CHANGELOG` in the same commit.
