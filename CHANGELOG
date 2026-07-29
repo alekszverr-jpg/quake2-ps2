@@ -6,6 +6,15 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+### Validation
+
+- Confirmed in PCSX2 that alpha.3 removes the severe GS depth/rendering
+  corruption while particles, first-person weapons and MD2 enemies continue
+  to render correctly.
+- Confirmed that the revised palette processing improves overall brightness.
+  Large indoor BSP surfaces can still lose local light variation because the
+  current renderer approximates lightmaps with a bounded vertex-light grid.
+
 ## 0.1.0-alpha.3 - 2026-07-29
 
 ### Added

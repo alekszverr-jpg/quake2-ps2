@@ -101,10 +101,12 @@ development tools.
 
 ## Immediate priorities
 
-1. Validate the corrected alpha.3 lighting and VU1 rendering in PCSX2.
+1. Improve BSP lightmap fidelity with error-driven adaptive tessellation,
+   concentrating extra samples only where local lighting changes.
 2. Implement brush entities such as moving doors and platforms.
-3. Start the PS2 audio backend.
-4. Make diagnostic overlays optional and disabled by default.
+3. Implement sky surfaces and skyboxes.
+4. Start the PS2 audio backend.
+5. Make diagnostic overlays optional and disabled by default.
 
 Update this file whenever priorities, milestone status or completion criteria
 change. Record completed user-visible work in `CHANGELOG` in the same commit.
