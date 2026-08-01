@@ -376,8 +376,7 @@ extern "C" void PS2_PurgeLevelRendererMemory()
 
 void PS2_SetSky(const char * name, float rotate, vec3_t axis)
 {
-    (void)name; (void)rotate; (void)axis;
-    // TODO
+    ps2::view::SetSky(name, rotate, axis);
 }
 
 struct model_s * PS2_RegisterModel(const char * name)

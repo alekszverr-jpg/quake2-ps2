@@ -308,10 +308,37 @@ const Texture * TextureCache::LoadFromFile(const char * fullname, const ImageTyp
             return nullptr;
         }
 
-        format     = PixelFormat::RGBA32;
-        components = hasAlpha ? TexComponents::RGBA : TexComponents::RGB;
-        pixels     = pic32;
-        pixelBytes = width * height * BytesPerTexel(format);
+        if (type == ImageType::Sky)
+        {
+            // Environment faces are always opaque. Store them as GS-native
+            // RGB5A1 instead of RGBA8888: six 256x256 Quake II skies then cost
+            // 768 KB rather than 1.5 MB in both EE RAM and scarce GS VRAM.
+            // This also cuts first-frame sky upload traffic in half.
+            const int texelCount = width * height;
+            auto * pic16 = static_cast<u16 *>(PS2_MemAllocAligned(
+                16, static_cast<size_t>(texelCount * sizeof(u16)), MEMTAG_TEXIMAGE));
+            for (int i = 0; i < texelCount; ++i)
+            {
+                const u32 r = pic32[i * 4 + 0];
+                const u32 g = pic32[i * 4 + 1];
+                const u32 b = pic32[i * 4 + 2];
+                pic16[i] = static_cast<u16>((1u << 15) | ((b >> 3) << 10) |
+                                            ((g >> 3) << 5) | (r >> 3));
+            }
+            PS2_MemFree(pic32, static_cast<size_t>(texelCount * 4), MEMTAG_TEXIMAGE);
+
+            format     = PixelFormat::RGB16;
+            components = TexComponents::RGB;
+            pixels     = pic16;
+            pixelBytes = texelCount * static_cast<int>(sizeof(u16));
+        }
+        else
+        {
+            format     = PixelFormat::RGBA32;
+            components = hasAlpha ? TexComponents::RGBA : TexComponents::RGB;
+            pixels     = pic32;
+            pixelBytes = width * height * BytesPerTexel(format);
+        }
     }
     else
     {

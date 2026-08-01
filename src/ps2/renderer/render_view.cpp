@@ -30,6 +30,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <cstring>
 #include <vector>
 
@@ -114,6 +115,18 @@ static int s_chainTextureCount = 0;
 // walking the BSP. Collected so they stay out of the opaque chains; the pass
 // that draws them lands with the alpha-blend milestone.
 static const mod::ModelSurface * s_alphaSurfaces = nullptr;
+
+// Sky state set from the map's worldspawn. The original renderer names the
+// six environment faces <sky>{rt,bk,lf,ft,up,dn}.tga. Keep only the name during
+// registration and resolve the images on the first actual sky frame: loading
+// six TGA faces while the next BSP is still being registered would recreate a
+// large, avoidable level-transition memory peak on a 32 MB console.
+static char s_skyName[MAX_QPATH] = {};
+static float s_skyRotate = 0.0f;
+static vec3_t s_skyAxis = { 0.0f, 0.0f, 1.0f };
+static const tex::Texture * s_skyTextures[6] = {};
+static bool s_skyTexturesResolved = false;
+static bool s_skyVisible = false;
 
 // Triangle gather buffer: texture chains append here and flush through
 // vu1::DrawTriangles when full. DrawTriangles is synchronous, so one buffer
@@ -551,7 +564,10 @@ void RecursiveWorldNode(const refdef_t & viewDef, const mod::ModelInstance & wor
         const int texFlags = surf->texInfo->flags;
         if (texFlags & SURF_SKY)
         {
-            // TODO: Sky surfaces feed the skybox bounds (skybox milestone).
+            // The BSP polygon itself is only a portal into the environment.
+            // A full camera-centred cube is cheap (at most 12 triangles); the
+            // regular clipper removes faces outside the current view.
+            s_skyVisible = true;
             continue;
         }
 
@@ -883,6 +899,142 @@ void SubmitWorldTriangle(const ClipVertex (&corners)[3], const math::Mat4 & mvp,
     s_drawStats.trisDrawn += count - 2;
 }
 
+// ------------------------------------------------------------------------------------------------
+// Skybox
+// ------------------------------------------------------------------------------------------------
+
+constexpr int kSkyToVec[6][3] = {
+    { 3, -1,  2 }, { -3,  1,  2 },
+    { 1,  3,  2 }, { -1, -3,  2 },
+    {-2, -1,  3 }, {  2, -1, -3 }
+};
+constexpr int kSkyTextureOrder[6] = { 0, 2, 1, 3, 4, 5 };
+constexpr const char * kSkySuffixes[6] = { "rt", "bk", "lf", "ft", "up", "dn" };
+constexpr float kSkyCubeHalfSize = 2300.0f;
+
+void ResolveSkyTextures()
+{
+    if (s_skyTexturesResolved)
+    {
+        return;
+    }
+
+    for (int face = 0; face < 6; ++face)
+    {
+        char path[MAX_QPATH];
+        std::snprintf(path, sizeof(path), "env/%s%s.tga", s_skyName,
+                      kSkySuffixes[face]);
+        s_skyTextures[face] = tex::Find(path, tex::ImageType::Sky);
+
+        // Some replacement packs provide paletted PCX skies instead.
+        if (s_skyTextures[face] == nullptr)
+        {
+            std::snprintf(path, sizeof(path), "env/%s%s.pcx", s_skyName,
+                          kSkySuffixes[face]);
+            s_skyTextures[face] = tex::Find(path, tex::ImageType::Sky);
+        }
+        if (s_skyTextures[face] == nullptr)
+        {
+            s_skyTextures[face] = &tex::DebugTexture();
+        }
+    }
+    s_skyTexturesResolved = true;
+}
+
+void SetClipDistances(ClipVertex & vertex, const math::Mat4 & mvp)
+{
+    const math::Vec4 clip = math::Transform(vertex.pos, mvp);
+    const float gw = vu1::kGuardBandNdcLimit * clip.w;
+    vertex.d.f[0] = (clip.w - clip.z) - kClipEpsilon;
+    vertex.d.f[1] = (clip.w + clip.z) - kClipEpsilon;
+    vertex.d.f[2] = (gw - clip.x) - kClipEpsilon;
+    vertex.d.f[3] = (gw + clip.x) - kClipEpsilon;
+    vertex.d.f[4] = (gw - clip.y) - kClipEpsilon;
+    vertex.d.f[5] = (gw + clip.y) - kClipEpsilon;
+}
+
+ClipVertex MakeSkyVertex(float s, float t, int axis, const refdef_t & viewDef,
+                         const tex::Texture & texture, const math::Mat4 & mvp)
+{
+    const float b[3] = { s * kSkyCubeHalfSize, t * kSkyCubeHalfSize,
+                         kSkyCubeHalfSize };
+    vec3_t local;
+    for (int component = 0; component < 3; ++component)
+    {
+        const int selector = kSkyToVec[axis][component];
+        local[component] = (selector < 0) ? -b[-selector - 1] : b[selector - 1];
+    }
+
+    if (s_skyRotate != 0.0f)
+    {
+        vec3_t rotated;
+        RotatePointAroundVector(rotated, s_skyAxis, local,
+                                viewDef.time * s_skyRotate);
+        VectorCopy(rotated, local);
+    }
+
+    // Clamp sampling to texel centres, matching ref_gl's sky_min/sky_max seam
+    // avoidance but adapting it to replacement skies of any dimensions.
+    const float minS = 0.5f / static_cast<float>(texture.width);
+    const float minT = 0.5f / static_cast<float>(texture.height);
+    const float maxS = 1.0f - minS;
+    const float maxT = 1.0f - minT;
+
+    ClipVertex vertex = {};
+    vertex.pos = { viewDef.vieworg[0] + local[0],
+                   viewDef.vieworg[1] + local[1],
+                   viewDef.vieworg[2] + local[2], 1.0f };
+    vertex.st = { std::clamp((s + 1.0f) * 0.5f, minS, maxS),
+                  std::clamp(1.0f - (t + 1.0f) * 0.5f, minT, maxT),
+                  0.0f, 0.0f };
+    vertex.color = { 128.0f, 128.0f, 128.0f, 128.0f };
+    SetClipDistances(vertex, mvp);
+    return vertex;
+}
+
+void DrawSkyBox(const refdef_t & viewDef)
+{
+    if (!s_skyVisible || s_skyName[0] == '\0')
+    {
+        return;
+    }
+    ResolveSkyTextures();
+
+    // Force every surviving sky fragment to the far end of reversed Z. Drawn
+    // after the scene, it passes only where the depth buffer is still clear;
+    // real world geometry, entities and particles can never be overwritten.
+    math::Mat4 farDepth = math::Identity();
+    farDepth.m[2][2] = 0.0f;
+    farDepth.m[3][2] = -0.999f;
+    const math::Mat4 skyMvp = s_viewProjMatrix * farDepth;
+
+    constexpr float st[4][2] = {
+        {-1.0f, -1.0f}, {-1.0f,  1.0f},
+        { 1.0f,  1.0f}, { 1.0f, -1.0f}
+    };
+    constexpr int triangleCorners[2][3] = { {0, 1, 2}, {0, 2, 3} };
+
+    for (int axis = 0; axis < 6; ++axis)
+    {
+        const tex::Texture & texture =
+            *s_skyTextures[kSkyTextureOrder[axis]];
+        ClipVertex face[4];
+        for (int corner = 0; corner < 4; ++corner)
+        {
+            face[corner] = MakeSkyVertex(st[corner][0], st[corner][1], axis,
+                                         viewDef, texture, skyMvp);
+        }
+        for (const auto & indices : triangleCorners)
+        {
+            const ClipVertex triangle[3] = {
+                face[indices[0]], face[indices[1]], face[indices[2]]
+            };
+            SubmitWorldTriangle(triangle, skyMvp, texture);
+        }
+        FlushScratch(skyMvp, texture);
+    }
+}
+
 u32 LitTriangleCacheKey(const mod::ModelSurface & surface)
 {
     u32 key = mod::StaticLightStyleKey(surface);
@@ -1066,14 +1218,7 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
                 corner.st = src.st;
                 corner.color = src.color;
 
-                const math::Vec4 clip = math::Transform(corner.pos, mvp);
-                const float gw = vu1::kGuardBandNdcLimit * clip.w;
-                corner.d.f[0] = (clip.w - clip.z) - kClipEpsilon;
-                corner.d.f[1] = (clip.w + clip.z) - kClipEpsilon;
-                corner.d.f[2] = (gw - clip.x) - kClipEpsilon;
-                corner.d.f[3] = (gw + clip.x) - kClipEpsilon;
-                corner.d.f[4] = (gw - clip.y) - kClipEpsilon;
-                corner.d.f[5] = (gw + clip.y) - kClipEpsilon;
+                SetClipDistances(corner, mvp);
             }
             SubmitWorldTriangle(corners, mvp, texture);
         }
@@ -1577,14 +1722,7 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model,
                 // perspective divide. Feed view weapons through the same
                 // six-plane EE clipper as the BSP world, interpolating position,
                 // texture coordinates and lighting at every cut.
-                const math::Vec4 clip = math::Transform(out.pos, mvp);
-                const float gw = vu1::kGuardBandNdcLimit * clip.w;
-                out.d.f[0] = (clip.w - clip.z) - kClipEpsilon;
-                out.d.f[1] = (clip.w + clip.z) - kClipEpsilon;
-                out.d.f[2] = (gw - clip.x) - kClipEpsilon;
-                out.d.f[3] = (gw + clip.x) - kClipEpsilon;
-                out.d.f[4] = (gw - clip.y) - kClipEpsilon;
-                out.d.f[5] = (gw + clip.y) - kClipEpsilon;
+                SetClipDistances(out, mvp);
             }
             SubmitWorldTriangle(corners, mvp, texture);
         }
@@ -1820,6 +1958,7 @@ void RenderWorldModel(const refdef_t & viewDef)
     static const cvar_t * s_skipWorld = Cvar_Get("ps2_skip_world", "0", 0);
 
     s_alphaSurfaces = nullptr;
+    s_skyVisible = false;
 
     if (viewDef.rdflags & RDF_NOWORLDMODEL)
     {
@@ -1894,11 +2033,21 @@ void RenderFrame(const refdef_t & viewDef)
     phaseStart = timing::Now();
     RenderParticles(viewDef);
     s_drawStats.particleMicros = timing::ElapsedMicros(phaseStart);
+    DrawSkyBox(viewDef);
     s_drawStats.lightCacheBytes = s_litCacheBytes;
     UpdatePlayerLightLevel(viewDef);
 
-    // Later milestones continue here: translucent surfaces/entities, sky,
-    // water and dynamic world lights.
+    // Later milestones continue here: translucent surfaces/entities and
+    // turbulent water/lava/slime.
+}
+
+void SetSky(const char * name, float rotate, const vec3_t axis)
+{
+    std::snprintf(s_skyName, sizeof(s_skyName), "%s", name != nullptr ? name : "");
+    s_skyRotate = rotate;
+    VectorCopy(axis, s_skyAxis);
+    std::memset(s_skyTextures, 0, sizeof(s_skyTextures));
+    s_skyTexturesResolved = false;
 }
 
 } // namespace ps2::view

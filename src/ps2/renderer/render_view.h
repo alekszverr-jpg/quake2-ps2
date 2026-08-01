@@ -42,6 +42,11 @@ const DrawStats & GetDrawStats();
 // (PS2_BeginRegistration) so stale PVS state cannot leak across maps.
 void BeginRegistration();
 
+// Selects the six environment-map faces used by visible SURF_SKY surfaces.
+// Faces are loaded lazily on the first rendered frame, after the level-load
+// memory peak has passed.
+void SetSky(const char * name, float rotate, const vec3_t axis);
+
 // Draws the 3D scene described by 'viewDef': the world's visible BSP geometry
 // (PVS + frustum culled), submitted per texture through vu1::DrawTriangles.
 // Call between gs::Begin/EndFrame.

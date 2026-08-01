@@ -6,6 +6,37 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.15 - 2026-08-01
+
+### Added
+
+- Added the first PS2 skybox pass using Quake II's original six-face naming,
+  face orientation and optional worldspawn rotation axis/speed.
+- Visible `SURF_SKY` polygons now act as portals into a camera-centred skybox
+  instead of exposing the framebuffer clear colour.
+- Reused the renderer's six-plane EE clipper for sky faces, so geometry that
+  crosses the camera or VU1 guard band cannot produce stretched triangles.
+
+### Changed
+
+- Draw sky fragments at the far end of the reversed depth range after the
+  opaque scene. They fill only untouched background pixels and cannot cover
+  BSP geometry, entities, weapons or particles.
+- Load sky faces lazily on the first visible sky frame, after level
+  registration and its peak BSP allocation have completed.
+- Convert opaque TGA sky faces from RGBA8888 to GS-native RGB5A1 at load time.
+  A standard six-face 256x256 sky now uses about 768 KB instead of 1.5 MB in
+  both EE texture memory and GS VRAM.
+
+### Validation target
+
+- Outdoor openings on `base1` and later maps should show the original
+  environment instead of the flat blue/purple clear colour.
+- Check face orientation, seams and camera-centred movement while looking in
+  every direction; walls, particles and the view weapon must remain intact.
+- Recheck a `base1` to `base2` transition after the sky has appeared once and
+  watch for allocation failures or first-frame corruption.
+
 ## 0.1.0-alpha.14 - 2026-08-01
 
 ### Fixed

@@ -48,7 +48,7 @@ enough for normal gameplay.
 - [~] Sprite entities
 - [x] Particles
 - [x] Opaque brush entities such as moving doors and platforms
-- [ ] Sky surfaces and skybox
+- [~] Sky surfaces and skybox
 - [ ] Transparent surfaces and entity alpha
 - [ ] Turbulent water/lava/slime surfaces
 - [x] Weapon depth-range and view-model render flags
@@ -70,7 +70,7 @@ Target: gameplay sound effects and ambient audio work on real hardware.
 Target: the single-player campaign is functionally completable.
 
 - [ ] Validate every base-game map and level transition
-- [~] Validate enemy visual acquisition and close-range attack behaviour
+- [x] Validate enemy visual acquisition and close-range attack behaviour
 - [ ] Save/load support on a writable PS2 storage target
 - [ ] Configuration persistence and controller settings
 - [ ] Cinematic and intermission validation
@@ -102,17 +102,16 @@ development tools.
 
 ## Immediate priorities
 
-1. Validate alpha.14 enemy acquisition without firing, conversion from a
-   sound target to the visible player, and close-range attacks in PCSX2.
-2. Continue validating `base1` to `base2` and `base2` to `base3` transitions;
-   alpha.13 fixed both the early-purge loading frame and EE-memory peak.
-3. Continue optimizing the remaining MD2/entity EE path after gameplay
-   stability is confirmed.
-4. Revisit VU1 overlap and texture churn if later profiles show their
+1. Validate alpha.15 sky orientation, seams and far-depth behaviour in PCSX2.
+2. Recheck a `base1` to `base2` transition after all six sky faces have loaded;
+   alpha.12-alpha.13 fixed the previous EE-memory and loading-frame failures.
+3. Implement transparent surfaces and entity alpha, then turbulent
+   water/lava/slime surfaces.
+4. Continue optimizing the remaining MD2/entity EE path after renderer
+   completeness work is stable.
+5. Revisit VU1 overlap and texture churn if later profiles show their
    currently small wait times growing.
-5. Make diagnostic overlays optional and disabled by default.
-6. Resume renderer completeness with sky surfaces and skyboxes after the first
-   measured optimization passes.
+6. Make diagnostic overlays optional and disabled by default.
 
 Update this file whenever priorities, milestone status or completion criteria
 change. Record completed user-visible work in `CHANGELOG` in the same commit.
