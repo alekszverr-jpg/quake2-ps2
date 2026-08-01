@@ -315,8 +315,9 @@ const Texture * TextureCache::LoadFromFile(const char * fullname, const ImageTyp
             // 768 KB rather than 1.5 MB in both EE RAM and scarce GS VRAM.
             // This also cuts first-frame sky upload traffic in half.
             const int texelCount = width * height;
+            const size_t skyPixelBytes = static_cast<size_t>(texelCount) * sizeof(u16);
             auto * pic16 = static_cast<u16 *>(PS2_MemAllocAligned(
-                16, static_cast<size_t>(texelCount * sizeof(u16)), MEMTAG_TEXIMAGE));
+                16, skyPixelBytes, MEMTAG_TEXIMAGE));
             for (int i = 0; i < texelCount; ++i)
             {
                 const u32 r = pic32[i * 4 + 0];
