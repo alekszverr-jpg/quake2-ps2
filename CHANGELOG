@@ -6,6 +6,29 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.19 - 2026-08-01
+
+### Fixed
+
+- Fixed mipmapped translucent textures sampling unrelated materials at a
+  distance. The VU1 alpha packet now programs both `MIPTBP1` and the GS alpha
+  equation instead of reusing the single state slot for one or the other.
+- Expanded the matching VU1 input/output layout from six to seven GIF-state
+  qwords while retaining the existing 96-vertex batch size. The maximum batch
+  occupies 495 of the 496 qwords available in each double-buffer half.
+- Made every 3D batch self-contained for texture mip addresses and blending
+  state, preventing glass from inheriting stale mip pointers from a wall,
+  door or other texture previously drawn in the same GS context.
+
+### Validation target
+
+- View the Base 3 glass while walking from close range to the far end of the
+  room. Its material and opacity should remain stable across mip transitions.
+- Confirm the glass blends with geometry behind it rather than becoming a
+  solid grey panel at close range.
+- Recheck ordinary mipmapped floors/walls, particles and weapon models because
+  they share the expanded VU1 packet layout.
+
 ## 0.1.0-alpha.18 - 2026-08-01
 
 ### Fixed

@@ -22,10 +22,11 @@
  *      8-999  the two XTOP double buffers (VIF1 BASE=8, OFFSET=496)
  *
  *  Batch layout inside a double buffer (relative to XTOP): input is one header
- *  qword (vertex count in .w), 6 GIF/AD tag qwords, then 2 qwords per vertex;
+ *  qword (vertex count in .w), 7 GIF/AD tag qwords, then 2 qwords per vertex;
  *  the microprogram builds the GS packet in the same buffer after the input.
- *  The A+D block programs TEST as well as TEX0/TEX1, so a batch draws with the
- *  proper z-test no matter what state the surrounding 2D packets left behind.
+ *  The A+D block programs TEST, TEX0/TEX1, MIPTBP1 and ALPHA, so a batch draws
+ *  with the proper z-test, mip chain and blend state no matter what state the
+ *  surrounding 2D/3D packets left behind.
  *
  * This source code is released under the GNU GPL v2 license.
  * ================================================================================================ */
@@ -51,8 +52,8 @@ namespace {
 static TimingStats s_timingStats = {};
 
 // Vertices per VU run: DrawTriangles splits larger draws into chunks of this
-// size. Bounded by the VU double buffer: input (7 + 2n) plus output (6 + 3n)
-// qwords must fit in one 496-qword buffer half, so n <= 97 - and chunks are
+// size. Bounded by the VU double buffer: input (8 + 2n) plus output (7 + 3n)
+// qwords must fit in one 496-qword buffer half, so n <= 96 - and chunks are
 // whole triangles, hence 96.
 constexpr int kMaxVertsPerBatch = 96;
 
@@ -65,8 +66,8 @@ constexpr int kFrameConstantsAddr = 0;
 
 // Batch layout, relative to the current double buffer (XTOP).
 constexpr int kBatchHeaderAddr = 0; // vertex count in .w
-constexpr int kGifTagsAddr     = 1; // 6 qwords: set tag, 4 A+D writes, prim tag
-constexpr int kVertexDataAddr  = kGifTagsAddr + 6;
+constexpr int kGifTagsAddr     = 1; // 7 qwords: set tag, 5 A+D writes, prim tag
+constexpr int kVertexDataAddr  = kGifTagsAddr + 7;
 
 // The chain is tags plus small per-chunk inline unpacks; constants and
 // vertices are referenced in place. Sized so a DrawTriangles call fits ~30
@@ -192,24 +193,18 @@ void AddBatchChunk(VifPacket & pkt, const tex::Texture & texture, int ctx,
         pkt.AddU32(0);
         pkt.AddU32(static_cast<u32>(vertCount));
 
-        // Four A+D writes: pixel tests and texture bind. Opaque mipmapped
-        // batches need MIPTBP1; translucent effects are non-mipmapped and use
-        // that slot to install their source-alpha blend equation. Keeping the
-        // compact, proven packet layout avoids touching ZBUF from PATH1.
-        pkt.AddQword(GIF_SET_TAG(4, 0, 0, 0, GIF_FLG_PACKED, 1), GIF_REG_AD);
+        // Five A+D writes: pixel tests, the complete texture bind and source-
+        // alpha blending. MIPTBP1 must also be sent for translucent WALs:
+        // omitting it made distant glass sample stale mip addresses belonging
+        // to unrelated textures previously drawn in this GS context.
+        pkt.AddQword(GIF_SET_TAG(5, 0, 0, 0, GIF_FLG_PACKED, 1), GIF_REG_AD);
         pkt.AddQword(MakeTestData(), static_cast<u64>(GS_REG_TEST + ctx));
         pkt.AddQword(MakeTex1Data(texture), static_cast<u64>(GS_REG_TEX1 + ctx));
         pkt.AddQword(MakeTex0Data(texture), static_cast<u64>(GS_REG_TEX0 + ctx));
-        if (alphaBlend)
-        {
-            pkt.AddQword(GS_SET_ALPHA(0, 1, 0, 1, 0),
-                         static_cast<u64>(GS_REG_ALPHA + ctx));
-        }
-        else
-        {
-            pkt.AddQword(MakeMiptbp1Data(texture),
-                         static_cast<u64>(GS_REG_MIPTBP1 + ctx));
-        }
+        pkt.AddQword(MakeMiptbp1Data(texture),
+                     static_cast<u64>(GS_REG_MIPTBP1 + ctx));
+        pkt.AddQword(GS_SET_ALPHA(0, 1, 0, 1, 0),
+                     static_cast<u64>(GS_REG_ALPHA + ctx));
 
         // ...then the drawing tag: gouraud textured triangle list, STQ mapping,
         // with the per-vertex registers of kVertexRegList.
