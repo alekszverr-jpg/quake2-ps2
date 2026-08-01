@@ -6,6 +6,29 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.14 - 2026-08-01
+
+### Fixed
+
+- Restored the original renderer-to-game `r_lightlevel` signal. The PS2
+  renderer now samples BSP lighting at the camera every frame and sends the
+  resulting byte through `usercmd_t` to the server-side player entity.
+- Fixed monsters treating the player as permanently invisible because the
+  previously untouched `r_lightlevel` cvar remained zero. This prevented
+  normal visual acquisition until weapon noise or damage alerted them.
+- Included dynamic-light contribution and clamped the transmitted value to the
+  byte range, avoiding wraparound in very bright scenes.
+- Added a `PlayerLit` profiling row so detection input can be validated on
+  PCSX2 and real hardware without using the console.
+
+### Expected result
+
+- Monsters should notice a sufficiently lit player in their normal field of
+  view without waiting for a shot.
+- A monster awakened by weapon noise should switch from its temporary sound
+  target to the visible player instead of running into the player and
+  repeatedly twitching without selecting an attack.
+
 ## 0.1.0-alpha.13 - 2026-08-01
 
 ### Fixed

@@ -28,6 +28,7 @@
 #include "ps2/math/vec_mat.h"
 #include "ps2/builtin/builtin.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <vector>
@@ -1363,6 +1364,55 @@ math::Vec3 AliasModelLight(const entity_t & entity, const refdef_t & viewDef)
     return light;
 }
 
+void UpdatePlayerLightLevel(const refdef_t & viewDef)
+{
+    if ((viewDef.rdflags & RDF_NOWORLDMODEL) != 0)
+    {
+        return;
+    }
+
+    const mod::ModelInstance * world = mod::GetWorldModel();
+    if (world == nullptr)
+    {
+        return;
+    }
+
+    math::Vec3 light = mod::SampleWorldLight(
+        *world, { viewDef.vieworg[0], viewDef.vieworg[1], viewDef.vieworg[2] });
+
+    // R_LightPoint also includes transient lights. Use the camera position
+    // here: this value is sent back in usercmd_t and server-side FindTarget
+    // rejects players at light_level <= 5 as effectively invisible.
+    if (viewDef.dlights != nullptr)
+    {
+        for (int i = 0; i < viewDef.num_dlights; ++i)
+        {
+            const dlight_t & dl = viewDef.dlights[i];
+            const float dx = viewDef.vieworg[0] - dl.origin[0];
+            const float dy = viewDef.vieworg[1] - dl.origin[1];
+            const float dz = viewDef.vieworg[2] - dl.origin[2];
+            const float add = (dl.intensity - std::sqrt(dx * dx + dy * dy + dz * dz)) /
+                              256.0f;
+            if (add > 0.0f)
+            {
+                light.x += add * dl.color[0];
+                light.y += add * dl.color[1];
+                light.z += add * dl.color[2];
+            }
+        }
+    }
+
+    float level = 150.0f * std::max(light.x, std::max(light.y, light.z));
+    if (level < 0.0f)   { level = 0.0f; }
+    if (level > 255.0f) { level = 255.0f; }
+
+    // Match ref_gl's R_SetLightLevel. CL_CreateCmd copies this cvar into the
+    // user command byte, and p_client stores it on the player edict for AI.
+    static cvar_t * lightLevel = Cvar_Get("r_lightlevel", "0", 0);
+    lightLevel->value = level;
+    s_drawStats.playerLightLevel = static_cast<int>(level + 0.5f);
+}
+
 math::Vec4 AliasVertexColor(const math::Vec3 & modelLight,
                             const math::Vec3 & shadeVector, u8 normalIndex)
 {
@@ -1845,6 +1895,7 @@ void RenderFrame(const refdef_t & viewDef)
     RenderParticles(viewDef);
     s_drawStats.particleMicros = timing::ElapsedMicros(phaseStart);
     s_drawStats.lightCacheBytes = s_litCacheBytes;
+    UpdatePlayerLightLevel(viewDef);
 
     // Later milestones continue here: translucent surfaces/entities, sky,
     // water and dynamic world lights.

@@ -70,6 +70,7 @@ Target: gameplay sound effects and ambient audio work on real hardware.
 Target: the single-player campaign is functionally completable.
 
 - [ ] Validate every base-game map and level transition
+- [~] Validate enemy visual acquisition and close-range attack behaviour
 - [ ] Save/load support on a writable PS2 storage target
 - [ ] Configuration persistence and controller settings
 - [ ] Cinematic and intermission validation
@@ -101,15 +102,16 @@ development tools.
 
 ## Immediate priorities
 
-1. Validate `base1` to `base2` and `base2` to `base3` transitions with alpha.13
-   in PCSX2 and on a real PS2. Loading-plaque frames must remain 2D-only while
-   no renderer world is registered, and BSP loading must stay within EE RAM.
-2. Continue optimizing the remaining MD2/entity EE path after transition
+1. Validate alpha.14 enemy acquisition without firing, conversion from a
+   sound target to the visible player, and close-range attacks in PCSX2.
+2. Continue validating `base1` to `base2` and `base2` to `base3` transitions;
+   alpha.13 fixed both the early-purge loading frame and EE-memory peak.
+3. Continue optimizing the remaining MD2/entity EE path after gameplay
    stability is confirmed.
-3. Revisit VU1 overlap and texture churn if later profiles show their
+4. Revisit VU1 overlap and texture churn if later profiles show their
    currently small wait times growing.
-4. Make diagnostic overlays optional and disabled by default.
-5. Resume renderer completeness with sky surfaces and skyboxes after the first
+5. Make diagnostic overlays optional and disabled by default.
+6. Resume renderer completeness with sky surfaces and skyboxes after the first
    measured optimization passes.
 
 Update this file whenever priorities, milestone status or completion criteria

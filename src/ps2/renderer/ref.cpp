@@ -273,6 +273,7 @@ void DrawDrawStatsOverlay()
         { "LitKB",    stats.lightCacheBytes / 1024 },
         { "MD2Vert",  stats.aliasUniqueVerts },
         { "MD2Corner",stats.aliasCorners },
+        { "PlayerLit",stats.playerLightLevel },
     };
 
     constexpr int kLineHeight = kGlyphSize + 2; // Matches DrawInternalString spacing.
