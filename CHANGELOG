@@ -6,6 +6,32 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.17 - 2026-08-01
+
+### Added
+
+- Added the first back-to-front pass for ordinary `SURF_TRANS33` and
+  `SURF_TRANS66` BSP surfaces, restoring translucent windows and similar map
+  geometry while retaining the existing six-plane safety clipper.
+- Added actual per-vertex alpha for translucent MD2 entities. The renderer
+  previously enabled GS blending for `RF_TRANSLUCENT` but accidentally packed
+  every alias vertex with fully opaque alpha.
+
+### Changed
+
+- Render entities in the original Quake II two-pass order: all opaque models
+  first, followed by `RF_TRANSLUCENT` models.
+- Keep `SURF_WARP` geometry deferred even when it also carries a transparency
+  flag. Animated water, lava and slime remain the next renderer milestone.
+
+### Validation target
+
+- Check glass or other translucent map surfaces from both sides and with
+  enemies, particles and sky visible behind them.
+- Check translucent effects represented by MD2 or sprite entities for proper
+  fading instead of opaque rendering.
+- Water/lava/slime may still be absent in this build by design.
+
 ## 0.1.0-alpha.16 - 2026-08-01
 
 ### Fixed

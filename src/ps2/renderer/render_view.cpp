@@ -593,12 +593,14 @@ void RecursiveWorldNode(const refdef_t & viewDef, const mod::ModelInstance & wor
 // ------------------------------------------------------------------------------------------------
 
 // Sends the gathered scratch triangles as one batch and empties the buffer.
-inline void FlushScratch(const math::Mat4 & mvp, const tex::Texture & texture)
+inline void FlushScratch(const math::Mat4 & mvp, const tex::Texture & texture,
+                         bool alphaBlend = false)
 {
     if (s_scratchVertCount > 0)
     {
         ++s_drawStats.drawBatches;
-        vu1::DrawTriangles(mvp, texture, s_scratchVerts, s_scratchVertCount);
+        vu1::DrawTriangles(mvp, texture, s_scratchVerts, s_scratchVertCount,
+                           alphaBlend);
         s_scratchVertCount = 0;
     }
 }
@@ -648,6 +650,8 @@ struct alignas(16) ClipVertex
     ClipDists  d;
 };
 static_assert(sizeof(ClipVertex) == 96, "ClipVertex must be exactly six quadwords");
+
+void SetClipDistances(ClipVertex & vertex, const math::Mat4 & mvp);
 
 // Camera-independent output of adaptive BSP lighting. Positions, diffuse UVs
 // and final vertex colours can be reused until one of the surface's own light
@@ -720,11 +724,14 @@ int ClipAgainstPlane(const ClipVertex * in, const int inCount, ClipVertex * out,
 
 inline u32 PackFloatColor(const math::Vec4 & color)
 {
+    float alpha = color.w;
+    if (alpha < 0.0f) { alpha = 0.0f; }
+    if (alpha > 128.0f) { alpha = 128.0f; }
     return vu1::PackColorRGBA(
         static_cast<u32>(color.x + 0.5f),
         static_cast<u32>(color.y + 0.5f),
         static_cast<u32>(color.z + 0.5f),
-        0x80);
+        static_cast<u32>(alpha + 0.5f));
 }
 
 inline void EmitScratchVertex(const ClipVertex & v)
@@ -825,7 +832,7 @@ float MaxLightError(const math::Vec4 & actual, float expectedR,
 // Clips one already-lit triangle against the VU guard volume and appends the
 // survivors to the VU scratch batch.
 void SubmitWorldTriangle(const ClipVertex (&corners)[3], const math::Mat4 & mvp,
-                         const tex::Texture & texture)
+                         const tex::Texture & texture, bool alphaBlend = false)
 {
     int insidePerPlane[kNumClipPlanes] = {};
     for (const ClipVertex & corner : corners)
@@ -855,7 +862,7 @@ void SubmitWorldTriangle(const ClipVertex (&corners)[3], const math::Mat4 & mvp,
         ++s_drawStats.trisDrawn;
         if (s_scratchVertCount + 3 > kScratchMaxVerts)
         {
-            FlushScratch(mvp, texture);
+            FlushScratch(mvp, texture, alphaBlend);
         }
         for (const ClipVertex & corner : corners)
         {
@@ -888,7 +895,7 @@ void SubmitWorldTriangle(const ClipVertex (&corners)[3], const math::Mat4 & mvp,
 
     if (s_scratchVertCount + (count - 2) * 3 > kScratchMaxVerts)
     {
-        FlushScratch(mvp, texture);
+        FlushScratch(mvp, texture, alphaBlend);
     }
     for (int v = 1; v < count - 1; ++v)
     {
@@ -897,6 +904,60 @@ void SubmitWorldTriangle(const ClipVertex (&corners)[3], const math::Mat4 & mvp,
         EmitScratchVertex(in[v + 1]);
     }
     s_drawStats.trisDrawn += count - 2;
+}
+
+// Draws ordinary translucent BSP surfaces in the back-to-front order produced
+// by RecursiveWorldNode. Warped water/lava/slime stay deferred to their own
+// pass: they require time-varying texture coordinates and subdivision.
+void DrawAlphaSurfaces()
+{
+    const mod::ModelSurface * surface = s_alphaSurfaces;
+    while (surface != nullptr)
+    {
+        const mod::ModelSurface * next = surface->textureChain;
+        const int flags = surface->texInfo->flags;
+        if ((flags & SURF_WARP) == 0 &&
+            (flags & (SURF_TRANS33 | SURF_TRANS66)) != 0)
+        {
+            const tex::Texture & texture =
+                *TextureAnimation(surface->texInfo, s_textureAnimFrame);
+            const float alpha = (flags & SURF_TRANS33) != 0 ? 42.0f : 84.0f;
+
+            for (const mod::ModelPoly * poly = surface->polys;
+                 poly != nullptr; poly = poly->next)
+            {
+                for (int t = 0; t < poly->numVerts - 2; ++t)
+                {
+                    const mod::ModelTriangle & tri = poly->triangles[t];
+                    if (tri.vertexes[0] == tri.vertexes[1])
+                    {
+                        continue;
+                    }
+
+                    ClipVertex corners[3] = {};
+                    for (int v = 0; v < 3; ++v)
+                    {
+                        const mod::PolyVertex & src =
+                            poly->vertexes[tri.vertexes[v]];
+                        ClipVertex & out = corners[v];
+                        out.pos = { src.position.x, src.position.y,
+                                    src.position.z, 1.0f };
+                        out.st = { src.texture_s, src.texture_t, 0.0f, 0.0f };
+                        // ref_gl draws alpha surfaces without their lightmap.
+                        // Its inverse-intensity colour compensates for the
+                        // pre-brightened wall palette; 64 matches the default
+                        // PS2 texture intensity of 2.0.
+                        out.color = { 64.0f, 64.0f, 64.0f, alpha };
+                        SetClipDistances(out, s_viewProjMatrix);
+                    }
+                    SubmitWorldTriangle(corners, s_viewProjMatrix, texture, true);
+                }
+            }
+            FlushScratch(s_viewProjMatrix, texture, true);
+        }
+        surface = next;
+    }
+    s_alphaSurfaces = nullptr;
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -1656,6 +1717,10 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model,
             ? s_weaponViewProjMatrix
             : s_viewProjMatrix;
     const bool clipViewWeapon = (entity.flags & RF_DEPTHHACK) != 0;
+    const bool translucent = (entity.flags & RF_TRANSLUCENT) != 0;
+    float entityAlpha = translucent ? entity.alpha : 1.0f;
+    if (entityAlpha < 0.0f) { entityAlpha = 0.0f; }
+    if (entityAlpha > 1.0f) { entityAlpha = 1.0f; }
     const math::Mat4 mvp = EntityModelMatrix(entity) * viewProj;
     const math::Vec3 modelLight = AliasModelLight(entity, viewDef);
     const float shadeAngle = math::DegToRad(-entity.angles[YAW]);
@@ -1683,6 +1748,7 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model,
         };
         out.color =
             AliasVertexColor(modelLight, shadeVector, v.lightnormalindex);
+        out.color.w = entityAlpha * 128.0f;
     }
     s_drawStats.aliasUniqueVerts += md2->num_xyz;
     s_drawStats.aliasCorners += md2->num_tris * 3;
@@ -1724,7 +1790,7 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model,
                 // texture coordinates and lighting at every cut.
                 SetClipDistances(out, mvp);
             }
-            SubmitWorldTriangle(corners, mvp, texture);
+            SubmitWorldTriangle(corners, mvp, texture, translucent);
         }
     }
     else
@@ -1733,7 +1799,7 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model,
         {
             if (s_scratchVertCount + 3 > kScratchMaxVerts)
             {
-                FlushScratch(mvp, texture);
+                FlushScratch(mvp, texture, translucent);
             }
             for (int corner = 0; corner < 3; ++corner)
             {
@@ -1759,7 +1825,7 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model,
             ++s_drawStats.trisDrawn;
         }
     }
-    FlushScratch(mvp, texture);
+    FlushScratch(mvp, texture, translucent);
 }
 
 void DrawSpriteModel(const entity_t & entity, const mod::ModelInstance & model)
@@ -1841,26 +1907,35 @@ void RenderEntities(const refdef_t & viewDef)
         return;
     }
 
-    for (int i = 0; i < viewDef.num_entities; ++i)
+    // Match ref_gl: opaque entities establish colour/depth first, then
+    // RF_TRANSLUCENT entities blend over that result. The original does not
+    // distance-sort the second pass either.
+    for (int pass = 0; pass < 2; ++pass)
     {
-        const entity_t & entity = viewDef.entities[i];
-        if (entity.model == nullptr || (entity.flags & (RF_BEAM | RF_VIEWERMODEL)) != 0)
+        const bool translucentPass = (pass == 1);
+        for (int i = 0; i < viewDef.num_entities; ++i)
         {
-            continue;
-        }
+            const entity_t & entity = viewDef.entities[i];
+            const bool translucent = (entity.flags & RF_TRANSLUCENT) != 0;
+            if (translucent != translucentPass || entity.model == nullptr ||
+                (entity.flags & (RF_BEAM | RF_VIEWERMODEL)) != 0)
+            {
+                continue;
+            }
 
-        const auto * model = reinterpret_cast<const mod::ModelInstance *>(entity.model);
-        if (model->type == mod::ModelType::Brush)
-        {
-            DrawBrushModel(entity, *model, viewDef);
-        }
-        else if (model->type == mod::ModelType::AliasMD2)
-        {
-            DrawAliasModel(entity, *model, viewDef);
-        }
-        else if (model->type == mod::ModelType::Sprite)
-        {
-            DrawSpriteModel(entity, *model);
+            const auto * model = reinterpret_cast<const mod::ModelInstance *>(entity.model);
+            if (model->type == mod::ModelType::Brush)
+            {
+                DrawBrushModel(entity, *model, viewDef);
+            }
+            else if (model->type == mod::ModelType::AliasMD2)
+            {
+                DrawAliasModel(entity, *model, viewDef);
+            }
+            else if (model->type == mod::ModelType::Sprite)
+            {
+                DrawSpriteModel(entity, *model);
+            }
         }
     }
 }
@@ -2040,6 +2115,7 @@ void RenderFrame(const refdef_t & viewDef)
     phaseStart = timing::Now();
     RenderParticles(viewDef);
     s_drawStats.particleMicros = timing::ElapsedMicros(phaseStart);
+    DrawAlphaSurfaces();
     s_drawStats.lightCacheBytes = s_litCacheBytes;
     UpdatePlayerLightLevel(viewDef);
 

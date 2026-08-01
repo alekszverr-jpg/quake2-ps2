@@ -49,7 +49,7 @@ enough for normal gameplay.
 - [x] Particles
 - [x] Opaque brush entities such as moving doors and platforms
 - [~] Sky surfaces and skybox
-- [ ] Transparent surfaces and entity alpha
+- [~] Transparent surfaces and entity alpha
 - [ ] Turbulent water/lava/slime surfaces
 - [x] Weapon depth-range and view-model render flags
 - [x] WAL mipmaps and stable minification filtering
@@ -102,11 +102,11 @@ development tools.
 
 ## Immediate priorities
 
-1. Validate alpha.16 sky orientation, seams, far-depth behaviour and particles
-   viewed against open sky in PCSX2.
+1. Validate alpha.17 translucent BSP surfaces and fading MD2/sprite entities
+   in PCSX2, including views with particles and sky behind them.
 2. Recheck a `base1` to `base2` transition after all six sky faces have loaded;
    alpha.12-alpha.13 fixed the previous EE-memory and loading-frame failures.
-3. Implement transparent surfaces and entity alpha, then turbulent
+3. Complete translucent brush-entity handling, then implement turbulent
    water/lava/slime surfaces.
 4. Continue optimizing the remaining MD2/entity EE path after renderer
    completeness work is stable.
