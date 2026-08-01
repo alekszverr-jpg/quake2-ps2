@@ -6,6 +6,19 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.13 - 2026-08-01
+
+### Fixed
+
+- Skipped the complete 3D render pass during the short level-transition
+  interval after alpha.12 frees the old renderer world and before
+  `CL_PrepRefresh` registers the new one.
+- Fixed `Assert Failed: RenderFrame without a world model!` during the
+  `base1` to `base2` loading screen.
+- Avoided rendering entities in that interval as well, since their cached
+  model pointers belong to the same retired registration cycle. The 2D
+  loading plaque continues to render normally.
+
 ## 0.1.0-alpha.12 - 2026-08-01
 
 ### Fixed

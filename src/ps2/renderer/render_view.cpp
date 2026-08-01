@@ -1818,6 +1818,17 @@ void RenderFrame(const refdef_t & viewDef)
 
     s_drawStats = {};
 
+    // Alpha.12 deliberately releases the previous renderer world before the
+    // integrated server reads the next BSP. SCR_UpdateScreen can still request
+    // a loading-plaque frame in that short interval. Skip the complete 3D pass
+    // until CL_PrepRefresh registers the new world: old entity model pointers
+    // are invalid too, so checking only inside RenderWorldModel is insufficient.
+    if ((viewDef.rdflags & RDF_NOWORLDMODEL) == 0 &&
+        mod::GetWorldModel() == nullptr)
+    {
+        return;
+    }
+
     timing::Stamp phaseStart = timing::Now();
     SetupFrame(viewDef);
     s_drawStats.setupMicros = timing::ElapsedMicros(phaseStart);

@@ -101,9 +101,9 @@ development tools.
 
 ## Immediate priorities
 
-1. Validate repeated `base2` to `base3` transitions with alpha.12 in PCSX2 and
-   on a real PS2; the previous renderer world must be freed before the new BSP
-   file buffer is allocated.
+1. Validate `base1` to `base2` and `base2` to `base3` transitions with alpha.13
+   in PCSX2 and on a real PS2. Loading-plaque frames must remain 2D-only while
+   no renderer world is registered, and BSP loading must stay within EE RAM.
 2. Continue optimizing the remaining MD2/entity EE path after transition
    stability is confirmed.
 3. Revisit VU1 overlap and texture churn if later profiles show their
