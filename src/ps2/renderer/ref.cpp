@@ -362,6 +362,17 @@ void PS2_EndRegistration()
     ps2::tex::EndRegistration();
 }
 
+// The integrated PS2 server calls this before CM_LoadMap reads the next BSP
+// into a temporary Z_Malloc buffer. On large map transitions, waiting until
+// CL_PrepRefresh would make the old renderer world overlap that full-file
+// allocation and exhaust the EE heap.
+extern "C" void PS2_PurgeLevelRendererMemory()
+{
+    // Cache entries point into the world hunk, so they must be released first.
+    ps2::view::BeginRegistration();
+    ps2::mod::PurgeWorldModel();
+}
+
 void PS2_SetSky(const char * name, float rotate, vec3_t axis)
 {
     (void)name; (void)rotate; (void)axis;

@@ -75,6 +75,7 @@ public:
 
     void BeginRegistration(const char * mapName);
     void EndRegistration();
+    void PurgeWorldModel();
 
     const ModelInstance * Find(const char * name);
     const ModelInstance * WorldModel() { return m_worldModel; }
@@ -356,13 +357,7 @@ void ModelCache::LoadWorldModel(const char * const mapName)
             Com_DPrintf("Unloading current map '%s'...\n", m_worldModel->name);
         }
 
-        const auto it = m_lookup.find(HashStr64(m_worldModel->name));
-        if (it != m_lookup.end())
-        {
-            Unload(it->second);
-            m_lookup.erase(it);
-        }
-        m_worldModel = nullptr;
+        PurgeWorldModel();
     }
 
     const ModelInstance * const world = Find(fullName);
@@ -478,6 +473,26 @@ bool RecursiveLightPoint(const ModelInstance & world, const ModelNode * node,
     }
 
     return RecursiveLightPoint(world, node->children[side ^ 1], mid, end, light);
+}
+
+void ModelCache::PurgeWorldModel()
+{
+    if (m_worldModel == nullptr)
+    {
+        return;
+    }
+
+    // Save the lookup key before Unload zeroes the pool slot containing the
+    // name. Inline models alias this hunk and become invalid at the same time.
+    const u64 worldHash = HashStr64(m_worldModel->name);
+    const auto it = m_lookup.find(worldHash);
+    if (it != m_lookup.end())
+    {
+        Unload(it->second);
+        m_lookup.erase(it);
+    }
+    m_worldModel = nullptr;
+    std::memset(m_inlineModels, 0, sizeof(m_inlineModels));
 }
 
 } // namespace
@@ -650,6 +665,11 @@ void BeginRegistration(const char * mapName)
 void EndRegistration()
 {
     s_cache.EndRegistration();
+}
+
+void PurgeWorldModel()
+{
+    s_cache.PurgeWorldModel();
 }
 
 const ModelInstance * Find(const char * name)

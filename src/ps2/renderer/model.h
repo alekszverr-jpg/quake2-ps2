@@ -342,6 +342,11 @@ void Init();
 void BeginRegistration(const char * mapName);
 void EndRegistration();
 
+// Releases the current BSP hunk before the engine reads the next map file.
+// Level transitions otherwise briefly retain the old renderer world while
+// CM_LoadMap allocates a full-file buffer for the new BSP.
+void PurgeWorldModel();
+
 const ModelInstance * Find(const char * name);
 
 // The world map loaded by the last BeginRegistration; null before any map load.

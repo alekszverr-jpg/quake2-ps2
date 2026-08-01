@@ -6,6 +6,31 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.12 - 2026-08-01
+
+### Fixed
+
+- Freed the previous BSP lighting cache and renderer world hunk at the start
+  of an integrated PS2 server level change, before `CM_LoadMap` allocates a
+  full-file buffer for the next BSP.
+- Eliminated the avoidable old-world/new-file memory overlap that could crash
+  both PCSX2 and real hardware while transitioning from `base2` to `base3`.
+  The reported 2,337,840-byte failed `Quake` allocation was identified as the
+  2,337,824-byte `maps/base3.bsp` plus allocator bookkeeping.
+- Cleared inline brush-model aliases when their owning world hunk is purged,
+  preventing stale renderer pointers from surviving into registration of the
+  next map.
+
+### Performance validation
+
+- Alpha.11 reduced measured `Ent us` by roughly 38% in the starting view,
+  24% in the larger model-heavy view and 44% in the supplied combat view.
+- `MD2Corner` was approximately 5.3-5.8 times `MD2Vert`, confirming that the
+  indexed path avoids substantial repeated interpolation and lighting work.
+- The supplied captures remained visually correct on PCSX2 and the same level
+  transition failure was reproduced on real hardware, making transition
+  memory the alpha.12 priority.
+
 ## 0.1.0-alpha.11 - 2026-07-29
 
 ### Changed
