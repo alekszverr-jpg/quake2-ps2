@@ -102,7 +102,8 @@ development tools.
 
 ## Immediate priorities
 
-1. Validate alpha.15 sky orientation, seams and far-depth behaviour in PCSX2.
+1. Validate alpha.16 sky orientation, seams, far-depth behaviour and particles
+   viewed against open sky in PCSX2.
 2. Recheck a `base1` to `base2` transition after all six sky faces have loaded;
    alpha.12-alpha.13 fixed the previous EE-memory and loading-frame failures.
 3. Implement transparent surfaces and entity alpha, then turbulent

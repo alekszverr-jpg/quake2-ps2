@@ -6,6 +6,22 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.16 - 2026-08-01
+
+### Fixed
+
+- Moved the far-depth skybox pass before alpha-tested/blended entities and
+  particles. Transparent particle texels can no longer block the later sky
+  depth test and expose dark clear-colour triangles against the skybox.
+- Kept the sky after opaque BSP geometry, so it still fills only untouched
+  background and cannot cover walls or other world surfaces.
+
+### Validation target
+
+- Particle trails and impacts viewed against open sky should retain their
+  intended small shapes with no dark triangular or square backgrounds.
+- Recheck ordinary world occlusion, first-person weapons and the sky seams.
+
 ## 0.1.0-alpha.15 - 2026-08-01
 
 ### Added

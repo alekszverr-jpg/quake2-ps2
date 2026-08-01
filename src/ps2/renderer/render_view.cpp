@@ -2026,6 +2026,13 @@ void RenderFrame(const refdef_t & viewDef)
     RenderWorldModel(viewDef);
     s_drawStats.worldMicros = timing::ElapsedMicros(phaseStart);
 
+    // The sky is far-depth opaque background. Draw it after the BSP has
+    // protected real geometry, but before alpha-tested/blended entities and
+    // particles: those effects may update Z even in texels whose colour is
+    // transparent, which would otherwise leave clear-colour triangles where
+    // a later sky pass fails its depth test.
+    DrawSkyBox(viewDef);
+
     phaseStart = timing::Now();
     RenderEntities(viewDef);
     s_drawStats.entityMicros = timing::ElapsedMicros(phaseStart);
@@ -2033,7 +2040,6 @@ void RenderFrame(const refdef_t & viewDef)
     phaseStart = timing::Now();
     RenderParticles(viewDef);
     s_drawStats.particleMicros = timing::ElapsedMicros(phaseStart);
-    DrawSkyBox(viewDef);
     s_drawStats.lightCacheBytes = s_litCacheBytes;
     UpdatePlayerLightLevel(viewDef);
 
