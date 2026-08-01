@@ -102,17 +102,20 @@ development tools.
 
 ## Immediate priorities
 
-1. Validate alpha.17 translucent BSP surfaces and fading MD2/sprite entities
-   in PCSX2, including views with particles and sky behind them.
-2. Recheck a `base1` to `base2` transition after all six sky faces have loaded;
-   alpha.12-alpha.13 fixed the previous EE-memory and loading-frame failures.
-3. Complete translucent brush-entity handling, then implement turbulent
-   water/lava/slime surfaces.
-4. Continue optimizing the remaining MD2/entity EE path after renderer
+1. Validate alpha.18 across Base 3: confirm the adaptive-light cache remains
+   capped near 1536 KB, glass is visible, and repeated large views do not
+   exhaust the EE heap.
+2. Recheck translucent inline brush objects together with doors and lifts;
+   their model-transform path is now shared by opaque and alpha passes.
+3. Implement turbulent water/lava/slime surfaces, which remain intentionally
+   deferred even when they carry a transparency flag.
+4. Recheck multi-level transitions after the new bounded world cache, including
+   a longer Base 1 -> Base 2 -> Base 3 session on PCSX2 and real hardware.
+5. Continue optimizing the remaining MD2/entity EE path after renderer
    completeness work is stable.
-5. Revisit VU1 overlap and texture churn if later profiles show their
+6. Revisit VU1 overlap and texture churn if later profiles show their
    currently small wait times growing.
-6. Make diagnostic overlays optional and disabled by default.
+7. Make diagnostic overlays optional and disabled by default.
 
 Update this file whenever priorities, milestone status or completion criteria
 change. Record completed user-visible work in `CHANGELOG` in the same commit.

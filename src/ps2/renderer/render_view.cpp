@@ -667,6 +667,11 @@ static_assert(sizeof(CachedLitVertex) == 48,
 
 constexpr int kMaxCachedVertsPerTriangle =
     3 * (1 << kMaxLightSubdivideDepth);
+// Adaptive lighting can otherwise cache every visible subdivided BSP triangle
+// until it consumes the EE heap. Base 3 exhausted the heap while requesting the
+// minimum 144-byte (three CachedLitVertex) entry. Entries beyond this budget
+// are still built and drawn from the static scratch buffer, just not retained.
+constexpr int kLitCacheBudgetBytes = 1536 * 1024;
 static CachedLitVertex s_litBuildVerts[kMaxCachedVertsPerTriangle];
 static int s_litBuildVertCount = 0;
 static std::vector<const mod::ModelTriangle *> s_cachedLitTriangles;
@@ -906,6 +911,42 @@ void SubmitWorldTriangle(const ClipVertex (&corners)[3], const math::Mat4 & mvp,
     s_drawStats.trisDrawn += count - 2;
 }
 
+void DrawTranslucentSurface(const mod::ModelSurface & surface,
+                            const math::Mat4 & mvp, const int animationFrame,
+                            const float alpha)
+{
+    const tex::Texture & texture =
+        *TextureAnimation(surface.texInfo, animationFrame);
+    for (const mod::ModelPoly * poly = surface.polys;
+         poly != nullptr; poly = poly->next)
+    {
+        for (int t = 0; t < poly->numVerts - 2; ++t)
+        {
+            const mod::ModelTriangle & tri = poly->triangles[t];
+            if (tri.vertexes[0] == tri.vertexes[1])
+            {
+                continue;
+            }
+
+            ClipVertex corners[3] = {};
+            for (int v = 0; v < 3; ++v)
+            {
+                const mod::PolyVertex & src = poly->vertexes[tri.vertexes[v]];
+                ClipVertex & out = corners[v];
+                out.pos = { src.position.x, src.position.y, src.position.z, 1.0f };
+                out.st = { src.texture_s, src.texture_t, 0.0f, 0.0f };
+                // ref_gl draws alpha surfaces without their lightmap. Its
+                // inverse-intensity colour compensates for the pre-brightened
+                // wall palette; 64 matches the PS2 texture intensity of 2.0.
+                out.color = { 64.0f, 64.0f, 64.0f, alpha };
+                SetClipDistances(out, mvp);
+            }
+            SubmitWorldTriangle(corners, mvp, texture, true);
+        }
+    }
+    FlushScratch(mvp, texture, true);
+}
+
 // Draws ordinary translucent BSP surfaces in the back-to-front order produced
 // by RecursiveWorldNode. Warped water/lava/slime stay deferred to their own
 // pass: they require time-varying texture coordinates and subdivision.
@@ -919,41 +960,9 @@ void DrawAlphaSurfaces()
         if ((flags & SURF_WARP) == 0 &&
             (flags & (SURF_TRANS33 | SURF_TRANS66)) != 0)
         {
-            const tex::Texture & texture =
-                *TextureAnimation(surface->texInfo, s_textureAnimFrame);
             const float alpha = (flags & SURF_TRANS33) != 0 ? 42.0f : 84.0f;
-
-            for (const mod::ModelPoly * poly = surface->polys;
-                 poly != nullptr; poly = poly->next)
-            {
-                for (int t = 0; t < poly->numVerts - 2; ++t)
-                {
-                    const mod::ModelTriangle & tri = poly->triangles[t];
-                    if (tri.vertexes[0] == tri.vertexes[1])
-                    {
-                        continue;
-                    }
-
-                    ClipVertex corners[3] = {};
-                    for (int v = 0; v < 3; ++v)
-                    {
-                        const mod::PolyVertex & src =
-                            poly->vertexes[tri.vertexes[v]];
-                        ClipVertex & out = corners[v];
-                        out.pos = { src.position.x, src.position.y,
-                                    src.position.z, 1.0f };
-                        out.st = { src.texture_s, src.texture_t, 0.0f, 0.0f };
-                        // ref_gl draws alpha surfaces without their lightmap.
-                        // Its inverse-intensity colour compensates for the
-                        // pre-brightened wall palette; 64 matches the default
-                        // PS2 texture intensity of 2.0.
-                        out.color = { 64.0f, 64.0f, 64.0f, alpha };
-                        SetClipDistances(out, s_viewProjMatrix);
-                    }
-                    SubmitWorldTriangle(corners, s_viewProjMatrix, texture, true);
-                }
-            }
-            FlushScratch(s_viewProjMatrix, texture, true);
+            DrawTranslucentSurface(*surface, s_viewProjMatrix,
+                                   s_textureAnimFrame, alpha);
         }
         surface = next;
     }
@@ -1199,6 +1208,8 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
             continue; // Degenerate placeholder left by failed triangulation.
         }
 
+        const CachedLitVertex * drawVertices = nullptr;
+        int drawVertexCount = 0;
         if (tri.litCacheVertices == nullptr || tri.litCacheKey != cacheKey)
         {
             ++s_drawStats.lightCacheBuilds;
@@ -1224,14 +1235,21 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
             PS2_Assert(s_litBuildVertCount >= 3 &&
                        (s_litBuildVertCount % 3) == 0);
 
-            const bool firstAllocation = tri.litCacheCapacity == 0;
-            if (s_litBuildVertCount > tri.litCacheCapacity)
+            const bool needsGrowth = s_litBuildVertCount > tri.litCacheCapacity;
+            const int oldBytes =
+                static_cast<int>(tri.litCacheCapacity) *
+                static_cast<int>(sizeof(CachedLitVertex));
+            const int newBytes =
+                s_litBuildVertCount * static_cast<int>(sizeof(CachedLitVertex));
+            const bool canRetain = !needsGrowth ||
+                (s_litCacheBytes - oldBytes + newBytes <= kLitCacheBudgetBytes);
+
+            if (canRetain && needsGrowth)
             {
+                const bool firstAllocation = tri.litCacheCapacity == 0;
                 if (tri.litCacheVertices != nullptr)
                 {
-                    s_litCacheBytes -=
-                        static_cast<int>(tri.litCacheCapacity) *
-                        static_cast<int>(sizeof(CachedLitVertex));
+                    s_litCacheBytes -= oldBytes;
                     PS2_MemFree(
                         tri.litCacheVertices,
                         static_cast<size_t>(tri.litCacheCapacity) *
@@ -1247,33 +1265,48 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
                 s_litCacheBytes +=
                     s_litBuildVertCount *
                     static_cast<int>(sizeof(CachedLitVertex));
-            }
-            if (firstAllocation)
-            {
-                s_cachedLitTriangles.push_back(&tri);
+                if (firstAllocation)
+                {
+                    s_cachedLitTriangles.push_back(&tri);
+                }
             }
 
-            std::memcpy(
-                tri.litCacheVertices,
-                s_litBuildVerts,
-                static_cast<size_t>(s_litBuildVertCount) *
-                    sizeof(CachedLitVertex));
-            tri.litCacheVertexCount = static_cast<u16>(s_litBuildVertCount);
-            tri.litCacheKey = cacheKey;
+            if (canRetain)
+            {
+                std::memcpy(
+                    tri.litCacheVertices,
+                    s_litBuildVerts,
+                    static_cast<size_t>(s_litBuildVertCount) *
+                        sizeof(CachedLitVertex));
+                tri.litCacheVertexCount = static_cast<u16>(s_litBuildVertCount);
+                tri.litCacheKey = cacheKey;
+                drawVertices = static_cast<const CachedLitVertex *>(
+                    tri.litCacheVertices);
+                drawVertexCount = tri.litCacheVertexCount;
+            }
+            else
+            {
+                // Correctness does not depend on retaining the result: submit
+                // the freshly built vertices before the shared buffer is reused.
+                drawVertices = s_litBuildVerts;
+                drawVertexCount = s_litBuildVertCount;
+            }
         }
         else
         {
             ++s_drawStats.lightCacheHits;
+            drawVertices = static_cast<const CachedLitVertex *>(
+                tri.litCacheVertices);
+            drawVertexCount = tri.litCacheVertexCount;
         }
 
-        const auto * cached =
-            static_cast<const CachedLitVertex *>(tri.litCacheVertices);
-        for (int first = 0; first < tri.litCacheVertexCount; first += 3)
+        PS2_Assert(drawVertices != nullptr && drawVertexCount >= 3);
+        for (int first = 0; first < drawVertexCount; first += 3)
         {
             ClipVertex corners[3] = {};
             for (int v = 0; v < 3; ++v)
             {
-                const CachedLitVertex & src = cached[first + v];
+                const CachedLitVertex & src = drawVertices[first + v];
                 ClipVertex & corner = corners[v];
                 corner.pos = src.pos;
                 corner.st = src.st;
@@ -1405,10 +1438,9 @@ void DrawBrushModel(const entity_t & entity, const mod::ModelInstance & model,
                     const refdef_t & viewDef)
 {
     PS2_Assert(model.type == mod::ModelType::Brush);
-    if (model.numModelSurfaces <= 0 ||
-        (entity.flags & RF_TRANSLUCENT) != 0)
+    if (model.numModelSurfaces <= 0)
     {
-        return; // Translucent brush entities need the later sorted alpha pass.
+        return;
     }
     if (CullBrushEntity(entity, model))
     {
@@ -1420,6 +1452,8 @@ void DrawBrushModel(const entity_t & entity, const mod::ModelInstance & model,
     PS2_Assert(model.firstModelSurface + model.numModelSurfaces <= model.numSurfaces);
     PS2_Assert(s_scratchVertCount == 0 && s_chainTextureCount == 0);
 
+    const bool entityTranslucent = (entity.flags & RF_TRANSLUCENT) != 0;
+    const math::Mat4 mvp = BrushModelMatrix(entity) * s_viewProjMatrix;
     const math::Vec3 cameraLocal = BrushCameraLocal(entity, viewDef);
     mod::ModelSurface * surface =
         model.surfaces + model.firstModelSurface;
@@ -1445,7 +1479,8 @@ void DrawBrushModel(const entity_t & entity, const mod::ModelInstance & model,
         {
             continue; // Sky bounds are still a later renderer milestone.
         }
-        if ((texFlags & (SURF_TRANS33 | SURF_TRANS66 | SURF_WARP)) != 0)
+        if (entityTranslucent ||
+            (texFlags & (SURF_TRANS33 | SURF_TRANS66 | SURF_WARP)) != 0)
         {
             ++s_drawStats.surfacesAlpha;
             continue;
@@ -1453,8 +1488,45 @@ void DrawBrushModel(const entity_t & entity, const mod::ModelInstance & model,
         ChainOpaqueSurface(*surface, entity.frame);
     }
 
-    const math::Mat4 mvp = BrushModelMatrix(entity) * s_viewProjMatrix;
     DrawTextureChains(mvp);
+
+    // Inline models (doors, windows and other moving BSP geometry) have their
+    // own model matrix and cannot use the world alpha chain. Match ref_gl's
+    // 25% RF_TRANSLUCENT brush pass and also restore per-surface glass.
+    surface = model.surfaces + model.firstModelSurface;
+    for (int i = 0; i < model.numModelSurfaces; ++i, ++surface)
+    {
+        const cplane_t & plane = *surface->plane;
+        const float dot =
+            cameraLocal.x * plane.normal[0] +
+            cameraLocal.y * plane.normal[1] +
+            cameraLocal.z * plane.normal[2] - plane.dist;
+        const bool planeBack =
+            HasFlag(surface->flags, mod::SurfaceFlags::PlaneBack);
+        const bool facing = planeBack
+            ? dot < -mod::kBackFaceEpsilon
+            : dot >  mod::kBackFaceEpsilon;
+        if (!facing)
+        {
+            continue;
+        }
+
+        const int texFlags = surface->texInfo->flags;
+        if ((texFlags & (SURF_SKY | SURF_WARP)) != 0)
+        {
+            continue;
+        }
+        if (!entityTranslucent &&
+            (texFlags & (SURF_TRANS33 | SURF_TRANS66)) == 0)
+        {
+            continue;
+        }
+
+        const float alpha = entityTranslucent
+            ? 32.0f
+            : ((texFlags & SURF_TRANS33) != 0 ? 42.0f : 84.0f);
+        DrawTranslucentSurface(*surface, mvp, entity.frame, alpha);
+    }
 }
 
 const tex::Texture & AliasSkin(const entity_t & entity, const mod::ModelInstance & model)

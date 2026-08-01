@@ -6,6 +6,32 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.18 - 2026-08-01
+
+### Fixed
+
+- Capped the persistent adaptive BSP-lighting cache at 1.5 MB. Once the
+  budget is full, newly visible triangles are lit into the existing static
+  scratch buffer and submitted immediately instead of consuming the remaining
+  EE heap. This addresses the Base 3 `Mdl_World` allocation failure whose
+  final 144-byte request was exactly one cached triangle.
+- Restored translucent inline/brush entities such as moving windows and other
+  map objects marked `RF_TRANSLUCENT`. The PS2 renderer previously skipped
+  those models completely even though the original `ref_gl` draws them at 25%
+  opacity.
+- Rendered `SURF_TRANS33` and `SURF_TRANS66` faces belonging to inline brush
+  models with their own model transform, rather than dropping them from both
+  the opaque world pass and the world-space alpha chain.
+
+### Validation target
+
+- Re-enter Base 3 and move through several large views; the `LitKB` diagnostic
+  should stop growing near 1536 KB and no `Mdl_World` allocation error should
+  occur.
+- Check the glass from both sides, including any moving glass/door sections,
+  and verify that it blends over the world instead of disappearing.
+- Recheck doors and lifts because they share the inline brush-model path.
+
 ## 0.1.0-alpha.17 - 2026-08-01
 
 ### Added
