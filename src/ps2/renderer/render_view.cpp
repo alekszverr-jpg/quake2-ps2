@@ -922,14 +922,14 @@ void ResolveSkyTextures()
     for (int face = 0; face < 6; ++face)
     {
         char path[MAX_QPATH];
-        std::snprintf(path, sizeof(path), "env/%s%s.tga", s_skyName,
+        std::snprintf(path, sizeof(path), "env/%.48s%s.tga", s_skyName,
                       kSkySuffixes[face]);
         s_skyTextures[face] = tex::Find(path, tex::ImageType::Sky);
 
         // Some replacement packs provide paletted PCX skies instead.
         if (s_skyTextures[face] == nullptr)
         {
-            std::snprintf(path, sizeof(path), "env/%s%s.pcx", s_skyName,
+            std::snprintf(path, sizeof(path), "env/%.48s%s.pcx", s_skyName,
                           kSkySuffixes[face]);
             s_skyTextures[face] = tex::Find(path, tex::ImageType::Sky);
         }
