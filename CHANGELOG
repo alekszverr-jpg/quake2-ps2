@@ -20,14 +20,12 @@ Development priorities and completion criteria are tracked in
   from 96 to 93 vertices so input and generated output remain inside each
   496-qword double-buffer half.
 
-### Validation target
+### Validation
 
-- On PCSX2, the intact Base 3 glass must visibly reveal the room behind its
-  grey emblem at close, medium and long range.
-- Confirm its material remains stable while moving toward it, then break it
-  and verify the opening and fragments render normally.
-- Recheck an ordinary opaque wall plus particles to catch any unintended
-  change from the now-explicit primitive state.
+- Confirmed in PCSX2 2.7.516: the intact Base 3 glass now visibly blends with
+  the room behind it while retaining its grey emblem and stable material.
+- Extended range, broken-glass and real-hardware regression checks remain for
+  the next broader renderer test pass.
 
 ## 0.1.0-alpha.21 - 2026-08-08
 
