@@ -6,6 +6,24 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.20 - 2026-08-08
+
+### Fixed
+
+- Corrected the PS2 GS `PRIM` bit used by translucent VU1 batches. The renderer
+  accidentally placed `alphaBlend` in `FGE` (fog enable) and left `ABE` (alpha
+  blending enable) disabled, so correctly calculated 33%/66% vertex alpha was
+  ignored and glass remained fully opaque.
+- Expanded the `VU_GS_PRIM` call into documented arguments so the adjacent
+  `FGE` and `ABE` fields cannot be confused again.
+
+### Validation target
+
+- Base 3 glass should now visibly blend with the room behind it at close,
+  medium and long range while retaining alpha.19's stable mipmapped material.
+- Recheck particles and translucent MD2/sprite effects because they use the
+  same corrected `ABE` flag.
+
 ## 0.1.0-alpha.19 - 2026-08-01
 
 ### Fixed

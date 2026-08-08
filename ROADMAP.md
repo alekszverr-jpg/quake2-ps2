@@ -102,13 +102,13 @@ development tools.
 
 ## Immediate priorities
 
-1. Validate alpha.19 glass at close, medium and long range on Base 3; its
-   texture and opacity must remain stable across every mip transition.
+1. Validate alpha.20 glass at close, medium and long range on Base 3; its
+   texture must remain stable and the room behind it must remain visible.
 2. Continue the alpha.18 stability run: confirm the adaptive-light cache
    remains capped near 1536 KB and repeated large Base 3 views do not exhaust
    the EE heap.
-3. Recheck translucent inline brush objects together with doors and lifts;
-   their model-transform path is now shared by opaque and alpha passes.
+3. Recheck particles, translucent MD2/sprite effects and inline brush objects
+   together with doors and lifts after enabling the correct GS `ABE` bit.
 4. Implement turbulent water/lava/slime surfaces, which remain intentionally
    deferred even when they carry a transparency flag.
 5. Recheck multi-level transitions after the new bounded world cache, including

@@ -208,8 +208,17 @@ void AddBatchChunk(VifPacket & pkt, const tex::Texture & texture, int ctx,
 
         // ...then the drawing tag: gouraud textured triangle list, STQ mapping,
         // with the per-vertex registers of kVertexRegList.
-        const u128 prim = VU_GS_PRIM(PRIM_TRIANGLE, 1, 1, alphaBlend ? 1 : 0,
-                                     0, 0, 0, ctx, 0);
+        const u128 prim = VU_GS_PRIM(
+            PRIM_TRIANGLE,
+            1, // IIP: Gouraud shading.
+            1, // TME: texture mapping.
+            0, // FGE: fog is not used by this renderer.
+            alphaBlend ? 1 : 0, // ABE: apply the ALPHA register equation.
+            0, // AA1
+            0, // FST: perspective-correct STQ coordinates.
+            ctx,
+            0  // FIX
+        );
         pkt.AddQword(VU_GS_GIFTAG(static_cast<u64>(vertCount), 1, 1, prim, 0, 3),
                      kVertexRegList);
     }
