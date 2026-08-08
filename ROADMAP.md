@@ -102,7 +102,7 @@ development tools.
 
 ## Immediate priorities
 
-1. Validate alpha.21 glass at close, medium and long range on Base 3; its
+1. Validate alpha.22 glass at close, medium and long range on Base 3; its
    texture must remain stable and the room behind it must remain visible.
 2. Continue the alpha.18 stability run: confirm the adaptive-light cache
    remains capped near 1536 KB and repeated large Base 3 views do not exhaust

@@ -22,11 +22,11 @@
  *      8-999  the two XTOP double buffers (VIF1 BASE=8, OFFSET=496)
  *
  *  Batch layout inside a double buffer (relative to XTOP): input is one header
- *  qword (vertex count in .w), 7 GIF/AD tag qwords, then 2 qwords per vertex;
+ *  qword (vertex count in .w), 9 GIF/AD tag qwords, then 2 qwords per vertex;
  *  the microprogram builds the GS packet in the same buffer after the input.
- *  The A+D block programs TEST, TEX0/TEX1, MIPTBP1 and ALPHA, so a batch draws
- *  with the proper z-test, mip chain and blend state no matter what state the
- *  surrounding 2D/3D packets left behind.
+ *  The A+D block programs TEST, TEX0/TEX1, MIPTBP1, ALPHA, PRMODECONT and PRIM,
+ *  so a batch draws with the proper z-test, mip chain and blend state no matter
+ *  what state the surrounding 2D/3D packets left behind.
  *
  * This source code is released under the GNU GPL v2 license.
  * ================================================================================================ */
@@ -52,10 +52,9 @@ namespace {
 static TimingStats s_timingStats = {};
 
 // Vertices per VU run: DrawTriangles splits larger draws into chunks of this
-// size. Bounded by the VU double buffer: input (8 + 2n) plus output (7 + 3n)
-// qwords must fit in one 496-qword buffer half, so n <= 96 - and chunks are
-// whole triangles, hence 96.
-constexpr int kMaxVertsPerBatch = 96;
+// size. Bounded by the VU double buffer: input (10 + 2n) plus output
+// (9 + 3n), so n <= 95 - and chunks are whole triangles, hence 93.
+constexpr int kMaxVertsPerBatch = 93;
 
 // VIF1 double-buffer registers: two 496-qword buffers above the constants.
 constexpr int kDoubleBufferBase   = 8;
@@ -66,8 +65,8 @@ constexpr int kFrameConstantsAddr = 0;
 
 // Batch layout, relative to the current double buffer (XTOP).
 constexpr int kBatchHeaderAddr = 0; // vertex count in .w
-constexpr int kGifTagsAddr     = 1; // 7 qwords: set tag, 5 A+D writes, prim tag
-constexpr int kVertexDataAddr  = kGifTagsAddr + 7;
+constexpr int kGifTagsAddr     = 1; // 9 qwords: set tag, 7 A+D writes, draw tag
+constexpr int kVertexDataAddr  = kGifTagsAddr + 9;
 
 // The chain is tags plus small per-chunk inline unpacks; constants and
 // vertices are referenced in place. Sized so a DrawTriangles call fits ~30
@@ -195,11 +194,12 @@ void AddBatchChunk(VifPacket & pkt, const tex::Texture & texture, int ctx,
         pkt.AddU32(0);
         pkt.AddU32(static_cast<u32>(vertCount));
 
-        // Five A+D writes: pixel tests, the complete texture bind and source-
-        // alpha blending. MIPTBP1 must also be sent for translucent WALs:
+        // Seven A+D writes: pixel tests, the complete texture bind, alpha
+        // equation and explicit primitive control. MIPTBP1 must also be sent
+        // for translucent WALs:
         // omitting it made distant glass sample stale mip addresses belonging
         // to unrelated textures previously drawn in this GS context.
-        pkt.AddQword(GIF_SET_TAG(5, 0, 0, 0, GIF_FLG_PACKED, 1), GIF_REG_AD);
+        pkt.AddQword(GIF_SET_TAG(7, 0, 0, 0, GIF_FLG_PACKED, 1), GIF_REG_AD);
         pkt.AddQword(MakeTestData(), static_cast<u64>(GS_REG_TEST + ctx));
         pkt.AddQword(MakeTex1Data(texture), static_cast<u64>(GS_REG_TEX1 + ctx));
         pkt.AddQword(MakeTex0Data(texture), static_cast<u64>(GS_REG_TEX0 + ctx));
@@ -213,9 +213,12 @@ void AddBatchChunk(VifPacket & pkt, const tex::Texture & texture, int ctx,
                                   useFixedAlpha ? fixedAlpha : 0),
                      static_cast<u64>(GS_REG_ALPHA + ctx));
 
-        // ...then the drawing tag: gouraud textured triangle list, STQ mapping,
-        // with the per-vertex registers of kVertexRegList.
-        const u128 prim = VU_GS_PRIM(
+        // Never inherit libdraw's global primitive-control mode. Select the
+        // PRIM register explicitly and write all primitive attributes through
+        // A+D; the following drawing tag deliberately has PRE=0. This makes
+        // ABE deterministic on PCSX2 and real GS hardware.
+        pkt.AddQword(GS_SET_PRMODECONT(1), static_cast<u64>(GS_REG_PRMODECONT));
+        const u64 prim = GIF_SET_PRIM(
             PRIM_TRIANGLE,
             1, // IIP: Gouraud shading.
             1, // TME: texture mapping.
@@ -226,7 +229,12 @@ void AddBatchChunk(VifPacket & pkt, const tex::Texture & texture, int ctx,
             ctx,
             0  // FIX
         );
-        pkt.AddQword(VU_GS_GIFTAG(static_cast<u64>(vertCount), 1, 1, prim, 0, 3),
+        pkt.AddQword(prim, static_cast<u64>(GS_REG_PRIM));
+
+        // Gouraud textured triangle list using the primitive state above and
+        // the per-vertex registers of kVertexRegList.
+        pkt.AddQword(GIF_SET_TAG(static_cast<u64>(vertCount), 1, 0, 0,
+                                GIF_FLG_PACKED, 3),
                      kVertexRegList);
     }
     pkt.CloseInlineUnpack();
