@@ -22,10 +22,11 @@ Development priorities and completion criteria are tracked in
 
 ### Validation
 
-- Confirmed in PCSX2 2.7.516: the intact Base 3 glass now visibly blends with
-  the room behind it while retaining its grey emblem and stable material.
-- Extended range, broken-glass and real-hardware regression checks remain for
-  the next broader renderer test pass.
+- Confirmed in PCSX2 2.7.516 and on a real PlayStation 2: the intact Base 3
+  glass visibly blends with the room behind it while retaining its grey emblem
+  and stable material.
+- Extended range and broken-glass regression checks remain for the next broader
+  renderer test pass.
 
 ## 0.1.0-alpha.21 - 2026-08-08
 

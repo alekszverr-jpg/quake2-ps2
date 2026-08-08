@@ -36,7 +36,7 @@ rendering paths are still under development.
 | Weapon depth range | Working in PCSX2 and on real PS2 |
 | Sprite entities | First pass, PCSX2 validation pending |
 | Particles and sprite alpha | First pass working in PCSX2 |
-| Transparent BSP glass | Working and validated in PCSX2 |
+| Transparent BSP glass | Working in PCSX2 and on real PS2 |
 | On-screen renderer profiling | EE phases, VU wait and VRAM transfer/stall timing |
 | Adaptive BSP lighting cache | Working; reduced measured world time by about 66-72% |
 | Indexed MD2 preparation | Working; reduced measured entity time by about 24-44% |

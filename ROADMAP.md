@@ -49,7 +49,7 @@ enough for normal gameplay.
 - [x] Particles
 - [x] Opaque brush entities such as moving doors and platforms
 - [~] Sky surfaces and skybox
-- [x] Transparent BSP surfaces such as Base 3 glass
+- [x] Transparent BSP surfaces such as Base 3 glass, validated on PCSX2 and PS2
 - [~] Translucent entity alpha
 - [ ] Turbulent water/lava/slime surfaces
 - [x] Weapon depth-range and view-model render flags
@@ -106,8 +106,7 @@ development tools.
 1. Continue the alpha.18 stability run: confirm the adaptive-light cache
    remains capped near 1536 KB and repeated large Base 3 views do not exhaust
    the EE heap.
-2. Recheck alpha.22 at multiple ranges, after breaking the Base 3 glass, and
-   on real hardware when available.
+2. Recheck alpha.22 at multiple ranges and after breaking the Base 3 glass.
 3. Recheck particles, translucent MD2/sprite effects and inline brush objects
    together with doors and lifts after enabling the correct GS `ABE` bit.
 4. Implement turbulent water/lava/slime surfaces, which remain intentionally
