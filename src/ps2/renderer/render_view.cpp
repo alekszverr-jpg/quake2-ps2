@@ -85,6 +85,7 @@ static cplane_t s_frustum[4] = {};
 
 // Wall texture animation frame (viewDef.time * 2, as in ref_gl).
 static int s_textureAnimFrame = 0;
+static float s_viewTime = 0.0f;
 
 // Adaptive BSP-lighting controls, refreshed from archived cvars each frame.
 // Large triangles are probed at most this many lightmap cells apart; within
@@ -233,6 +234,7 @@ void SetupFrame(const refdef_t & viewDef)
 
     // Animated walls flip frames at 2 Hz of game time (as in ref_gl).
     s_textureAnimFrame = static_cast<int>(viewDef.time * 2.0f);
+    s_viewTime = viewDef.time;
 
     // Camera basis vectors from the view angles.
     AngleVectors(viewDef.viewangles, s_forwardVec, s_rightVec, s_upVec);
@@ -949,9 +951,77 @@ void DrawTranslucentSurface(const mod::ModelSurface & surface,
     FlushScratch(mvp, texture, true, static_cast<int>(alpha + 0.5f));
 }
 
-// Draws ordinary translucent BSP surfaces in the back-to-front order produced
-// by RecursiveWorldNode. Warped water/lava/slime stay deferred to their own
-// pass: they require time-varying texture coordinates and subdivision.
+// Draws a pre-subdivided SURF_WARP polygon with Quake II's original
+// EmitWaterPolys texture-coordinate deformation. model_load.cpp cuts these
+// surfaces on the 64-unit grid and stores a centre vertex plus a closed fan,
+// so the per-frame path only has to animate UVs and emit fan triangles.
+void DrawTurbulentSurface(const mod::ModelSurface & surface,
+                          const math::Mat4 & mvp, const int animationFrame,
+                          const float alpha)
+{
+    constexpr float kPi = 3.14159265358979323846f;
+    constexpr float kTurbScale = 256.0f / (2.0f * kPi);
+    constexpr float kInvTurbTextureSize = 1.0f / 64.0f;
+
+    // Original r_turbsin[] is 8*sin(i*2*pi/256). Build it once instead of
+    // evaluating trigonometry for every repeated fan corner each frame.
+    static float turbSin[256];
+    static bool turbSinReady = false;
+    if (!turbSinReady)
+    {
+        for (int i = 0; i < 256; ++i)
+        {
+            turbSin[i] = 8.0f * std::sin(static_cast<float>(i) / kTurbScale);
+        }
+        turbSinReady = true;
+    }
+
+    const tex::Texture & texture =
+        *TextureAnimation(surface.texInfo, animationFrame);
+    const int flags = surface.texInfo->flags;
+    const float halfTime = s_viewTime * 0.5f;
+    const float scroll = (flags & SURF_FLOWING) != 0
+        ? -64.0f * (halfTime - static_cast<float>(static_cast<int>(halfTime)))
+        : 0.0f;
+    const bool alphaBlend = alpha < 128.0f;
+    const int fixedAlpha = alphaBlend ? static_cast<int>(alpha + 0.5f) : -1;
+
+    for (const mod::ModelPoly * poly = surface.polys;
+         poly != nullptr; poly = poly->next)
+    {
+        PS2_Assert(poly->numVerts >= 4 && poly->triangles == nullptr);
+        for (int t = 0; t < poly->numVerts - 2; ++t)
+        {
+            const int indexes[3] = { 0, t + 1, t + 2 };
+            ClipVertex corners[3] = {};
+            for (int v = 0; v < 3; ++v)
+            {
+                const mod::PolyVertex & src = poly->vertexes[indexes[v]];
+                const float os = src.texture_s;
+                const float ot = src.texture_t;
+                const int sIndex = static_cast<int>((ot * 0.125f + s_viewTime) * kTurbScale) & 255;
+                const int tIndex = static_cast<int>((os * 0.125f + s_viewTime) * kTurbScale) & 255;
+
+                ClipVertex & out = corners[v];
+                out.pos = { src.position.x, src.position.y, src.position.z, 1.0f };
+                out.st = {
+                    (os + turbSin[sIndex] + scroll) * kInvTurbTextureSize,
+                    (ot + turbSin[tIndex]) * kInvTurbTextureSize,
+                    0.0f, 0.0f
+                };
+                // Warp surfaces are not lightmapped in the original renderer.
+                // Match the inverse-intensity modulation used by alpha glass.
+                out.color = { 64.0f, 64.0f, 64.0f, alpha };
+                SetClipDistances(out, mvp);
+            }
+            SubmitWorldTriangle(corners, mvp, texture, alphaBlend, fixedAlpha);
+        }
+    }
+    FlushScratch(mvp, texture, alphaBlend, fixedAlpha);
+}
+
+// Draws translucent and turbulent BSP surfaces in the back-to-front order
+// produced by RecursiveWorldNode.
 void DrawAlphaSurfaces()
 {
     const mod::ModelSurface * surface = s_alphaSurfaces;
@@ -959,8 +1029,15 @@ void DrawAlphaSurfaces()
     {
         const mod::ModelSurface * next = surface->textureChain;
         const int flags = surface->texInfo->flags;
-        if ((flags & SURF_WARP) == 0 &&
-            (flags & (SURF_TRANS33 | SURF_TRANS66)) != 0)
+        if ((flags & SURF_WARP) != 0)
+        {
+            const float alpha = (flags & SURF_TRANS33) != 0
+                ? 42.0f
+                : ((flags & SURF_TRANS66) != 0 ? 84.0f : 128.0f);
+            DrawTurbulentSurface(*surface, s_viewProjMatrix,
+                                 s_textureAnimFrame, alpha);
+        }
+        else if ((flags & (SURF_TRANS33 | SURF_TRANS66)) != 0)
         {
             const float alpha = (flags & SURF_TRANS33) != 0 ? 42.0f : 84.0f;
             DrawTranslucentSurface(*surface, s_viewProjMatrix,
@@ -1514,20 +1591,29 @@ void DrawBrushModel(const entity_t & entity, const mod::ModelInstance & model,
         }
 
         const int texFlags = surface->texInfo->flags;
-        if ((texFlags & (SURF_SKY | SURF_WARP)) != 0)
+        if ((texFlags & SURF_SKY) != 0)
         {
             continue;
         }
         if (!entityTranslucent &&
-            (texFlags & (SURF_TRANS33 | SURF_TRANS66)) == 0)
+            (texFlags & (SURF_TRANS33 | SURF_TRANS66 | SURF_WARP)) == 0)
         {
             continue;
         }
 
         const float alpha = entityTranslucent
             ? 32.0f
-            : ((texFlags & SURF_TRANS33) != 0 ? 42.0f : 84.0f);
-        DrawTranslucentSurface(*surface, mvp, entity.frame, alpha);
+            : ((texFlags & SURF_TRANS33) != 0
+                ? 42.0f
+                : ((texFlags & SURF_TRANS66) != 0 ? 84.0f : 128.0f));
+        if ((texFlags & SURF_WARP) != 0)
+        {
+            DrawTurbulentSurface(*surface, mvp, entity.frame, alpha);
+        }
+        else
+        {
+            DrawTranslucentSurface(*surface, mvp, entity.frame, alpha);
+        }
     }
 }
 
@@ -2193,8 +2279,7 @@ void RenderFrame(const refdef_t & viewDef)
     s_drawStats.lightCacheBytes = s_litCacheBytes;
     UpdatePlayerLightLevel(viewDef);
 
-    // Later milestones continue here: translucent surfaces/entities and
-    // turbulent water/lava/slime.
+    // Later milestones continue here: remaining translucent entity variants.
 }
 
 void SetSky(const char * name, float rotate, const vec3_t axis)

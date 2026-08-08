@@ -6,6 +6,30 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.23 - 2026-08-09
+
+### Added
+
+- Added the first PS2 rendering pass for turbulent water, lava and slime BSP
+  surfaces that were previously collected but never drawn.
+- Reproduced Quake II's original `EmitWaterPolys` deformation: pre-subdivided
+  64-unit fans now animate through the 256-step turbulence sine function, and
+  `SURF_FLOWING` materials receive their original horizontal scroll.
+- Applied `SURF_TRANS33`/`SURF_TRANS66` through the fixed-alpha GS path while
+  retaining opaque rendering for warp materials without a transparency flag.
+- Added the same turbulent path for inline brush models, respecting their model
+  transform and `RF_TRANSLUCENT` opacity.
+
+### Validation target
+
+- In PCSX2, find a visible water, slime or lava surface and confirm that it is
+  present, its texture ripples continuously, and movement does not produce
+  holes or stretched triangles.
+- Confirm transparent liquid reveals geometry below it while opaque lava still
+  occludes geometry correctly.
+- Recheck Base 3 glass and particles because all three use the explicit VU1
+  primitive/blending state introduced in alpha.22.
+
 ## 0.1.0-alpha.22 - 2026-08-08
 
 ### Fixed

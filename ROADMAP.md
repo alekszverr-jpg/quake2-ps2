@@ -51,7 +51,7 @@ enough for normal gameplay.
 - [~] Sky surfaces and skybox
 - [x] Transparent BSP surfaces such as Base 3 glass, validated on PCSX2 and PS2
 - [~] Translucent entity alpha
-- [ ] Turbulent water/lava/slime surfaces
+- [~] Turbulent water/lava/slime surfaces
 - [x] Weapon depth-range and view-model render flags
 - [x] WAL mipmaps and stable minification filtering
 - [ ] Frustum/entity culling and renderer performance pass
@@ -103,14 +103,13 @@ development tools.
 
 ## Immediate priorities
 
-1. Continue the alpha.18 stability run: confirm the adaptive-light cache
+1. Validate alpha.23 turbulent water/lava/slime animation and opacity in PCSX2.
+2. Continue the alpha.18 stability run: confirm the adaptive-light cache
    remains capped near 1536 KB and repeated large Base 3 views do not exhaust
    the EE heap.
-2. Recheck alpha.22 at multiple ranges and after breaking the Base 3 glass.
-3. Recheck particles, translucent MD2/sprite effects and inline brush objects
+3. Recheck alpha.22 at multiple ranges and after breaking the Base 3 glass.
+4. Recheck particles, translucent MD2/sprite effects and inline brush objects
    together with doors and lifts after enabling the correct GS `ABE` bit.
-4. Implement turbulent water/lava/slime surfaces, which remain intentionally
-   deferred even when they carry a transparency flag.
 5. Recheck multi-level transitions after the new bounded world cache, including
    a longer Base 1 -> Base 2 -> Base 3 session on PCSX2 and real hardware.
 6. Continue optimizing the remaining MD2/entity EE path after renderer
