@@ -181,9 +181,11 @@ u64 MakeTestData()
 // to the current double buffer, the vertex data referenced in place, and the
 // MSCAL that runs the microprogram over it.
 void AddBatchChunk(VifPacket & pkt, const tex::Texture & texture, int ctx,
-                   const DrawVertex * verts, int vertCount, bool alphaBlend)
+                   const DrawVertex * verts, int vertCount, bool alphaBlend,
+                   int fixedAlpha)
 {
     PS2_Assert(vertCount > 0 && vertCount <= kMaxVertsPerBatch && (vertCount % 3) == 0);
+    PS2_Assert(fixedAlpha >= -1 && fixedAlpha <= 128);
     pkt.EnsureSpace(kChunkChainQwords + kChainTailQwords);
 
     pkt.OpenInlineUnpack(kBatchHeaderAddr, true);
@@ -203,7 +205,12 @@ void AddBatchChunk(VifPacket & pkt, const tex::Texture & texture, int ctx,
         pkt.AddQword(MakeTex0Data(texture), static_cast<u64>(GS_REG_TEX0 + ctx));
         pkt.AddQword(MakeMiptbp1Data(texture),
                      static_cast<u64>(GS_REG_MIPTBP1 + ctx));
-        pkt.AddQword(GS_SET_ALPHA(0, 1, 0, 1, 0),
+        // C=source alpha for particles/models; C=FIX for Quake's constant
+        // TRANS33/TRANS66 brush surfaces. The fixed path is independent of
+        // TEX0 TCC and the sampled texture's alpha component.
+        const bool useFixedAlpha = fixedAlpha >= 0;
+        pkt.AddQword(GS_SET_ALPHA(0, 1, useFixedAlpha ? 2 : 0, 1,
+                                  useFixedAlpha ? fixedAlpha : 0),
                      static_cast<u64>(GS_REG_ALPHA + ctx));
 
         // ...then the drawing tag: gouraud textured triangle list, STQ mapping,
@@ -281,7 +288,8 @@ const TimingStats & GetTimingStats()
 }
 
 void DrawTriangles(const math::Mat4 & mvp, const tex::Texture & texture,
-                   const DrawVertex * verts, int vertCount, bool alphaBlend)
+                   const DrawVertex * verts, int vertCount, bool alphaBlend,
+                   int fixedAlpha)
 {
     PS2_AssertMsg(s_initialized, "vu1::Init not called!");
     PS2_AssertMsg(vertCount > 0 && (vertCount % 3) == 0, "DrawTriangles wants whole triangles!");
@@ -325,7 +333,8 @@ void DrawTriangles(const math::Mat4 & mvp, const tex::Texture & texture,
 
         const int remaining  = vertCount - firstVert;
         const int chunkVerts = (remaining < kMaxVertsPerBatch) ? remaining : kMaxVertsPerBatch;
-        AddBatchChunk(pkt, texture, ctx, verts + firstVert, chunkVerts, alphaBlend);
+        AddBatchChunk(pkt, texture, ctx, verts + firstVert, chunkVerts,
+                      alphaBlend, fixedAlpha);
     }
 
     SendChainAndWait(pkt);

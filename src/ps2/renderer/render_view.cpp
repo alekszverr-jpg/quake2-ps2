@@ -594,13 +594,13 @@ void RecursiveWorldNode(const refdef_t & viewDef, const mod::ModelInstance & wor
 
 // Sends the gathered scratch triangles as one batch and empties the buffer.
 inline void FlushScratch(const math::Mat4 & mvp, const tex::Texture & texture,
-                         bool alphaBlend = false)
+                         bool alphaBlend = false, int fixedAlpha = -1)
 {
     if (s_scratchVertCount > 0)
     {
         ++s_drawStats.drawBatches;
         vu1::DrawTriangles(mvp, texture, s_scratchVerts, s_scratchVertCount,
-                           alphaBlend);
+                           alphaBlend, fixedAlpha);
         s_scratchVertCount = 0;
     }
 }
@@ -837,7 +837,8 @@ float MaxLightError(const math::Vec4 & actual, float expectedR,
 // Clips one already-lit triangle against the VU guard volume and appends the
 // survivors to the VU scratch batch.
 void SubmitWorldTriangle(const ClipVertex (&corners)[3], const math::Mat4 & mvp,
-                         const tex::Texture & texture, bool alphaBlend = false)
+                         const tex::Texture & texture, bool alphaBlend = false,
+                         int fixedAlpha = -1)
 {
     int insidePerPlane[kNumClipPlanes] = {};
     for (const ClipVertex & corner : corners)
@@ -867,7 +868,7 @@ void SubmitWorldTriangle(const ClipVertex (&corners)[3], const math::Mat4 & mvp,
         ++s_drawStats.trisDrawn;
         if (s_scratchVertCount + 3 > kScratchMaxVerts)
         {
-            FlushScratch(mvp, texture, alphaBlend);
+            FlushScratch(mvp, texture, alphaBlend, fixedAlpha);
         }
         for (const ClipVertex & corner : corners)
         {
@@ -900,7 +901,7 @@ void SubmitWorldTriangle(const ClipVertex (&corners)[3], const math::Mat4 & mvp,
 
     if (s_scratchVertCount + (count - 2) * 3 > kScratchMaxVerts)
     {
-        FlushScratch(mvp, texture, alphaBlend);
+        FlushScratch(mvp, texture, alphaBlend, fixedAlpha);
     }
     for (int v = 1; v < count - 1; ++v)
     {
@@ -941,10 +942,11 @@ void DrawTranslucentSurface(const mod::ModelSurface & surface,
                 out.color = { 64.0f, 64.0f, 64.0f, alpha };
                 SetClipDistances(out, mvp);
             }
-            SubmitWorldTriangle(corners, mvp, texture, true);
+            const int fixedAlpha = static_cast<int>(alpha + 0.5f);
+            SubmitWorldTriangle(corners, mvp, texture, true, fixedAlpha);
         }
     }
-    FlushScratch(mvp, texture, true);
+    FlushScratch(mvp, texture, true, static_cast<int>(alpha + 0.5f));
 }
 
 // Draws ordinary translucent BSP surfaces in the back-to-front order produced

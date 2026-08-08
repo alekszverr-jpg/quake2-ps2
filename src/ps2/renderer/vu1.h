@@ -74,6 +74,6 @@ const TimingStats & GetTimingStats();
 // for the duration of the call. Call between gs::Begin/EndFrame.
 void DrawTriangles(const math::Mat4 & mvp, const tex::Texture & texture,
                    const DrawVertex * verts, int vertCount,
-                   bool alphaBlend = false);
+                   bool alphaBlend = false, int fixedAlpha = -1);
 
 } // namespace ps2::vu1

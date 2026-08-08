@@ -6,6 +6,27 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.21 - 2026-08-08
+
+### Fixed
+
+- Added a constant-alpha GS path for `SURF_TRANS33` and `SURF_TRANS66` brush
+  surfaces. Their 42/84 coefficients now use the `FIX` input of the `ALPHA`
+  equation directly instead of depending on source alpha after the GS texture
+  function, which remained fully opaque for the Base 3 RGB WAL.
+- Kept per-vertex source alpha for particles and translucent MD2/sprite
+  entities; only Quake's constant-opacity BSP/inline surfaces use `FIX`.
+- Propagated the fixed coefficient through EE clipping and scratch-buffer
+  flushes so a large or near-plane-clipped glass polygon cannot silently fall
+  back to the source-alpha equation.
+
+### Validation target
+
+- The Base 3 glass should reveal the room behind it while retaining the stable
+  texture and mip transitions established by alpha.19.
+- Confirm both intact and broken portions of the window from several ranges.
+- Recheck particles and translucent entities for unchanged per-vertex fading.
+
 ## 0.1.0-alpha.20 - 2026-08-08
 
 ### Fixed
