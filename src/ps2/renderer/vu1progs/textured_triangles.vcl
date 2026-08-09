@@ -14,10 +14,10 @@
 ;
 ; Batch layout at XTOP:
 ;   +0   header: vertex count in .w
-;   +1   10 GIF tag qwords (set tag, eight A+D state writes, draw tag)
-;   +11  vertices, 2 qwords each: position, then (rgba, s, t, q)
+;   +1   9 GIF tag qwords (set tag, seven A+D state writes, draw tag)
+;   +10  vertices, 2 qwords each: position, then (rgba, s, t, q)
 ;
-; The GS packet (the 10 GIF tags + 3 output qwords per vertex: ST,
+; The GS packet (the 9 GIF tags + 3 output qwords per vertex: ST,
 ; RGBAQ, XYZ2) is built right after the input vertices in the same
 ; buffer and sent with XGKICK. The color arrives packed in the .x
 ; word of the second input qword and is raw-copied into an A+D
@@ -32,7 +32,7 @@
 ; Batch offsets, relative to XTOP:
 #define kBatchHeader 0
 #define kGifTags     1
-#define kVertexData  11
+#define kVertexData  10
 
 ; Transforms one vertex: 2 input qwords at offPos/offStq from iInPtr
 ; become the ST, RGBAQ (via A+D) and XYZ2 output qwords at offST/offAD/
@@ -137,9 +137,9 @@
 ;       qword* kick = in + (numVerts * 2);
 ;       qword* out  = kick;
 ;
-;       // Packet head: the 10 GIF tag qwords prepared by the EE:
-;       memcpy(out, &batch[kGifTags], 10 * sizeof(qword));
-;       out += 10;
+;       // Packet head: the 9 GIF tag qwords prepared by the EE:
+;       memcpy(out, &batch[kGifTags], 9 * sizeof(qword));
+;       out += 9;
 ;
 ;       do // One triangle per iteration:
 ;       {
@@ -208,17 +208,12 @@
     sqi fTag4, (iOutPtr++)
     sqi fTag5, (iOutPtr++)
     sqi fTag6, (iOutPtr++)
-    ; Reuse three tag registers after their first values were stored rather
+    ; Reuse two tag registers after their first values were stored rather
     ; than increasing peak VF register pressure for the enlarged packet.
-    ; Load all three before storing any of them: an LQI result is not safe for
-    ; an immediately following SQI on VU1, and doing that for the tenth tag
-    ; occasionally copied stale state data in place of the draw GIF tag.
     lqi fTag0, (iTagPtr++)
     lqi fTag1, (iTagPtr++)
-    lqi fTag2, (iTagPtr++)
     sqi fTag0, (iOutPtr++)
     sqi fTag1, (iOutPtr++)
-    sqi fTag2, (iOutPtr++)
 
     ; One triangle per iteration:
     lTriangleLoop:

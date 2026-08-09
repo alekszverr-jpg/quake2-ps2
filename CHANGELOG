@@ -6,6 +6,26 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.26 - 2026-08-09
+
+### Fixed
+
+- Fully reverted the VU1 packet and GS depth-state changes from alpha.24 and
+  alpha.25 after alpha.25 still produced catastrophic blue world and weapon
+  polygons. The renderer packet is byte-for-byte back to the validated
+  nine-qword alpha.23 layout.
+- Moved translucent BSP surfaces (water, lava, slime and glass) before the
+  particle pass. Particles are now the final 3D pass, so their billboard depth
+  cannot cut triangles out of liquid drawn later, without touching `ZBUF`.
+
+### Validation target
+
+- Confirm the large blue polygons seen in alpha.24/25 are gone in the same
+  location while moving, firing and switching weapons.
+- Trigger particles over water and confirm their normal shape is preserved,
+  with no water-textured triangular cut-outs.
+- Recheck Base 3 glass because it shares the reordered translucent BSP pass.
+
 ## 0.1.0-alpha.25 - 2026-08-09
 
 ### Fixed

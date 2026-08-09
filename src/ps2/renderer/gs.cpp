@@ -186,17 +186,6 @@ int DepthTestMethod()
     return static_cast<int>(s_zbuffer.method);
 }
 
-u64 DepthBufferData(bool writeEnabled)
-{
-    // graph_vram_allocate returns a GS word address; ZBP is in 2048-word pages.
-    // Pack the register directly: this PS2SDK exposes ZBUF through libdraw's
-    // environment helpers but does not provide a public GS_SET_ZBUF macro.
-    const u64 zbp  = static_cast<u64>((s_zbuffer.address >> 11) & 0x1FFu);
-    const u64 psm  = static_cast<u64>(s_zbuffer.zsm & 0x0Fu) << 24;
-    const u64 zmsk = static_cast<u64>(writeEnabled ? 0u : 1u) << 32;
-    return zbp | psm | zmsk;
-}
-
 void SetClearColor(u8 r, u8 g, u8 b)
 {
     s_clear[0] = r;

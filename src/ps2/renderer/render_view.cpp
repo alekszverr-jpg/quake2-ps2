@@ -2133,7 +2133,7 @@ void RenderParticles(const refdef_t & viewDef)
         {
             ++s_drawStats.drawBatches;
             vu1::DrawTriangles(s_viewProjMatrix, texture, s_scratchVerts,
-                               s_scratchVertCount, true, -1, false);
+                               s_scratchVertCount, true);
             s_scratchVertCount = 0;
         }
 
@@ -2179,7 +2179,7 @@ void RenderParticles(const refdef_t & viewDef)
     {
         ++s_drawStats.drawBatches;
         vu1::DrawTriangles(s_viewProjMatrix, texture, s_scratchVerts,
-                           s_scratchVertCount, true, -1, false);
+                           s_scratchVertCount, true);
         s_scratchVertCount = 0;
     }
 }
@@ -2272,10 +2272,14 @@ void RenderFrame(const refdef_t & viewDef)
     RenderEntities(viewDef);
     s_drawStats.entityMicros = timing::ElapsedMicros(phaseStart);
 
+    // Draw translucent BSP surfaces before particles. The stable nine-qword
+    // VU1 path keeps its original depth state; placing particles last prevents
+    // their billboard triangles from rejecting a later water pass without
+    // reprogramming ZBUF inside PATH1 batches.
+    DrawAlphaSurfaces();
     phaseStart = timing::Now();
     RenderParticles(viewDef);
     s_drawStats.particleMicros = timing::ElapsedMicros(phaseStart);
-    DrawAlphaSurfaces();
     s_drawStats.lightCacheBytes = s_litCacheBytes;
     UpdatePlayerLightLevel(viewDef);
 
