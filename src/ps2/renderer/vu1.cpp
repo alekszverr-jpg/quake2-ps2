@@ -158,12 +158,25 @@ u64 MakeTex1Data(const tex::Texture & texture)
     // the next batch and does not require textures to be uploaded again.
     static const cvar_t * worldMipmaps =
         Cvar_Get("ps2_world_mipmaps", "1", CVAR_ARCHIVE);
+    static const cvar_t * worldMipLevel =
+        Cvar_Get("ps2_world_mip_level", "-1", CVAR_ARCHIVE);
     const bool mipped = texture.mipLevels > 1 && worldMipmaps->value != 0.0f;
-    return GS_SET_TEX1(mipped ? LOD_FORMULAIC : LOD_USE_K,
+    int forcedLevel = static_cast<int>(worldMipLevel->value);
+    if (forcedLevel >= texture.mipLevels)
+        forcedLevel = texture.mipLevels - 1;
+    const bool forced = mipped && forcedLevel >= 0;
+
+    // Fixed-K mode selects one level from the existing MIPTBP chain without
+    // changing TEX0 or ST coordinates. This is intentionally exposed in the
+    // gamepad menu: it separates corrupt mip uploads/addresses from a bad
+    // formulaic LOD calculation on real hardware and PCSX2.
+    return GS_SET_TEX1(mipped && !forced ? LOD_FORMULAIC : LOD_USE_K,
                        mipped ? texture.mipLevels - 1 : 0,
                        tex::GsMagFilter(texture.magFilter),
                        mipped ? LOD_MIN_LINE_MIPMAP_NEAR : tex::GsMinFilter(texture.minFilter),
-                       LOD_MIPMAP_REGISTER, 0, mipped ? kMipmapLodBiasFixed : 0);
+                       LOD_MIPMAP_REGISTER, 0,
+                       forced ? forcedLevel * 16 :
+                       (mipped ? kMipmapLodBiasFixed : 0));
 }
 
 u64 MakeMiptbp1Data(const tex::Texture & texture)

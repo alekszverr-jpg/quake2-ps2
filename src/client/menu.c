@@ -1918,7 +1918,10 @@ static menulist_s s_testmap_list;
 static menulist_s s_testmap_mipmaps_list;
 static menuaction_s s_testmap_load_action;
 
-static const char * s_testmap_mipmap_names[] = { "no", "yes", 0 };
+static const char * s_testmap_mipmap_names[] =
+{
+    "off", "auto", "level 0", "level 1", "level 2", "level 3", 0
+};
 
 static const char * s_testmap_ids[] =
 {
@@ -2000,8 +2003,10 @@ static void TestMapLoadFunc(void * unused)
 
 static void TestMapMipmapsFunc(void * unused)
 {
+    const int mode = s_testmap_mipmaps_list.curvalue;
     (void)unused;
-    Cvar_SetValue("ps2_world_mipmaps", s_testmap_mipmaps_list.curvalue != 0);
+    Cvar_SetValue("ps2_world_mipmaps", mode != 0);
+    Cvar_SetValue("ps2_world_mip_level", mode >= 2 ? mode - 2 : -1);
 }
 
 static void TestMap_MenuInit(void)
@@ -2019,13 +2024,22 @@ static void TestMap_MenuInit(void)
     s_testmap_mipmaps_list.generic.type = MTYPE_SPINCONTROL;
     s_testmap_mipmaps_list.generic.x = 0;
     s_testmap_mipmaps_list.generic.y = 20;
-    s_testmap_mipmaps_list.generic.name = "world mipmaps";
-    s_testmap_mipmaps_list.generic.statusbar = "diagnostic: compare wall strips with mipmaps off";
+    s_testmap_mipmaps_list.generic.name = "world mip mode";
+    s_testmap_mipmaps_list.generic.statusbar = "diagnostic: auto or force one GS mip level";
     s_testmap_mipmaps_list.generic.callback = TestMapMipmapsFunc;
     s_testmap_mipmaps_list.itemnames = s_testmap_mipmap_names;
     Cvar_Get("ps2_world_mipmaps", "1", CVAR_ARCHIVE);
-    s_testmap_mipmaps_list.curvalue =
-        Cvar_VariableValue("ps2_world_mipmaps") != 0.0F;
+    Cvar_Get("ps2_world_mip_level", "-1", CVAR_ARCHIVE);
+    if (Cvar_VariableValue("ps2_world_mipmaps") == 0.0F)
+        s_testmap_mipmaps_list.curvalue = 0;
+    else if (Cvar_VariableValue("ps2_world_mip_level") >= 0.0F)
+        s_testmap_mipmaps_list.curvalue =
+            2 + (int)Cvar_VariableValue("ps2_world_mip_level");
+    else
+        s_testmap_mipmaps_list.curvalue = 1;
+
+    if (s_testmap_mipmaps_list.curvalue > 5)
+        s_testmap_mipmaps_list.curvalue = 5;
 
     s_testmap_load_action.generic.type = MTYPE_ACTION;
     s_testmap_load_action.generic.flags = QMF_LEFT_JUSTIFY;
