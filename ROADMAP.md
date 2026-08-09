@@ -51,7 +51,7 @@ enough for normal gameplay.
 - [~] Sky surfaces and skybox
 - [x] Transparent BSP surfaces such as Base 3 glass, validated on PCSX2 and PS2
 - [~] Translucent entity alpha
-- [~] Turbulent water/lava/slime surfaces
+- [x] Turbulent water/lava/slime surfaces, validated in PCSX2
 - [x] Weapon depth-range and view-model render flags
 - [x] WAL mipmaps and stable minification filtering
 - [ ] Frustum/entity culling and renderer performance pass
@@ -103,7 +103,7 @@ development tools.
 
 ## Immediate priorities
 
-1. Validate alpha.23 turbulent water/lava/slime animation and opacity in PCSX2.
+1. Validate alpha.24 particles over water and confirm opaque-wall occlusion.
 2. Continue the alpha.18 stability run: confirm the adaptive-light cache
    remains capped near 1536 KB and repeated large Base 3 views do not exhaust
    the EE heap.

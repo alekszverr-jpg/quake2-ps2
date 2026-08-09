@@ -2133,7 +2133,7 @@ void RenderParticles(const refdef_t & viewDef)
         {
             ++s_drawStats.drawBatches;
             vu1::DrawTriangles(s_viewProjMatrix, texture, s_scratchVerts,
-                               s_scratchVertCount, true);
+                               s_scratchVertCount, true, -1, false);
             s_scratchVertCount = 0;
         }
 
@@ -2179,7 +2179,7 @@ void RenderParticles(const refdef_t & viewDef)
     {
         ++s_drawStats.drawBatches;
         vu1::DrawTriangles(s_viewProjMatrix, texture, s_scratchVerts,
-                           s_scratchVertCount, true);
+                           s_scratchVertCount, true, -1, false);
         s_scratchVertCount = 0;
     }
 }

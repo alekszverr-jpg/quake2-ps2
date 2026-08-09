@@ -186,6 +186,13 @@ int DepthTestMethod()
     return static_cast<int>(s_zbuffer.method);
 }
 
+u64 DepthBufferData(bool writeEnabled)
+{
+    // graph_vram_allocate returns a GS word address; ZBP is in 2048-word pages.
+    return GS_SET_ZBUF(s_zbuffer.address >> 11, s_zbuffer.zsm,
+                       writeEnabled ? 0 : 1);
+}
+
 void SetClearColor(u8 r, u8 g, u8 b)
 {
     s_clear[0] = r;

@@ -22,11 +22,11 @@
  *      8-999  the two XTOP double buffers (VIF1 BASE=8, OFFSET=496)
  *
  *  Batch layout inside a double buffer (relative to XTOP): input is one header
- *  qword (vertex count in .w), 9 GIF/AD tag qwords, then 2 qwords per vertex;
+ *  qword (vertex count in .w), 10 GIF/AD tag qwords, then 2 qwords per vertex;
  *  the microprogram builds the GS packet in the same buffer after the input.
- *  The A+D block programs TEST, TEX0/TEX1, MIPTBP1, ALPHA, PRMODECONT and PRIM,
- *  so a batch draws with the proper z-test, mip chain and blend state no matter
- *  what state the surrounding 2D/3D packets left behind.
+ *  The A+D block programs TEST, ZBUF, TEX0/TEX1, MIPTBP1, ALPHA, PRMODECONT and
+ *  PRIM, so a batch draws with the proper depth-write, mip and blend state no
+ *  matter what state the surrounding 2D/3D packets left behind.
  *
  * This source code is released under the GNU GPL v2 license.
  * ================================================================================================ */
@@ -52,8 +52,8 @@ namespace {
 static TimingStats s_timingStats = {};
 
 // Vertices per VU run: DrawTriangles splits larger draws into chunks of this
-// size. Bounded by the VU double buffer: input (10 + 2n) plus output
-// (9 + 3n), so n <= 95 - and chunks are whole triangles, hence 93.
+// size. Bounded by the VU double buffer: input (11 + 2n) plus output
+// (10 + 3n), so n <= 95 - and chunks are whole triangles, hence 93.
 constexpr int kMaxVertsPerBatch = 93;
 
 // VIF1 double-buffer registers: two 496-qword buffers above the constants.
@@ -65,8 +65,8 @@ constexpr int kFrameConstantsAddr = 0;
 
 // Batch layout, relative to the current double buffer (XTOP).
 constexpr int kBatchHeaderAddr = 0; // vertex count in .w
-constexpr int kGifTagsAddr     = 1; // 9 qwords: set tag, 7 A+D writes, draw tag
-constexpr int kVertexDataAddr  = kGifTagsAddr + 9;
+constexpr int kGifTagsAddr     = 1; // 10 qwords: set tag, 8 A+D writes, draw tag
+constexpr int kVertexDataAddr  = kGifTagsAddr + 10;
 
 // The chain is tags plus small per-chunk inline unpacks; constants and
 // vertices are referenced in place. Sized so a DrawTriangles call fits ~30
@@ -181,7 +181,7 @@ u64 MakeTestData()
 // MSCAL that runs the microprogram over it.
 void AddBatchChunk(VifPacket & pkt, const tex::Texture & texture, int ctx,
                    const DrawVertex * verts, int vertCount, bool alphaBlend,
-                   int fixedAlpha)
+                   int fixedAlpha, bool depthWrite)
 {
     PS2_Assert(vertCount > 0 && vertCount <= kMaxVertsPerBatch && (vertCount % 3) == 0);
     PS2_Assert(fixedAlpha >= -1 && fixedAlpha <= 128);
@@ -194,13 +194,15 @@ void AddBatchChunk(VifPacket & pkt, const tex::Texture & texture, int ctx,
         pkt.AddU32(0);
         pkt.AddU32(static_cast<u32>(vertCount));
 
-        // Seven A+D writes: pixel tests, the complete texture bind, alpha
-        // equation and explicit primitive control. MIPTBP1 must also be sent
+        // Eight A+D writes: pixel/depth state, the complete texture bind,
+        // alpha equation and explicit primitive control. MIPTBP1 must be sent
         // for translucent WALs:
         // omitting it made distant glass sample stale mip addresses belonging
         // to unrelated textures previously drawn in this GS context.
-        pkt.AddQword(GIF_SET_TAG(7, 0, 0, 0, GIF_FLG_PACKED, 1), GIF_REG_AD);
+        pkt.AddQword(GIF_SET_TAG(8, 0, 0, 0, GIF_FLG_PACKED, 1), GIF_REG_AD);
         pkt.AddQword(MakeTestData(), static_cast<u64>(GS_REG_TEST + ctx));
+        pkt.AddQword(gs::DepthBufferData(depthWrite),
+                     static_cast<u64>(GS_REG_ZBUF + ctx));
         pkt.AddQword(MakeTex1Data(texture), static_cast<u64>(GS_REG_TEX1 + ctx));
         pkt.AddQword(MakeTex0Data(texture), static_cast<u64>(GS_REG_TEX0 + ctx));
         pkt.AddQword(MakeMiptbp1Data(texture),
@@ -297,7 +299,7 @@ const TimingStats & GetTimingStats()
 
 void DrawTriangles(const math::Mat4 & mvp, const tex::Texture & texture,
                    const DrawVertex * verts, int vertCount, bool alphaBlend,
-                   int fixedAlpha)
+                   int fixedAlpha, bool depthWrite)
 {
     PS2_AssertMsg(s_initialized, "vu1::Init not called!");
     PS2_AssertMsg(vertCount > 0 && (vertCount % 3) == 0, "DrawTriangles wants whole triangles!");
@@ -342,7 +344,7 @@ void DrawTriangles(const math::Mat4 & mvp, const tex::Texture & texture,
         const int remaining  = vertCount - firstVert;
         const int chunkVerts = (remaining < kMaxVertsPerBatch) ? remaining : kMaxVertsPerBatch;
         AddBatchChunk(pkt, texture, ctx, verts + firstVert, chunkVerts,
-                      alphaBlend, fixedAlpha);
+                      alphaBlend, fixedAlpha, depthWrite);
     }
 
     SendChainAndWait(pkt);

@@ -40,6 +40,11 @@ int CurrentContext();
 // that program the TEST register themselves (the VU1 3D batches).
 int DepthTestMethod();
 
+// Packed context-independent data for a GS ZBUF register. The caller selects
+// ZBUF_1/ZBUF_2; depth tests remain active while writeEnabled=false masks only
+// depth writes (used by particles, matching ref_gl's glDepthMask(GL_FALSE)).
+u64 DepthBufferData(bool writeEnabled);
+
 // GS VRAM word address of the 256-entry global-palette CLUT (Quake's shared
 // 8-bit palette), uploaded once by Init() to a fixed spot outside the texture
 // heap. PixelFormat::Palette8 textures sample through it.

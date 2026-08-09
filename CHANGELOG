@@ -6,6 +6,28 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.24 - 2026-08-09
+
+### Fixed
+
+- Stopped particle triangles from writing to the GS depth buffer while keeping
+  their depth test enabled, matching `ref_gl`'s `glDepthMask(GL_FALSE)` particle
+  pass. Water drawn later can no longer be rejected by invisible/soft portions
+  of a particle primitive and expose triangular cut-outs.
+- Made `ZBUF` part of every self-contained VU1 batch state, so switching between
+  particle, liquid and ordinary geometry restores depth-write state explicitly
+  instead of depending on the previous draw.
+- Expanded the VU1 packet head from nine to ten state qwords while retaining the
+  safe 93-vertex chunk limit inside each 496-qword double-buffer half.
+
+### Validation target
+
+- Revisit the alpha.23 liquid scene in PCSX2 and trigger smoke/sparks over the
+  water. Particles should retain their soft cross shape with no water-textured
+  triangular cut-outs.
+- Confirm particles are still hidden correctly by opaque walls and that water,
+  Base 3 glass and ordinary world geometry remain unchanged.
+
 ## 0.1.0-alpha.23 - 2026-08-09
 
 ### Added
@@ -20,15 +42,12 @@ Development priorities and completion criteria are tracked in
 - Added the same turbulent path for inline brush models, respecting their model
   transform and `RF_TRANSLUCENT` opacity.
 
-### Validation target
+### Validation
 
-- In PCSX2, find a visible water, slime or lava surface and confirm that it is
-  present, its texture ripples continuously, and movement does not produce
-  holes or stretched triangles.
-- Confirm transparent liquid reveals geometry below it while opaque lava still
-  occludes geometry correctly.
-- Recheck Base 3 glass and particles because all three use the explicit VU1
-  primitive/blending state introduced in alpha.22.
+- Confirmed in PCSX2: turbulent liquid surfaces render, animate and blend as
+  intended.
+- Found a particle/depth interaction over water: particle primitives left
+  triangular cut-outs in the later liquid pass. Fixed in alpha.24.
 
 ## 0.1.0-alpha.22 - 2026-08-08
 
