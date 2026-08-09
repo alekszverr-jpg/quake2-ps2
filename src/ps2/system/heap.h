@@ -31,6 +31,9 @@ typedef enum
 
 void * PS2_MemAlloc(size_t sizeBytes, PS2MemTag tag);
 void * PS2_MemAllocAligned(size_t alignment, size_t sizeBytes, PS2MemTag tag);
+// Optional allocation for bounded caches. Unlike PS2_MemAllocAligned, this
+// returns NULL when the EE heap cannot satisfy the request.
+void * PS2_MemTryAllocAligned(size_t alignment, size_t sizeBytes, PS2MemTag tag);
 void PS2_MemFree(void * ptr, size_t sizeBytes, PS2MemTag tag);
 void PS2_TagsAddMem(PS2MemTag tag, size_t sizeBytes);
 

@@ -120,6 +120,17 @@ void * PS2_MemAllocAligned(size_t alignment, size_t sizeBytes, PS2MemTag tag)
     return p;
 }
 
+void * PS2_MemTryAllocAligned(size_t alignment, size_t sizeBytes, PS2MemTag tag)
+{
+    const size_t n = (sizeBytes != 0u ? sizeBytes : 1u);
+    void * p = dlmemalign(alignment, n);
+    if (p != nullptr)
+    {
+        AccountAlloc(tag, n);
+    }
+    return p;
+}
+
 void PS2_MemFree(void * ptr, size_t sizeBytes, PS2MemTag tag)
 {
     if (ptr == nullptr) { return; }

@@ -670,33 +670,96 @@ static_assert(sizeof(CachedLitVertex) == 48,
 constexpr int kMaxCachedVertsPerTriangle =
     3 * (1 << kMaxLightSubdivideDepth);
 // Adaptive lighting can otherwise cache every visible subdivided BSP triangle
-// until it consumes the EE heap. Base 3 exhausted the heap while requesting the
-// minimum 144-byte (three CachedLitVertex) entry. Entries beyond this budget
-// are still built and drawn from the static scratch buffer, just not retained.
+// until it consumes the EE heap. Keep the 1.5 MB cap, but obtain it in a small
+// number of chunks: thousands of 144-byte allocations fragmented long-running
+// Base1 -> Base2 -> Base3 sessions even though their total stayed bounded.
+// Entries that do not fit, or whose chunk cannot be allocated, are still built
+// and drawn from the static scratch buffer.
 constexpr int kLitCacheBudgetBytes = 1536 * 1024;
+constexpr int kLitCacheChunkBytes = 96 * 1024;
+constexpr int kLitCacheChunkCount =
+    kLitCacheBudgetBytes / kLitCacheChunkBytes;
+static_assert((kLitCacheBudgetBytes % kLitCacheChunkBytes) == 0,
+              "Lighting cache chunks must exactly cover the budget");
+static_assert((kLitCacheChunkBytes % sizeof(CachedLitVertex)) == 0,
+              "Lighting cache chunks must contain whole vertices");
+
+struct LitCacheChunk
+{
+    CachedLitVertex * vertices;
+    int usedVertexCount;
+};
+
 static CachedLitVertex s_litBuildVerts[kMaxCachedVertsPerTriangle];
 static int s_litBuildVertCount = 0;
 static std::vector<const mod::ModelTriangle *> s_cachedLitTriangles;
+static LitCacheChunk s_litCacheChunks[kLitCacheChunkCount] = {};
+static int s_litCacheChunkCount = 0;
 static int s_litCacheBytes = 0;
+
+CachedLitVertex * AllocateLitCacheVertices(const int vertexCount)
+{
+    const int verticesPerChunk =
+        kLitCacheChunkBytes / static_cast<int>(sizeof(CachedLitVertex));
+    if (vertexCount <= 0 || vertexCount > verticesPerChunk)
+    {
+        return nullptr;
+    }
+
+    LitCacheChunk * chunk = nullptr;
+    if (s_litCacheChunkCount > 0)
+    {
+        LitCacheChunk & tail = s_litCacheChunks[s_litCacheChunkCount - 1];
+        if (tail.usedVertexCount + vertexCount <= verticesPerChunk)
+        {
+            chunk = &tail;
+        }
+    }
+
+    if (chunk == nullptr)
+    {
+        if (s_litCacheChunkCount >= kLitCacheChunkCount)
+        {
+            return nullptr;
+        }
+
+        CachedLitVertex * storage = static_cast<CachedLitVertex *>(
+            PS2_MemTryAllocAligned(16, kLitCacheChunkBytes, MEMTAG_MDL_WORLD));
+        if (storage == nullptr)
+        {
+            return nullptr;
+        }
+
+        chunk = &s_litCacheChunks[s_litCacheChunkCount++];
+        chunk->vertices = storage;
+        chunk->usedVertexCount = 0;
+    }
+
+    CachedLitVertex * result = chunk->vertices + chunk->usedVertexCount;
+    chunk->usedVertexCount += vertexCount;
+    s_litCacheBytes +=
+        vertexCount * static_cast<int>(sizeof(CachedLitVertex));
+    return result;
+}
 
 void ClearLitTriangleCaches()
 {
     for (const mod::ModelTriangle * triangle : s_cachedLitTriangles)
     {
-        if (triangle->litCacheVertices != nullptr)
-        {
-            PS2_MemFree(
-                triangle->litCacheVertices,
-                static_cast<size_t>(triangle->litCacheCapacity) *
-                    sizeof(CachedLitVertex),
-                MEMTAG_MDL_WORLD);
-        }
         triangle->litCacheVertices = nullptr;
         triangle->litCacheKey = 0;
         triangle->litCacheVertexCount = 0;
         triangle->litCacheCapacity = 0;
     }
     s_cachedLitTriangles.clear();
+
+    for (int i = 0; i < s_litCacheChunkCount; ++i)
+    {
+        PS2_MemFree(s_litCacheChunks[i].vertices,
+                    kLitCacheChunkBytes, MEMTAG_MDL_WORLD);
+        s_litCacheChunks[i] = {};
+    }
+    s_litCacheChunkCount = 0;
     s_litCacheBytes = 0;
 }
 
@@ -1315,38 +1378,23 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
                        (s_litBuildVertCount % 3) == 0);
 
             const bool needsGrowth = s_litBuildVertCount > tri.litCacheCapacity;
-            const int oldBytes =
-                static_cast<int>(tri.litCacheCapacity) *
-                static_cast<int>(sizeof(CachedLitVertex));
-            const int newBytes =
-                s_litBuildVertCount * static_cast<int>(sizeof(CachedLitVertex));
-            const bool canRetain = !needsGrowth ||
-                (s_litCacheBytes - oldBytes + newBytes <= kLitCacheBudgetBytes);
+            bool canRetain = !needsGrowth;
 
-            if (canRetain && needsGrowth)
+            if (needsGrowth)
             {
                 const bool firstAllocation = tri.litCacheCapacity == 0;
-                if (tri.litCacheVertices != nullptr)
+                CachedLitVertex * replacement =
+                    AllocateLitCacheVertices(s_litBuildVertCount);
+                if (replacement != nullptr)
                 {
-                    s_litCacheBytes -= oldBytes;
-                    PS2_MemFree(
-                        tri.litCacheVertices,
-                        static_cast<size_t>(tri.litCacheCapacity) *
-                            sizeof(CachedLitVertex),
-                        MEMTAG_MDL_WORLD);
-                }
-                tri.litCacheVertices = PS2_MemAllocAligned(
-                    16,
-                    static_cast<size_t>(s_litBuildVertCount) *
-                        sizeof(CachedLitVertex),
-                    MEMTAG_MDL_WORLD);
-                tri.litCacheCapacity = static_cast<u16>(s_litBuildVertCount);
-                s_litCacheBytes +=
-                    s_litBuildVertCount *
-                    static_cast<int>(sizeof(CachedLitVertex));
-                if (firstAllocation)
-                {
-                    s_cachedLitTriangles.push_back(&tri);
+                    tri.litCacheVertices = replacement;
+                    tri.litCacheCapacity =
+                        static_cast<u16>(s_litBuildVertCount);
+                    canRetain = true;
+                    if (firstAllocation)
+                    {
+                        s_cachedLitTriangles.push_back(&tri);
+                    }
                 }
             }
 

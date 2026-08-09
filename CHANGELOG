@@ -6,6 +6,28 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.27 - 2026-08-09
+
+### Changed
+
+- Replaced thousands of small adaptive BSP-lighting allocations with at most
+  sixteen 96 KB arenas. The cache remains capped at 1.5 MB, but no longer
+  fragments the EE heap one triangle at a time during long sessions.
+- Made lighting-arena growth optional: if a new arena cannot be allocated, the
+  affected triangle is still lit and rendered from the existing scratch buffer
+  instead of terminating the game with `PS2_MemAllocAligned`.
+- Kept map-change cleanup explicit: all arena-backed triangle pointers are
+  invalidated before the world model is purged, then the small arena set is
+  released as a group.
+
+### Validation target
+
+- In PCSX2, play through Base1 -> Base2 -> Base3 and revisit several large
+  views. Confirm transitions do not crash and `Mdl_World` allocation count is
+  drastically lower than in alpha.26.
+- Confirm adaptive lighting, Base 3 glass, water and particles remain visually
+  identical to alpha.26 after the cache allocator change.
+
 ## 0.1.0-alpha.26 - 2026-08-09
 
 ### Fixed

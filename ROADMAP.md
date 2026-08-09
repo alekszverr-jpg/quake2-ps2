@@ -87,7 +87,7 @@ play on a retail console.
 - [ ] Reduce texture upload churn and VRAM fragmentation
 - [ ] Add release builds with assertions/diagnostics disabled
 - [x] Profile and optimize first-pass model interpolation and BSP lighting
-- [ ] Validate long sessions for EE RAM, IOP RAM and VRAM leaks
+- [~] Validate long sessions for EE RAM, IOP RAM and VRAM leaks
 - [ ] Target a stable 30 FPS minimum, with 60 FPS where practical
 
 ## Milestone 5 - Test release
