@@ -152,9 +152,15 @@ u64 MakeTex0Data(const tex::Texture & texture)
 
 u64 MakeTex1Data(const tex::Texture & texture)
 {
-    const bool mipped = texture.mipLevels > 1;
+    // Exposed in GAME -> TEST MAP so texture-address/LOD defects can be
+    // distinguished from BSP geometry or depth-buffer artifacts using only a
+    // gamepad. The cvar is deliberately live: changing it while paused affects
+    // the next batch and does not require textures to be uploaded again.
+    static const cvar_t * worldMipmaps =
+        Cvar_Get("ps2_world_mipmaps", "1", CVAR_ARCHIVE);
+    const bool mipped = texture.mipLevels > 1 && worldMipmaps->value != 0.0f;
     return GS_SET_TEX1(mipped ? LOD_FORMULAIC : LOD_USE_K,
-                       texture.mipLevels - 1,
+                       mipped ? texture.mipLevels - 1 : 0,
                        tex::GsMagFilter(texture.magFilter),
                        mipped ? LOD_MIN_LINE_MIPMAP_NEAR : tex::GsMinFilter(texture.minFilter),
                        LOD_MIPMAP_REGISTER, 0, mipped ? kMipmapLodBiasFixed : 0);

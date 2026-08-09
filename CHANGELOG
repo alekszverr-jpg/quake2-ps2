@@ -6,6 +6,25 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.30 - 2026-08-09
+
+### Added
+
+- Added a gamepad-accessible `WORLD MIPMAPS` switch to `GAME -> TEST MAP`.
+  It updates the GS texture state immediately, so the distance-dependent
+  vertical strips on the `bunk1 - ammo depot` grate wall can be compared with
+  mipmapping on and off without a console or a second ELF.
+- Corrected the validation map identification from Warehouse to `bunk1` and
+  kept the selector entry labelled `bunk1 - ammo depot`.
+
+### Validation target
+
+- Load `bunk1 - ammo depot`, stand at the reported grate wall and observe the
+  strips while moving toward and away from it with `WORLD MIPMAPS: YES`.
+- Open `GAME -> TEST MAP`, change `WORLD MIPMAPS` to `NO`, close the menu and
+  repeat the same movement. Report whether the strips disappear, remain
+  unchanged, or merely change shape. Re-enable mipmaps after the comparison.
+
 ## 0.1.0-alpha.29 - 2026-08-09
 
 ### Added

@@ -1915,6 +1915,7 @@ TEST MAP MENU
 
 static menuframework_s s_testmap_menu;
 static menulist_s s_testmap_list;
+static menulist_s s_testmap_mipmaps_list;
 static menuaction_s s_testmap_load_action;
 
 static const char * s_testmap_ids[] =
@@ -1995,6 +1996,12 @@ static void TestMapLoadFunc(void * unused)
     cls.key_dest = key_game;
 }
 
+static void TestMapMipmapsFunc(void * unused)
+{
+    (void)unused;
+    Cvar_SetValue("ps2_world_mipmaps", s_testmap_mipmaps_list.curvalue != 0);
+}
+
 static void TestMap_MenuInit(void)
 {
     s_testmap_menu.x = viddef.width * 0.50;
@@ -2007,15 +2014,27 @@ static void TestMap_MenuInit(void)
     s_testmap_list.generic.statusbar = "left/right selects a campaign map";
     s_testmap_list.itemnames = s_testmap_names;
 
+    s_testmap_mipmaps_list.generic.type = MTYPE_SPINCONTROL;
+    s_testmap_mipmaps_list.generic.x = 0;
+    s_testmap_mipmaps_list.generic.y = 20;
+    s_testmap_mipmaps_list.generic.name = "world mipmaps";
+    s_testmap_mipmaps_list.generic.statusbar = "diagnostic: compare wall strips with mipmaps off";
+    s_testmap_mipmaps_list.generic.callback = TestMapMipmapsFunc;
+    s_testmap_mipmaps_list.itemnames = yesno_names;
+    Cvar_Get("ps2_world_mipmaps", "1", CVAR_ARCHIVE);
+    s_testmap_mipmaps_list.curvalue =
+        Cvar_VariableValue("ps2_world_mipmaps") != 0.0F;
+
     s_testmap_load_action.generic.type = MTYPE_ACTION;
     s_testmap_load_action.generic.flags = QMF_LEFT_JUSTIFY;
     s_testmap_load_action.generic.x = 0;
-    s_testmap_load_action.generic.y = 20;
+    s_testmap_load_action.generic.y = 40;
     s_testmap_load_action.generic.name = "load selected map";
     s_testmap_load_action.generic.statusbar = "start this map in single player";
     s_testmap_load_action.generic.callback = TestMapLoadFunc;
 
     Menu_AddItem(&s_testmap_menu, &s_testmap_list);
+    Menu_AddItem(&s_testmap_menu, &s_testmap_mipmaps_list);
     Menu_AddItem(&s_testmap_menu, &s_testmap_load_action);
     Menu_Center(&s_testmap_menu);
 }

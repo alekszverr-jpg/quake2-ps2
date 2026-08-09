@@ -16,6 +16,7 @@ Status markers:
 - [x] Real PS2 boot from a FAT32 USB drive through uLaunchELF
 - [x] Menus, HUD, console and gamepad controls
 - [x] Gamepad-accessible campaign map selector for renderer testing
+- [~] Gamepad-accessible live mipmapping diagnostic for BSP artifact isolation
 - [x] Textured BSP world geometry
 - [x] Animated MD2 enemies, corpses and first-person weapons
 - [x] NTSC/PAL framebuffer selection
