@@ -208,14 +208,17 @@
     sqi fTag4, (iOutPtr++)
     sqi fTag5, (iOutPtr++)
     sqi fTag6, (iOutPtr++)
-    ; Reuse two tag registers after their first values were stored rather
+    ; Reuse three tag registers after their first values were stored rather
     ; than increasing peak VF register pressure for the enlarged packet.
+    ; Load all three before storing any of them: an LQI result is not safe for
+    ; an immediately following SQI on VU1, and doing that for the tenth tag
+    ; occasionally copied stale state data in place of the draw GIF tag.
     lqi fTag0, (iTagPtr++)
     lqi fTag1, (iTagPtr++)
+    lqi fTag2, (iTagPtr++)
     sqi fTag0, (iOutPtr++)
     sqi fTag1, (iOutPtr++)
-    lqi fTag0, (iTagPtr++)
-    sqi fTag0, (iOutPtr++)
+    sqi fTag2, (iOutPtr++)
 
     ; One triangle per iteration:
     lTriangleLoop:

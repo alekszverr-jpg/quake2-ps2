@@ -6,6 +6,25 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.25 - 2026-08-09
+
+### Fixed
+
+- Fixed catastrophic world/weapon polygons introduced by alpha.24. The tenth
+  VU1 packet tag was stored immediately after `LQI`; on real VU timing and in
+  PCSX2 this could copy the register's previous value instead of the newly
+  loaded draw GIF tag.
+- Scheduled all three reused tag loads before their stores, leaving independent
+  instructions between the final `LQI` and `SQI` without increasing VU register
+  pressure or changing the packet layout.
+
+### Validation target
+
+- Revisit the scene that produced large blue polygons and confirm world,
+  weapons, water and particles remain stable while moving and firing.
+- Repeat the alpha.24 water-particle test and confirm particles no longer leave
+  triangular cut-outs in the liquid.
+
 ## 0.1.0-alpha.24 - 2026-08-09
 
 ### Fixed

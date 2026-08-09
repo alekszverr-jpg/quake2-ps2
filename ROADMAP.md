@@ -103,7 +103,7 @@ development tools.
 
 ## Immediate priorities
 
-1. Validate alpha.24 particles over water and confirm opaque-wall occlusion.
+1. Validate alpha.25 VU1 packet stability and particles over water.
 2. Continue the alpha.18 stability run: confirm the adaptive-light cache
    remains capped near 1536 KB and repeated large Base 3 views do not exhaust
    the EE heap.
