@@ -103,20 +103,18 @@ development tools.
 
 ## Immediate priorities
 
-1. Validate alpha.26 stable VU1 rollback and reordered liquid/particle passes.
-2. Continue the alpha.18 stability run: confirm the adaptive-light cache
+1. Continue the alpha.18 stability run: confirm the adaptive-light cache
    remains capped near 1536 KB and repeated large Base 3 views do not exhaust
    the EE heap.
-3. Recheck alpha.22 at multiple ranges and after breaking the Base 3 glass.
-4. Recheck particles, translucent MD2/sprite effects and inline brush objects
+2. Recheck particles, translucent MD2/sprite effects and inline brush objects
    together with doors and lifts after enabling the correct GS `ABE` bit.
-5. Recheck multi-level transitions after the new bounded world cache, including
+3. Recheck multi-level transitions after the new bounded world cache, including
    a longer Base 1 -> Base 2 -> Base 3 session on PCSX2 and real hardware.
-6. Continue optimizing the remaining MD2/entity EE path after renderer
+4. Continue optimizing the remaining MD2/entity EE path after renderer
    completeness work is stable.
-7. Revisit VU1 overlap and texture churn if later profiles show their
+5. Revisit VU1 overlap and texture churn if later profiles show their
    currently small wait times growing.
-8. Make diagnostic overlays optional and disabled by default.
+6. Make diagnostic overlays optional and disabled by default.
 
 Update this file whenever priorities, milestone status or completion criteria
 change. Record completed user-visible work in `CHANGELOG` in the same commit.

@@ -18,13 +18,14 @@ Development priorities and completion criteria are tracked in
   particle pass. Particles are now the final 3D pass, so their billboard depth
   cannot cut triangles out of liquid drawn later, without touching `ZBUF`.
 
-### Validation target
+### Validation
 
-- Confirm the large blue polygons seen in alpha.24/25 are gone in the same
-  location while moving, firing and switching weapons.
-- Trigger particles over water and confirm their normal shape is preserved,
-  with no water-textured triangular cut-outs.
-- Recheck Base 3 glass because it shares the reordered translucent BSP pass.
+- Confirmed in PCSX2: the large blue world/weapon polygons from alpha.24/25
+  are gone after restoring the alpha.23 VU1 packet.
+- Confirmed in PCSX2: particles over water retain their normal shape and no
+  longer produce water-textured triangular cut-outs.
+- Confirmed in PCSX2: Base 3 glass remains transparent after reordering the
+  translucent BSP and particle passes.
 
 ## 0.1.0-alpha.25 - 2026-08-09
 
