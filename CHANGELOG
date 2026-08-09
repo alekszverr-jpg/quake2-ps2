@@ -6,6 +6,23 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.32 - 2026-08-09
+
+### Fixed
+
+- Fixed the alpha.31 black-screen startup hang. `draw_texture_transfer` emits
+  a complete DMA chain, so the GS `FINISH` command appended to its tail was
+  unreachable while the CPU waited forever for that event.
+- Moved the texture-completion barrier into a separate normal GIF packet sent
+  after the upload chain has been consumed. This retains the intended PATH3
+  ordering without blocking the first texture load.
+
+### Validation target
+
+- Confirm the ELF reaches the menu and loads `bunk1` normally.
+- With `WORLD MIPMAPS: YES`, repeat the distance test at the grate wall and
+  check whether both foreign strips and black blocks are gone.
+
 ## 0.1.0-alpha.31 - 2026-08-09
 
 ### Fixed

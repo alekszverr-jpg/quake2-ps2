@@ -586,16 +586,25 @@ void EnsureTextureResident(const tex::Texture & texture)
                                 vram::TextureFootprintWords(mipWidth, mipHeight, psm));
     }
     pkt.TextureFlush();
+
+    pkt.SendChain();
+    const timing::Stamp uploadStart = timing::Now();
+    dma_wait_fast();
+
     // Waiting for GIF DMA alone is insufficient here. A following VU1 XGKICK
     // arrives through higher-priority PATH1 and may start sampling while the
     // GS is still executing this PATH3 host-to-local transfer. Under VRAM
     // churn that exposed old page contents as vertical strips (or black blocks
-    // with mipmapping disabled). FINISH makes the texture fully resident before
-    // EnsureTextureResident returns to the draw path.
+    // with mipmapping disabled).
+    //
+    // draw_texture_transfer builds a complete DMA chain, so a FINISH packet
+    // appended to that packet after TextureFlush is unreachable. Send FINISH
+    // separately, after the upload chain's DMA has been consumed; PATH3 order
+    // then guarantees the GS completes every preceding host-to-local transfer
+    // before EnsureTextureResident returns to the VU1 draw path.
+    pkt.Reset();
     pkt.Finish();
-
-    pkt.SendChain();
-    const timing::Stamp uploadStart = timing::Now();
+    pkt.SendNormal();
     dma_wait_fast();
     draw_wait_finish();
     s_timingStats.textureUploadMicros += timing::ElapsedMicros(uploadStart);
