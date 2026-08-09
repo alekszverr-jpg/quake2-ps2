@@ -1918,6 +1918,8 @@ static menulist_s s_testmap_list;
 static menulist_s s_testmap_mipmaps_list;
 static menuaction_s s_testmap_load_action;
 
+static const char * s_testmap_mipmap_names[] = { "no", "yes", 0 };
+
 static const char * s_testmap_ids[] =
 {
     "base1", "base2", "base3", "train",
@@ -2020,7 +2022,7 @@ static void TestMap_MenuInit(void)
     s_testmap_mipmaps_list.generic.name = "world mipmaps";
     s_testmap_mipmaps_list.generic.statusbar = "diagnostic: compare wall strips with mipmaps off";
     s_testmap_mipmaps_list.generic.callback = TestMapMipmapsFunc;
-    s_testmap_mipmaps_list.itemnames = yesno_names;
+    s_testmap_mipmaps_list.itemnames = s_testmap_mipmap_names;
     Cvar_Get("ps2_world_mipmaps", "1", CVAR_ARCHIVE);
     s_testmap_mipmaps_list.curvalue =
         Cvar_VariableValue("ps2_world_mipmaps") != 0.0F;
