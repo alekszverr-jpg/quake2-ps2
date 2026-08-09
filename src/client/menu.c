@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 void M_Menu_Main_f(void);
 void M_Menu_Game_f(void);
+void M_Menu_TestMap_f(void);
 void M_Menu_LoadGame_f(void);
 void M_Menu_SaveGame_f(void);
 void M_Menu_PlayerConfig_f(void);
@@ -1907,6 +1908,139 @@ void M_Menu_Credits_f(void)
 /*
 =============================================================================
 
+TEST MAP MENU
+
+=============================================================================
+*/
+
+static menuframework_s s_testmap_menu;
+static menulist_s s_testmap_list;
+static menuaction_s s_testmap_load_action;
+
+static const char * s_testmap_ids[] =
+{
+    "base1", "base2", "base3", "train",
+    "bunk1", "ware1", "ware2",
+    "jail1", "jail2", "jail3", "jail4", "jail5", "security",
+    "mintro", "mine1", "mine2", "mine3", "mine4",
+    "fact1", "fact2", "fact3",
+    "power1", "power2", "cool1",
+    "waste1", "waste2", "waste3", "biggun",
+    "hangar1", "hangar2", "lab", "command", "strike", "space",
+    "city1", "city2", "city3", "boss1", "boss2"
+};
+
+static const char * s_testmap_names[] =
+{
+    "base1 - outer base",
+    "base2 - installation",
+    "base3 - comm center",
+    "train - lost station",
+    "bunk1 - ammo depot",
+    "ware1 - supply station",
+    "ware2 - warehouse",
+    "jail1 - main gate",
+    "jail2 - detention center",
+    "jail3 - security complex",
+    "jail4 - torture chambers",
+    "jail5 - guard house",
+    "security - grid control",
+    "mintro - mine entrance",
+    "mine1 - upper mines",
+    "mine2 - bore hole",
+    "mine3 - drilling area",
+    "mine4 - lower mines",
+    "fact1 - receiving center",
+    "fact2 - processing plant",
+    "fact3 - sudden death",
+    "power1 - power plant",
+    "power2 - the reactor",
+    "cool1 - cooling facility",
+    "waste1 - toxic waste dump",
+    "waste2 - pumping station 1",
+    "waste3 - pumping station 2",
+    "biggun - big gun",
+    "hangar1 - outer hangar",
+    "hangar2 - inner hangar",
+    "lab - research lab",
+    "command - launch command",
+    "strike - outlands",
+    "space - comm satellite",
+    "city1 - outer courts",
+    "city2 - lower palace",
+    "city3 - upper palace",
+    "boss1 - inner chamber",
+    "boss2 - final showdown",
+    0
+};
+
+static void TestMapLoadFunc(void * unused)
+{
+    const int mapCount =
+        (int)(sizeof(s_testmap_ids) / sizeof(s_testmap_ids[0]));
+    const int mapIndex = s_testmap_list.curvalue;
+    (void)unused;
+
+    if (mapIndex < 0 || mapIndex >= mapCount)
+        return;
+
+    cl.servercount = -1;
+    M_ForceMenuOff();
+    Cvar_SetValue("deathmatch", 0);
+    Cvar_SetValue("coop", 0);
+    Cvar_SetValue("gamerules", 0);
+    Cvar_SetValue("maxclients", 1);
+    Cbuf_AddText(va("loading ; killserver ; wait ; map %s\n",
+                    s_testmap_ids[mapIndex]));
+    cls.key_dest = key_game;
+}
+
+static void TestMap_MenuInit(void)
+{
+    s_testmap_menu.x = viddef.width * 0.50;
+    s_testmap_menu.nitems = 0;
+
+    s_testmap_list.generic.type = MTYPE_SPINCONTROL;
+    s_testmap_list.generic.x = 0;
+    s_testmap_list.generic.y = 0;
+    s_testmap_list.generic.name = "map";
+    s_testmap_list.generic.statusbar = "left/right selects a campaign map";
+    s_testmap_list.itemnames = s_testmap_names;
+
+    s_testmap_load_action.generic.type = MTYPE_ACTION;
+    s_testmap_load_action.generic.flags = QMF_LEFT_JUSTIFY;
+    s_testmap_load_action.generic.x = 0;
+    s_testmap_load_action.generic.y = 20;
+    s_testmap_load_action.generic.name = "load selected map";
+    s_testmap_load_action.generic.statusbar = "start this map in single player";
+    s_testmap_load_action.generic.callback = TestMapLoadFunc;
+
+    Menu_AddItem(&s_testmap_menu, &s_testmap_list);
+    Menu_AddItem(&s_testmap_menu, &s_testmap_load_action);
+    Menu_Center(&s_testmap_menu);
+}
+
+static void TestMap_MenuDraw(void)
+{
+    M_Banner("m_banner_game");
+    Menu_AdjustCursor(&s_testmap_menu, 1);
+    Menu_Draw(&s_testmap_menu);
+}
+
+static const char * TestMap_MenuKey(int key)
+{
+    return Default_MenuKey(&s_testmap_menu, key);
+}
+
+void M_Menu_TestMap_f(void)
+{
+    TestMap_MenuInit();
+    M_PushMenu(TestMap_MenuDraw, TestMap_MenuKey);
+}
+
+/*
+=============================================================================
+
 GAME MENU
 
 =============================================================================
@@ -1918,6 +2052,7 @@ static menuframework_s s_game_menu;
 static menuaction_s s_easy_game_action;
 static menuaction_s s_medium_game_action;
 static menuaction_s s_hard_game_action;
+static menuaction_s s_testmap_action;
 static menuaction_s s_load_game_action;
 static menuaction_s s_save_game_action;
 static menuaction_s s_credits_action;
@@ -1958,6 +2093,12 @@ static void HardGameFunc(void * data)
 static void LoadGameFunc(void * unused)
 {
     M_Menu_LoadGame_f();
+}
+
+static void TestMapFunc(void * unused)
+{
+    (void)unused;
+    M_Menu_TestMap_f();
 }
 
 static void SaveGameFunc(void * unused)
@@ -2006,24 +2147,31 @@ void Game_MenuInit(void)
 
     s_blankline.generic.type = MTYPE_SEPARATOR;
 
+    s_testmap_action.generic.type = MTYPE_ACTION;
+    s_testmap_action.generic.flags = QMF_LEFT_JUSTIFY;
+    s_testmap_action.generic.x = 0;
+    s_testmap_action.generic.y = 40;
+    s_testmap_action.generic.name = "test map";
+    s_testmap_action.generic.callback = TestMapFunc;
+
     s_load_game_action.generic.type = MTYPE_ACTION;
     s_load_game_action.generic.flags = QMF_LEFT_JUSTIFY;
     s_load_game_action.generic.x = 0;
-    s_load_game_action.generic.y = 40;
+    s_load_game_action.generic.y = 50;
     s_load_game_action.generic.name = "load game";
     s_load_game_action.generic.callback = LoadGameFunc;
 
     s_save_game_action.generic.type = MTYPE_ACTION;
     s_save_game_action.generic.flags = QMF_LEFT_JUSTIFY;
     s_save_game_action.generic.x = 0;
-    s_save_game_action.generic.y = 50;
+    s_save_game_action.generic.y = 60;
     s_save_game_action.generic.name = "save game";
     s_save_game_action.generic.callback = SaveGameFunc;
 
     s_credits_action.generic.type = MTYPE_ACTION;
     s_credits_action.generic.flags = QMF_LEFT_JUSTIFY;
     s_credits_action.generic.x = 0;
-    s_credits_action.generic.y = 60;
+    s_credits_action.generic.y = 70;
     s_credits_action.generic.name = "credits";
     s_credits_action.generic.callback = CreditsFunc;
 
@@ -2031,6 +2179,7 @@ void Game_MenuInit(void)
     Menu_AddItem(&s_game_menu, (void *)&s_medium_game_action);
     Menu_AddItem(&s_game_menu, (void *)&s_hard_game_action);
     Menu_AddItem(&s_game_menu, (void *)&s_blankline);
+    Menu_AddItem(&s_game_menu, (void *)&s_testmap_action);
     Menu_AddItem(&s_game_menu, (void *)&s_load_game_action);
     Menu_AddItem(&s_game_menu, (void *)&s_save_game_action);
     Menu_AddItem(&s_game_menu, (void *)&s_blankline);

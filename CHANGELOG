@@ -6,6 +6,27 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.29 - 2026-08-09
+
+### Added
+
+- Added `GAME -> TEST MAP`, a gamepad-accessible campaign map selector that
+  does not require the console. Left/right cycles through all 39 base-game
+  campaign maps and `LOAD SELECTED MAP` starts the chosen map in single-player
+  mode after safely stopping the current local server.
+- Included both warehouse maps explicitly: `ware1 - supply station` and
+  `ware2 - warehouse`, allowing the reported wall artifact to be reproduced
+  without replaying the preceding unit.
+
+### Validation target
+
+- Open `GAME -> TEST MAP`, select `ware2 - warehouse`, launch it and confirm
+  controller navigation and direct map loading work from both the title screen
+  and an active game.
+- Determine whether the vertical wall strips in `ware2` are stable in place or
+  change texture while moving the camera; this distinguishes BSP surface data
+  from texture/VRAM state corruption.
+
 ## 0.1.0-alpha.28 - 2026-08-09
 
 ### Fixed
