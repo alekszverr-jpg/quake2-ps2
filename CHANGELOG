@@ -6,6 +6,27 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.28 - 2026-08-09
+
+### Fixed
+
+- Fixed the `warehouse` transition failing to allocate its 6,309,136-byte BSP
+  hunk while several megabytes of models and textures from the previous level
+  were still resident. PS2 registration now evicts obsolete alias models,
+  sprites, wall textures, skins and sky textures before loading the new world.
+- Suppressed stale 3D frames between `BeginRegistration` and `EndRegistration`.
+  Loading-screen 2D drawing remains active, but old entity pointers can no
+  longer be rendered after the early cache eviction.
+- Preserved persistent UI Pics and built-in textures across the early purge.
+
+### Validation target
+
+- Repeat the transition that previously crashed while entering `warehouse`.
+  The new BSP should load with old `Mdl_Alias` and level `TexImage` resources
+  already released.
+- Continue into the next map and confirm loading plaques, models, textures,
+  glass, water and particles render normally after each transition.
+
 ## 0.1.0-alpha.27 - 2026-08-09
 
 ### Changed

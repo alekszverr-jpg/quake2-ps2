@@ -366,6 +366,13 @@ void TextureCache::Unload(u16 slot)
 void TextureCache::BeginRegistration()
 {
     ++m_regSequence;
+
+    // Release the previous level's skins, sprites, walls and sky before the
+    // new BSP asks for its large contiguous world hunk. UI Pics and built-ins
+    // remain resident, as enforced by EndRegistration(). The ref layer skips
+    // 3D rendering until this registration cycle completes, so no stale level
+    // texture pointer can be submitted in between.
+    EndRegistration();
 }
 
 void TextureCache::EndRegistration()

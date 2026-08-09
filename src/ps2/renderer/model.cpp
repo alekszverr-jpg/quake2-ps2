@@ -337,9 +337,15 @@ void ModelCache::BeginRegistration(const char * const mapName)
 {
     PS2_Assert(mapName != nullptr && *mapName != '\0');
 
-    // Bump first, so everything found or loaded this cycle is stamped current
-    // and survives EndRegistration().
+    // BeginRegistration is the point where the client has committed to a new
+    // refresh. Retaining the previous level's alias/sprite hunks until the
+    // matching EndRegistration made large worlds overlap several megabytes of
+    // obsolete models (warehouse needs one contiguous 6.3 MB BSP hunk).
+    // The ref layer suppresses 3D frames during this interval, so old model
+    // pointers cannot be submitted after they are released here.
     ++m_regSequence;
+    PurgeWorldModel();
+    EndRegistration();
     LoadWorldModel(mapName);
 }
 

@@ -348,8 +348,16 @@ void PS2_AppActivate(qboolean activate) { (void)activate; }
 // longer references. Same for models.
 // ------------------------------------------------------------------------------------------------
 
+static bool s_registrationActive = false;
+
 void PS2_BeginRegistration(const char * mapName)
 {
+    // BeginRegistration now releases all nonpersistent assets from the old
+    // level before loading the new BSP. Loading-plaque updates may still call
+    // RenderFrame, so suppress only their stale 3D view until registration is
+    // complete; the normal 2D BeginFrame/EndFrame path remains available.
+    s_registrationActive = true;
+
     // Release renderer-owned pointers while the previous world hunk is still
     // alive; mod::BeginRegistration may replace that hunk with the new map.
     ps2::view::BeginRegistration();
@@ -361,6 +369,7 @@ void PS2_EndRegistration()
 {
     ps2::mod::EndRegistration();
     ps2::tex::EndRegistration();
+    s_registrationActive = false;
 }
 
 // The integrated PS2 server calls this before CM_LoadMap reads the next BSP
@@ -507,6 +516,10 @@ void PS2_EndFrame()
 void PS2_RenderFrame(refdef_t * viewDef)
 {
     PS2_Assert(viewDef != nullptr);
+    if (s_registrationActive)
+    {
+        return;
+    }
     ps2::view::RenderFrame(*viewDef);
 }
 
