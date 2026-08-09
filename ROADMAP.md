@@ -87,6 +87,7 @@ play on a retail console.
 
 - [x] Establish initial frame-time budgets for EE, VU1, GS and texture loading
 - [ ] Reduce texture upload churn and VRAM fragmentation
+- [~] Validate GS completion barriers for streamed textures under zero-free-VRAM churn
 - [ ] Add release builds with assertions/diagnostics disabled
 - [x] Profile and optimize first-pass model interpolation and BSP lighting
 - [~] Validate long sessions for EE RAM, IOP RAM and VRAM leaks

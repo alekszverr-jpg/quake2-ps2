@@ -6,6 +6,27 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.31 - 2026-08-09
+
+### Fixed
+
+- Fixed streamed texture uploads returning after GIF DMA completion but before
+  the GS had actually finished writing the texture into VRAM. A following
+  higher-priority VU1 PATH1 draw could sample partially stale GS pages,
+  producing distance-dependent vertical strips on the `bunk1` grate wall.
+- Added a GS `FINISH` barrier after each PATH3 texture upload. The affected
+  panels should now sample complete level-0 and mip data even when the texture
+  heap is full and dozens of textures are being evicted and uploaded per frame.
+
+### Validation target
+
+- Restore `WORLD MIPMAPS: YES`, load `bunk1 - ammo depot` and approach/retreat
+  from the reported grate wall. Confirm neither foreign texture strips nor
+  black blocks appear.
+- Check one busy combat view for regressions in ordinary walls, models, glass,
+  water and particles. Upload barriers may add time during VRAM churn; that
+  cost will be reduced in the planned texture-streaming performance pass.
+
 ## 0.1.0-alpha.30 - 2026-08-09
 
 ### Added

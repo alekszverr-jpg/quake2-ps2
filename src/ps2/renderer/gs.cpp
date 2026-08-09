@@ -566,7 +566,7 @@ void EnsureTextureResident(const tex::Texture & texture)
         texture.dirtyPixels = false;
     }
 
-    // Synchronous DMA upload; the chain references the pixels in EE RAM.
+    // Synchronous GS upload; the chain references the pixels in EE RAM.
     // TODO: TextureTransfer has no EnsureSpace - revisit the 128-qword scratch
     // packet if large streamed assets ever exceed its chain-tag headroom.
     RenderPacket & pkt = s_texUploadPacket;
@@ -586,10 +586,18 @@ void EnsureTextureResident(const tex::Texture & texture)
                                 vram::TextureFootprintWords(mipWidth, mipHeight, psm));
     }
     pkt.TextureFlush();
+    // Waiting for GIF DMA alone is insufficient here. A following VU1 XGKICK
+    // arrives through higher-priority PATH1 and may start sampling while the
+    // GS is still executing this PATH3 host-to-local transfer. Under VRAM
+    // churn that exposed old page contents as vertical strips (or black blocks
+    // with mipmapping disabled). FINISH makes the texture fully resident before
+    // EnsureTextureResident returns to the draw path.
+    pkt.Finish();
 
     pkt.SendChain();
     const timing::Stamp uploadStart = timing::Now();
     dma_wait_fast();
+    draw_wait_finish();
     s_timingStats.textureUploadMicros += timing::ElapsedMicros(uploadStart);
 
     vram::NoteTextureUpload(); // for the debug overlay's per-frame upload count
