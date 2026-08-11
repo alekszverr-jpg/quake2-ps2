@@ -57,6 +57,7 @@ PS2_CXX_SRC =                         \
 # Doug Lea's allocator + a small amount of embedded data kept as plain C:
 PS2_C_SRC = \
 	ps2/system/dlmalloc/dlmalloc.c    \
+	ps2/audio/snddma_ps2.c            \
 	ps2/builtin/palette.c             \
 	ps2/builtin/conchars.c            \
 	ps2/builtin/conback.c             \
@@ -65,7 +66,7 @@ PS2_C_SRC = \
 	ps2/builtin/help.c
 
 # Stock Quake II engine / game / server - untouched C, statically linked.
-# The null/* stubs stand in for sound and CD audio until real PS2 backends land.
+# CD audio remains a null stub; PCM sound uses ps2/audio/snddma_ps2.c above.
 ENGINE_C_SRC = \
 	client/cl_cin.c    client/cl_ents.c   client/cl_fx.c     client/cl_input.c \
 	client/cl_inv.c    client/cl_main.c   client/cl_newfx.c  client/cl_parse.c \
@@ -88,7 +89,7 @@ ENGINE_C_SRC = \
 	game/m_parasite.c  game/m_soldier.c   game/m_supertank.c game/m_tank.c     \
 	game/p_client.c    game/p_hud.c       game/p_trail.c     game/p_view.c     \
 	game/p_weapon.c    game/q_shared.c                                         \
-	null/cd_null.c     null/snddma_null.c                                      \
+	null/cd_null.c                                                             \
 	server/sv_ccmds.c  server/sv_ents.c   server/sv_game.c   server/sv_init.c  \
 	server/sv_main.c   server/sv_send.c   server/sv_user.c   server/sv_world.c
 
@@ -115,7 +116,7 @@ HOST_CFLAGS ?= -O2 -Wall
 # IOP/IRX modules embedded into the ELF: the BDM USB mass-storage stack, booted
 # by ps2/system/iop_boot.cpp when the game data isn't on host: (real hardware).
 IRX_PATH  = $(PS2SDK)/iop/irx
-IRX_FILES = iomanX.irx fileXio.irx bdm.irx bdmfs_fatfs.irx usbd.irx usbmass_bd.irx
+IRX_FILES = iomanX.irx fileXio.irx bdm.irx bdmfs_fatfs.irx usbd.irx usbmass_bd.irx audsrv.irx
 IRX_OBJS  = $(addprefix $(OUTPUT_DIR)/irx/, $(IRX_FILES:.irx=.o))
 
 EE_OBJS = $(C_OBJS) $(CXX_OBJS) $(VU_OBJS) $(IRX_OBJS)
@@ -171,7 +172,7 @@ EE_CXXFLAGS += -std=gnu++20 -fno-exceptions -fno-rtti -fno-threadsafe-statics \
 	$(EE_CXX_WARNFLAGS) $(EE_CXX_SYSINCS) \
 	-MMD -MP
 
-EE_LIBS += -ldraw -lgraph -lmath3d -lpacket -lpacket2 -ldma -lpad -lpatches -lfileXio -lkernel
+EE_LIBS += -laudsrv -ldraw -lgraph -lmath3d -lpacket -lpacket2 -ldma -lpad -lpatches -lfileXio -lkernel
 
 # ----------------------------------------------------------------------------
 #  Rules

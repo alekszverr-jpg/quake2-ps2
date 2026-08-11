@@ -6,6 +6,33 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.38 - 2026-08-11
+
+### Added
+
+- Added the first PlayStation 2 sound backend. Quake II's stock software mixer
+  now writes stereo 16-bit PCM to an EE ring buffer, which is streamed through
+  PS2SDK `audsrv` to SPU2 without blocking the render loop.
+- Embedded `audsrv.irx` in the ELF and added boot-time `LIBSD`/`audsrv`
+  initialization for both PCSX2 `host:` and real-PS2 USB launch paths.
+- The backend follows the existing Quake II quality setting: normal gameplay
+  starts at 11025 Hz, while the existing 22 kHz restart path remains available
+  for cinematics. If audio initialization fails, the game continues silently
+  instead of aborting.
+
+### Validation target
+
+- On PCSX2, confirm that a fresh boot reaches the menu and that menu movement,
+  weapons, enemy attacks, doors and lifts produce sound without freezes.
+- In a level, turn around a fixed sound source and move toward/away from it to
+  check left/right panning and distance attenuation; also listen for looping
+  ambient sounds and obvious queue gaps or crackling.
+- Compare FPS in one familiar heavy view before and during several overlapping
+  sounds. The first backend prioritizes correctness; audio timing and underrun
+  counters are planned for the next profiling pass.
+- After the PCSX2 smoke test passes, repeat boot and a short combat encounter
+  on a real PS2 to validate the ROM `LIBSD` plus embedded `audsrv` module path.
+
 ## 0.1.0-alpha.37 - 2026-08-11
 
 ### Added

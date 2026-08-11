@@ -24,3 +24,7 @@ namespace ps2::sys {
 const char * DetectBasePathAndBootIop();
 
 } // namespace ps2::sys
+
+// Loads ROM LIBSD and the embedded audsrv IRX once. Kept as a C entry point
+// because Quake II's SNDDMA backend is compiled as stock-style C.
+extern "C" int PS2_InitAudioIop();

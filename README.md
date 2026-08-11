@@ -1,7 +1,7 @@
 # Quake II for PlayStation 2
 
 [![Build](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml/badge.svg)](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml)
-[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.37-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
+[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.38-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](LICENSE)
 
 An active continuation of the unofficial Quake II port for the Sony
@@ -10,8 +10,9 @@ the original PS2 port by [Guilherme Lampert](https://github.com/glampert).
 
 The current test build boots on PCSX2 and real PS2 hardware, renders textured
 BSP levels and animated MD2 models through a VU1-assisted pipeline, and supports
-DualShock controls. It is not yet a complete port: lighting, sound and several
-rendering paths are still under development.
+DualShock controls. It is not yet a complete port: audio has only its first
+PCM effects backend, while lighting and several rendering paths remain under
+development.
 
 > This repository contains source code only. It does not include or distribute
 > copyrighted Quake II game data. You must provide data files from your own
@@ -42,7 +43,7 @@ rendering paths are still under development.
 | Adaptive BSP lighting cache | Working; reduced measured world time by about 66-72% |
 | Indexed MD2 preparation | Working; reduced measured entity time by about 24-44% |
 | Full lightmaps and dynamic world lighting | Not implemented |
-| Sound | Not implemented |
+| Sound effects | First `audsrv`/SPU2 PCM backend, validation pending |
 | WAL world-texture mipmaps | Implemented and hardware-tested |
 | Save/load on PS2 storage | Not implemented |
 

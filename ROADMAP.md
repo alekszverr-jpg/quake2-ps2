@@ -23,7 +23,7 @@ Status markers:
 - [~] Texture streaming within the PS2's 4 MB GS VRAM
 - [~] Adaptive BSP vertex/lightmap lighting
 - [x] MD2 vertex lighting
-- [ ] Sound
+- [~] Sound effects through the stock mixer and PS2 `audsrv`
 
 ## Milestone 0 - Stable hardware test build
 
@@ -63,9 +63,9 @@ enough for normal gameplay.
 
 Target: gameplay sound effects and ambient audio work on real hardware.
 
-- [ ] Select and initialise a PS2 audio backend
+- [~] Select and initialise a PS2 audio backend (`audsrv` PCM stream)
 - [ ] Upload/cache Quake II sound samples in IOP/SPU2 memory
-- [ ] Implement channel mixing, attenuation and looping sounds
+- [~] Validate stock channel mixing, attenuation and looping through the PS2 backend
 - [ ] Add music playback or document the selected replacement strategy
 - [ ] Validate audio during level transitions and sustained gameplay
 
@@ -107,19 +107,18 @@ development tools.
 
 ## Immediate priorities
 
-1. Continue the alpha.18 stability run: confirm the adaptive-light cache
-   remains capped near 1536 KB and repeated large Base 3 views do not exhaust
-   the EE heap.
-2. Recheck particles, translucent MD2/sprite effects and inline brush objects
-   together with doors and lifts after enabling the correct GS `ABE` bit.
-3. Recheck multi-level transitions after the new bounded world cache, including
+1. Validate the first `audsrv` PCM effects build in PCSX2: menu feedback,
+   weapons, enemies, doors, stereo attenuation and sustained playback.
+2. Repeat the audio smoke test on a real PS2 and watch for IOP-module startup
+   failures, underruns or a measurable frame-rate regression.
+3. Add audio timing/underrun diagnostics, then decide whether hot effects
+   should remain in the EE software mixer or move to cached SPU2 ADPCM voices.
+4. Continue optimizing the remaining MD2/entity EE path after renderer and
+   audio completeness work is stable.
+5. Recheck multi-level transitions after the next optimization pass, including
    a longer Base 1 -> Base 2 -> Base 3 session on PCSX2 and real hardware.
-4. Continue optimizing the remaining MD2/entity EE path after renderer
-   completeness work is stable.
-5. Revisit VU1 overlap and texture churn if later profiles show their
+6. Revisit VU1 overlap and texture churn if later profiles show their
    currently small wait times growing.
-6. Continue campaign map and level-transition validation in PCSX2 with the
-   diagnostic overlays disabled during normal gameplay.
 
 Update this file whenever priorities, milestone status or completion criteria
 change. Record completed user-visible work in `CHANGELOG` in the same commit.

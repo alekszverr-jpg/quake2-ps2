@@ -41,6 +41,8 @@ extern unsigned char usbd_irx[];
 extern unsigned int  size_usbd_irx;
 extern unsigned char usbmass_bd_irx[];
 extern unsigned int  size_usbmass_bd_irx;
+extern unsigned char audsrv_irx[];
+extern unsigned int  size_audsrv_irx;
 }
 
 namespace ps2::sys {
@@ -154,3 +156,43 @@ const char * DetectBasePathAndBootIop()
 }
 
 } // namespace ps2::sys
+
+extern "C" int PS2_InitAudioIop()
+{
+    static bool s_audioModulesLoaded = false;
+    if (s_audioModulesLoaded)
+    {
+        return 1;
+    }
+
+    // The host: fast path deliberately avoids an IOP reset, so initialise RPC
+    // and the embedded-module patches here as well as in the USB boot path.
+    SifInitRpc(0);
+    sbv_patch_enable_lmb();
+    sbv_patch_disable_prefix_check();
+
+    const int libsdId = SifLoadModule("rom0:LIBSD", 0, nullptr);
+    if (libsdId < 0)
+    {
+        // uLaunchELF and some emulator boot paths may already have LIBSD
+        // resident. In that case LoadModule can report an error even though
+        // audsrv can bind to the existing export table, so let audsrv itself
+        // be the authoritative initialization check.
+        Com_Printf("Audio IOP: LIBSD load returned %d; trying existing module.\n",
+                   libsdId);
+    }
+
+    int moduleResult = 0;
+    const int audsrvId = SifExecModuleBuffer(audsrv_irx, size_audsrv_irx,
+                                              0, nullptr, &moduleResult);
+    if (audsrvId < 0 || moduleResult == 1)
+    {
+        Com_Printf("WARNING: audio IOP: audsrv failed (id %d, result %d).\n",
+                   audsrvId, moduleResult);
+        return 0;
+    }
+
+    Com_Printf("Audio IOP: LIBSD result %d, audsrv id %d.\n", libsdId, audsrvId);
+    s_audioModulesLoaded = true;
+    return 1;
+}
