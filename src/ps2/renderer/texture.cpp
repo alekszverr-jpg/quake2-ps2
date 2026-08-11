@@ -227,6 +227,7 @@ public:
 
 private:
     Texture & Register(const char * name, const void * pixels, int width, int height,
+                       int storageWidth, int storageHeight,
                        int pixelBytes, int mipLevels,
                        PixelFormat format, TexComponents components,
                        ImageType type, TexFlags flags);
@@ -289,6 +290,8 @@ const Texture * TextureCache::LoadFromFile(const char * fullname, const ImageTyp
     const void * pixels = nullptr;
     int width  = 0;
     int height = 0;
+    int storageWidth  = 0;
+    int storageHeight = 0;
     int pixelBytes = 0;
     int mipLevels  = 1;
     PixelFormat format;
@@ -304,11 +307,14 @@ const Texture * TextureCache::LoadFromFile(const char * fullname, const ImageTyp
         if (extension[1] == 'p')
         {
             loaded = img::LoadPcx(fullname, &pic8, &width, &height);
+            storageWidth  = width;
+            storageHeight = height;
             pixelBytes = width * height;
         }
         else
         {
             loaded = img::LoadWal(fullname, &pic8, &width, &height,
+                                  &storageWidth, &storageHeight,
                                   &mipLevels, &pixelBytes);
         }
         if (!loaded)
@@ -317,7 +323,8 @@ const Texture * TextureCache::LoadFromFile(const char * fullname, const ImageTyp
         }
 
         format     = PixelFormat::Palette8;
-        components = HasTransparentTexels(pic8, width * height) ? TexComponents::RGBA : TexComponents::RGB;
+        components = HasTransparentTexels(pic8, storageWidth * storageHeight)
+                     ? TexComponents::RGBA : TexComponents::RGB;
         pixels     = pic8;
     }
     else if (std::strcmp(extension, ".tga") == 0)
@@ -361,6 +368,8 @@ const Texture * TextureCache::LoadFromFile(const char * fullname, const ImageTyp
             pixels     = pic32;
             pixelBytes = width * height * BytesPerTexel(format);
         }
+        storageWidth  = width;
+        storageHeight = height;
     }
     else
     {
@@ -368,7 +377,8 @@ const Texture * TextureCache::LoadFromFile(const char * fullname, const ImageTyp
         return nullptr;
     }
 
-    return &Register(fullname, pixels, width, height, pixelBytes, mipLevels,
+    return &Register(fullname, pixels, width, height, storageWidth, storageHeight,
+                     pixelBytes, mipLevels,
                      format, components, type, TexFlags::None);
 }
 
@@ -438,11 +448,13 @@ const Texture & TextureCache::DebugPaletteTexture() const
 }
 
 Texture & TextureCache::Register(const char * name, const void * pixels, int width, int height,
+                                 int storageWidth, int storageHeight,
                                  int pixelBytes, int mipLevels,
                                  PixelFormat format, TexComponents components,
                                  ImageType type, TexFlags flags)
 {
-    PS2_Assert(width > 0 && height > 0 && pixels != nullptr);
+    PS2_Assert(width > 0 && height > 0 && storageWidth >= width &&
+               storageHeight >= height && pixels != nullptr);
     PS2_Assert(pixelBytes > 0 && mipLevels > 0 && mipLevels <= Texture::kMaxMipLevels);
 
     const u16 slot = m_texturePool.Alloc();
@@ -466,6 +478,8 @@ Texture & TextureCache::Register(const char * name, const void * pixels, int wid
     texture.pixelBytes   = pixelBytes;
     texture.width        = width;
     texture.height       = height;
+    texture.storageWidth = storageWidth;
+    texture.storageHeight = storageHeight;
     texture.mipLevels    = static_cast<u8>(mipLevels);
     texture.type         = type;
     texture.flags        = flags;
@@ -533,6 +547,7 @@ void TextureCache::Init()
     for (const BuiltinImage & builtin : builtins)
     {
         Register(builtin.name, builtin.pixels, builtin.width, builtin.height,
+                 builtin.width, builtin.height,
                  builtin.width * builtin.height * BytesPerTexel(builtin.format), 1,
                  builtin.format, builtin.components, ImageType::Pic, TexFlags::Builtin);
     }

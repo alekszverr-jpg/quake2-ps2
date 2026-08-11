@@ -6,6 +6,28 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.36 - 2026-08-11
+
+### Fixed
+
+- Fixed NPOT WAL textures sampling uninitialised GS texture columns. Quake II
+  includes walls such as `e1u2/wall1_1` and `wall1_2` at `240x128`, while GS
+  TEX0 can only encode a `256x128` power-of-two sampling extent. The missing
+  16 columns exposed old VRAM contents as distance-dependent black or foreign
+  texture strips on `bunk1`.
+- WAL loading now keeps the original dimensions for BSP UV scaling but builds
+  a separate power-of-two GS storage copy for every precomputed mip level.
+  NPOT levels are nearest-resampled across the complete logical period, so the
+  hardware repeat boundary contains valid texels instead of allocator padding.
+
+### Validation target
+
+- On `bunk1 - ammo depot`, return `WORLD TEXTURE` to `NORMAL`, use `WORLD MIP
+  MODE: AUTO`, then approach and retreat from the previously affected slatted
+  wall. Confirm that neither foreign images nor black vertical strips appear.
+- Also inspect ordinary power-of-two floors, walls, water, models and HUD for
+  regressions; their logical and GS storage dimensions remain identical.
+
 ## 0.1.0-alpha.35 - 2026-08-11
 
 ### Added
@@ -25,6 +47,12 @@ Development priorities and completion criteria are tracked in
   streaming reuse; if it corrupts, the remaining fault is the common PSMT8
   upload/TBW path.
 - Return `WORLD TEXTURE` to `NORMAL` after the test.
+
+### Validated
+
+- Real-PS2 testing found `CHECKER PSMT8` completely clean. Together with the
+  affected `bunk1` wall's `240x128` WAL dimensions, this isolated sampling of
+  the GS's uninitialised `256x128` padding rather than a shared PSMT8/CLUT fault.
 
 ## 0.1.0-alpha.34 - 2026-08-11
 

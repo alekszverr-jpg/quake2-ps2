@@ -156,8 +156,8 @@ inline int TextureVramWords(const tex::Texture & texture, int psm)
     int words = 0;
     for (int level = 0; level < texture.mipLevels; ++level)
     {
-        words += vram::TextureFootprintWords(MipDimension(texture.width, level),
-                                             MipDimension(texture.height, level), psm);
+        words += vram::TextureFootprintWords(MipDimension(texture.storageWidth, level),
+                                             MipDimension(texture.storageHeight, level), psm);
     }
     return words;
 }
@@ -481,7 +481,7 @@ void EnsureTextureResident(const tex::Texture & texture)
     PS2_Assert(texture.type != tex::ImageType::Null && texture.pixels != nullptr);
 
     const int psm    = tex::GsPsm(texture.format);
-    const int stride = TextureStridePixels(texture.width, psm);
+    const int stride = TextureStridePixels(texture.storageWidth, psm);
 
     if (texture.vramAddr != tex::Texture::kNotResident)
     {
@@ -523,8 +523,8 @@ void EnsureTextureResident(const tex::Texture & texture)
         texture.texbuf.address         = static_cast<unsigned int>(addr);
         texture.texbuf.width           = static_cast<unsigned int>(stride);
         texture.texbuf.psm             = static_cast<unsigned int>(psm);
-        texture.texbuf.info.width      = draw_log2(static_cast<unsigned int>(texture.width));
-        texture.texbuf.info.height     = draw_log2(static_cast<unsigned int>(texture.height));
+        texture.texbuf.info.width      = draw_log2(static_cast<unsigned int>(texture.storageWidth));
+        texture.texbuf.info.height     = draw_log2(static_cast<unsigned int>(texture.storageHeight));
         texture.texbuf.info.components = static_cast<unsigned char>(tex::GsComponents(texture.components));
         texture.texbuf.info.function   = static_cast<unsigned char>(tex::GsFunction(texture.function));
 
@@ -532,13 +532,14 @@ void EnsureTextureResident(const tex::Texture & texture)
         // 64-pixel TBW units. All levels share one allocator extent, packed
         // after level 0 in page-granular footprints.
         vram::Address mipAddr = vram::Address(
-            static_cast<int>(addr) + vram::TextureFootprintWords(texture.width, texture.height, psm));
+            static_cast<int>(addr) + vram::TextureFootprintWords(
+                texture.storageWidth, texture.storageHeight, psm));
         int  mipAddresses[3] = {};
         char mipWidths[3] = {};
         for (int level = 1; level < texture.mipLevels; ++level)
         {
-            const int mipWidth  = MipDimension(texture.width, level);
-            const int mipHeight = MipDimension(texture.height, level);
+            const int mipWidth  = MipDimension(texture.storageWidth, level);
+            const int mipHeight = MipDimension(texture.storageHeight, level);
             mipAddresses[level - 1] = static_cast<int>(mipAddr) >> 6;
             mipWidths[level - 1] = static_cast<char>(TextureStridePixels(mipWidth, psm) >> 6);
             mipAddr = vram::Address(static_cast<int>(mipAddr) +
@@ -551,8 +552,9 @@ void EnsureTextureResident(const tex::Texture & texture)
         texture.mipmap.address3 = mipAddresses[2];
         texture.mipmap.width3   = mipWidths[2];
 
-        Com_DPrintf("VRAM: uploaded '%s' (%dx%d, %d KB)\n", texture.name,
-                    texture.width, texture.height, sizeWords * 4 / 1024);
+        Com_DPrintf("VRAM: uploaded '%s' (%dx%d -> %dx%d, %d KB)\n", texture.name,
+                    texture.width, texture.height, texture.storageWidth,
+                    texture.storageHeight, sizeWords * 4 / 1024);
     }
 
     if (texture.dirtyPixels)
@@ -575,8 +577,8 @@ void EnsureTextureResident(const tex::Texture & texture)
     vram::Address mipAddr = texture.vramAddr;
     for (int level = 0; level < texture.mipLevels; ++level)
     {
-        const int mipWidth  = MipDimension(texture.width, level);
-        const int mipHeight = MipDimension(texture.height, level);
+        const int mipWidth  = MipDimension(texture.storageWidth, level);
+        const int mipHeight = MipDimension(texture.storageHeight, level);
         const int mipStride = TextureStridePixels(mipWidth, psm);
 
         pkt.TextureTransfer(mipPixels, mipWidth, mipHeight, psm, mipAddr, mipStride);

@@ -25,8 +25,12 @@ namespace ps2::img {
 bool LoadPcx(const char * filename, u8 ** outPic, int * outWidth, int * outHeight);
 
 // WAL: all four precomputed mip levels as packed 8-bit palette indices,
-// level 0 first. outPixelBytes covers the complete allocation.
+// level 0 first. The GS can only describe power-of-two texture dimensions, so
+// NPOT source levels are resampled into a power-of-two storage chain while the
+// original width/height are returned separately for world-space UV scaling.
+// outPixelBytes covers the complete storage allocation.
 bool LoadWal(const char * filename, u8 ** outPic, int * outWidth, int * outHeight,
+             int * outStorageWidth, int * outStorageHeight,
              int * outMipLevels, int * outPixelBytes);
 
 // TGA (types 2 and 10, 24/32 bpp, no colormaps - all Quake II ever shipped):

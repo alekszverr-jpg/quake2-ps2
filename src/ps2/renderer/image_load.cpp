@@ -25,6 +25,16 @@ namespace {
 // anything larger cannot be sampled, so reject it at load time.
 constexpr int kMaxImageDim = 1024;
 
+int NextPowerOfTwo(int value)
+{
+    int result = 1;
+    while (result < value)
+    {
+        result <<= 1;
+    }
+    return result;
+}
+
 u8 * AllocPixels(int sizeBytes)
 {
     // 16-byte aligned: the upload DMA chain references the buffer in place,
@@ -151,10 +161,12 @@ bool LoadPcx(const char * filename, u8 ** outPic, int * outWidth, int * outHeigh
 // ------------------------------------------------------------------------------------------------
 
 bool LoadWal(const char * filename, u8 ** outPic, int * outWidth, int * outHeight,
+             int * outStorageWidth, int * outStorageHeight,
              int * outMipLevels, int * outPixelBytes)
 {
     *outPic = nullptr;
     *outWidth = *outHeight = 0;
+    *outStorageWidth = *outStorageHeight = 0;
     *outMipLevels = *outPixelBytes = 0;
 
     u8 * fileData = nullptr;
@@ -180,22 +192,28 @@ bool LoadWal(const char * filename, u8 ** outPic, int * outWidth, int * outHeigh
     }
 
     constexpr int kWalMipLevels = 4;
-    int mipBytes[kWalMipLevels];
+    const int storageWidth  = NextPowerOfTwo(width);
+    const int storageHeight = NextPowerOfTwo(height);
+    int sourceMipBytes[kWalMipLevels];
+    int storageMipBytes[kWalMipLevels];
     int totalBytes = 0;
     bool valid = true;
     for (int level = 0; level < kWalMipLevels; ++level)
     {
-        const int mipWidth  = (width  >> level) > 0 ? (width  >> level) : 1;
-        const int mipHeight = (height >> level) > 0 ? (height >> level) : 1;
+        const int sourceMipWidth  = (width  >> level) > 0 ? (width  >> level) : 1;
+        const int sourceMipHeight = (height >> level) > 0 ? (height >> level) : 1;
+        const int storageMipWidth  = (storageWidth  >> level) > 0 ? (storageWidth  >> level) : 1;
+        const int storageMipHeight = (storageHeight >> level) > 0 ? (storageHeight >> level) : 1;
         const int offset    = static_cast<int>(wal->offsets[level]);
-        mipBytes[level]     = mipWidth * mipHeight;
+        sourceMipBytes[level]  = sourceMipWidth * sourceMipHeight;
+        storageMipBytes[level] = storageMipWidth * storageMipHeight;
 
-        if (offset <= 0 || offset > fileLen || mipBytes[level] > fileLen - offset)
+        if (offset <= 0 || offset > fileLen || sourceMipBytes[level] > fileLen - offset)
         {
             valid = false;
             break;
         }
-        totalBytes += mipBytes[level];
+        totalBytes += storageMipBytes[level];
     }
 
     if (!valid)
@@ -210,8 +228,35 @@ bool LoadWal(const char * filename, u8 ** outPic, int * outWidth, int * outHeigh
     for (int level = 0; level < kWalMipLevels; ++level)
     {
         const int sourceOffset = static_cast<int>(wal->offsets[level]);
-        std::memcpy(pic + destOffset, fileData + sourceOffset, static_cast<size_t>(mipBytes[level]));
-        destOffset += mipBytes[level];
+        const int sourceMipWidth  = (width  >> level) > 0 ? (width  >> level) : 1;
+        const int sourceMipHeight = (height >> level) > 0 ? (height >> level) : 1;
+        const int storageMipWidth  = (storageWidth  >> level) > 0 ? (storageWidth  >> level) : 1;
+        const int storageMipHeight = (storageHeight >> level) > 0 ? (storageHeight >> level) : 1;
+        const u8 * source = fileData + sourceOffset;
+        u8 * dest = pic + destOffset;
+
+        if (sourceMipWidth == storageMipWidth && sourceMipHeight == storageMipHeight)
+        {
+            std::memcpy(dest, source, static_cast<size_t>(sourceMipBytes[level]));
+        }
+        else
+        {
+            // TEX0 repeats at its encoded power-of-two extent. Resampling the
+            // complete logical WAL period into that extent preserves Quake's
+            // one-period-per-width UV convention and prevents sampling the
+            // uninitialised padding that previously exposed unrelated VRAM.
+            for (int y = 0; y < storageMipHeight; ++y)
+            {
+                const int sourceY = y * sourceMipHeight / storageMipHeight;
+                for (int x = 0; x < storageMipWidth; ++x)
+                {
+                    const int sourceX = x * sourceMipWidth / storageMipWidth;
+                    dest[y * storageMipWidth + x] =
+                        source[sourceY * sourceMipWidth + sourceX];
+                }
+            }
+        }
+        destOffset += storageMipBytes[level];
     }
 
     FS_FreeFile(fileData);
@@ -219,6 +264,8 @@ bool LoadWal(const char * filename, u8 ** outPic, int * outWidth, int * outHeigh
     *outPic    = pic;
     *outWidth  = width;
     *outHeight = height;
+    *outStorageWidth  = storageWidth;
+    *outStorageHeight = storageHeight;
     *outMipLevels = kWalMipLevels;
     *outPixelBytes = totalBytes;
     return true;

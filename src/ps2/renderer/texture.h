@@ -81,6 +81,8 @@ struct Texture final
     int           pixelBytes;      // Total byte size of the packed chain (also the allocation/free size).
     int           width;           // In pixels, > 0.
     int           height;          // In pixels, > 0.
+    int           storageWidth;    // GS pixel width (power-of-two WAL copy; otherwise == width).
+    int           storageHeight;   // GS pixel height (power-of-two WAL copy; otherwise == height).
     u8            mipLevels;       // Number of packed levels, 1..kMaxMipLevels.
     ImageType     type;
     TexFlags      flags;
