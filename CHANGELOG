@@ -6,6 +6,23 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.42 - 2026-08-11
+
+### Fixed
+
+- Primed every writable byte of the `audsrv` IOP ring with silence immediately
+  after selecting the PCM format. This prevents the short half-ring startup
+  reserve from emptying while Quake II restarts its mixer, which previously
+  left `HIGH` quality stuck at `q0/min0` after only two submissions and could
+  produce repeated stale-buffer chatter in `LOW` quality.
+
+### Validation target
+
+- Select `SOUND QUALITY: HIGH`, return to gameplay and verify that the audio
+  status advances beyond `n2` and that `q` no longer remains at zero.
+- Compare `LOW` and `HIGH` again. Report whether either mode still buzzes and
+  the new `q/min/n` values after several seconds of combat.
+
 ## 0.1.0-alpha.41 - 2026-08-11
 
 ### Changed

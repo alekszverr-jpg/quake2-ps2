@@ -107,8 +107,8 @@ development tools.
 
 ## Immediate priorities
 
-1. Compare alpha.41 low/high sound quality and validate that the larger PCM
-   reserve removes `audsrv` underrun chatter in low-frame-rate scenes.
+1. Validate alpha.42 low/high startup priming and confirm that neither mode
+   reaches the `audsrv` empty/full ambiguity during normal gameplay.
 2. Repeat the audio smoke test on a real PS2 and check attenuation, stereo
    positioning, looping, distortion, minimum queue depth and FPS regression.
 3. Use the queue low-water mark to decide whether hot effects

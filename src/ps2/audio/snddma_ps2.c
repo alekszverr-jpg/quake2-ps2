@@ -37,6 +37,7 @@ static int s_lastQueuedBytes;
 static int s_outputRate;
 static unsigned int s_playCalls;
 static int s_minQueuedBytes;
+static char s_silenceChunk[PS2_AUDIO_CHUNK_BYTES] __attribute__((aligned(64)));
 
 enum
 {
@@ -62,6 +63,7 @@ qboolean SNDDMA_Init(void)
     audsrv_fmt_t format;
     int result;
     int rate;
+    int availableBytes;
 
     memset(&dma, 0, sizeof(dma));
     s_submittedFrames = 0;
@@ -106,6 +108,35 @@ qboolean SNDDMA_Init(void)
                    result, audsrv_get_error_string());
         SNDDMA_Shutdown();
         return false;
+    }
+
+    /*
+     * After set_format, audsrv exposes only the free half of its IOP ring and
+     * starts consuming the other half. A sound restart can take longer than
+     * that reserve at 22 kHz; if it reaches empty, audsrv may confuse empty
+     * with full and replay stale data forever. Fill every currently writable
+     * byte with silence before doing any remaining EE-side setup. Real mixed
+     * PCM will replace the primer progressively as playback creates space.
+     */
+    availableBytes = audsrv_available();
+    while (availableBytes >= PS2_BYTES_PER_FRAME)
+    {
+        int bytesToSend;
+        int sentBytes;
+
+        bytesToSend = availableBytes;
+        if (bytesToSend > PS2_AUDIO_CHUNK_BYTES)
+            bytesToSend = PS2_AUDIO_CHUNK_BYTES;
+        bytesToSend &= ~(PS2_BYTES_PER_FRAME - 1);
+        if (bytesToSend <= 0)
+            break;
+
+        sentBytes = audsrv_play_audio(s_silenceChunk, bytesToSend);
+        if (sentBytes <= 0)
+            break;
+
+        s_playCalls++;
+        availableBytes -= sentBytes;
     }
 
     audsrv_set_volume(MAX_VOLUME);
