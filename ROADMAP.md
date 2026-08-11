@@ -107,11 +107,11 @@ development tools.
 
 ## Immediate priorities
 
-1. Validate alpha.40 menu and gameplay WAV effects after correcting the
-   portable 8-bit channel mixer's always-silent volume-table lookup.
+1. Compare alpha.41 low/high sound quality and validate that the larger PCM
+   reserve removes `audsrv` underrun chatter in low-frame-rate scenes.
 2. Repeat the audio smoke test on a real PS2 and check attenuation, stereo
-   positioning, looping, distortion and measurable frame-rate regression.
-3. Add audio timing/underrun diagnostics, then decide whether hot effects
+   positioning, looping, distortion, minimum queue depth and FPS regression.
+3. Use the queue low-water mark to decide whether hot effects
    should remain in the EE software mixer or move to cached SPU2 ADPCM voices.
 4. Continue optimizing the remaining MD2/entity EE path after renderer and
    audio completeness work is stable.

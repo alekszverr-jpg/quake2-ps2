@@ -6,6 +6,28 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.41 - 2026-08-11
+
+### Changed
+
+- Increased the PS2 software mix-ahead reserve from the desktop default of
+  0.2 seconds to at least 0.35 seconds, enlarged EE-to-IOP PCM transfers and
+  aligned mixer submissions to larger blocks. This reduces the chance of an
+  `audsrv` underrun repeating stale samples as audible buzzing or chatter.
+- Restored the controller-accessible `SOUND QUALITY` selector. `LOW` uses the
+  11025 Hz/8-bit sample-cache path, while `HIGH` restarts the backend at
+  22050 Hz with 16-bit cached samples.
+- The `GAME -> TEST MAP` audio status now records the minimum observed IOP
+  queue depth as `min`, making near-underruns visible without a console.
+
+### Validation target
+
+- Test ordinary gameplay with `AUDIO TEST: OFF` and `SOUND QUALITY: LOW`.
+  Report whether the buzzing is gone and the `q`/`min` values after combat.
+- Repeat the same scene with `SOUND QUALITY: HIGH`, comparing clarity, buzzing
+  and FPS. High quality consumes more EE memory and mixer time, so low remains
+  the default until both emulator and real-hardware results are known.
+
 ## 0.1.0-alpha.40 - 2026-08-11
 
 ### Fixed

@@ -1177,16 +1177,8 @@ static void ConsoleFunc(void * unused)
 
 static void UpdateSoundQualityFunc(void * unused)
 {
-    //
-    // LAMPERT 2015-10-29
-    //
-    // FIXME:
-    // Can't for the life of me figure out what's wrong here!
-    // Somehow this still gets called outside Begin/End frame,
-    // breaking on the PS2. Commenting it out for now.
-    //
+    (void)unused;
 
-    /*
     if (s_options_quality_list.curvalue)
     {
         Cvar_SetValue("s_khz", 22);
@@ -1199,20 +1191,7 @@ static void UpdateSoundQualityFunc(void * unused)
     }
 
     Cvar_SetValue("s_primary", s_options_compatibility_list.curvalue);
-
-    M_DrawTextBox(8, 120 - 48, 36, 3);
-    M_Print(16 + 16, 120 - 48 + 8, "Restarting the sound system. This");
-    M_Print(16 + 16, 120 - 48 + 16, "could take up to a minute, so");
-    M_Print(16 + 16, 120 - 48 + 24, "please be patient.");
-
-    // the text box won't show up unless we do a buffer swap
-    //
-    // LAMPERT 2015-10-29:
-    // FIXME This won't work in the PS2, we need consistent Begin/End frame states!
-    //re.EndFrame();
-
     CL_Snd_Restart_f();
-    */
 }
 
 void Options_MenuInit(void)
@@ -1928,6 +1907,7 @@ extern int PS2_SNDDMA_GetLastError(void);
 extern int PS2_SNDDMA_GetQueuedBytes(void);
 extern int PS2_SNDDMA_GetRate(void);
 extern unsigned int PS2_SNDDMA_GetPlayCalls(void);
+extern int PS2_SNDDMA_GetMinQueuedBytes(void);
 
 static const char * s_testmap_mipmap_names[] =
 {
@@ -2076,9 +2056,9 @@ static void TestMapUpdateAudioStatus(void)
         break;
     case 4:
         Com_sprintf(s_testmap_audio_status_text,
-                    sizeof(s_testmap_audio_status_text), "audio: active %dhz q%d n%u",
+                    sizeof(s_testmap_audio_status_text), "audio: %dhz q%d min%d n%u",
                     PS2_SNDDMA_GetRate(), PS2_SNDDMA_GetQueuedBytes(),
-                    PS2_SNDDMA_GetPlayCalls());
+                    PS2_SNDDMA_GetMinQueuedBytes(), PS2_SNDDMA_GetPlayCalls());
         break;
     case 5:
         Com_sprintf(s_testmap_audio_status_text,

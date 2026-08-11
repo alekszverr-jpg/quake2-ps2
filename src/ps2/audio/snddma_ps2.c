@@ -26,7 +26,8 @@ extern int PS2_InitAudioIop(void);
 
 /* Keep each EE -> IOP RPC small. audsrv internally splits larger calls too,
  * but explicit chunks let Submit stop immediately when its queue is full. */
-#define PS2_AUDIO_CHUNK_BYTES 2048
+#define PS2_AUDIO_CHUNK_BYTES 4096
+#define PS2_AUDIO_MIN_MIXAHEAD 0.35F
 
 static unsigned long long s_submittedFrames;
 static int s_audsrvStarted;
@@ -35,6 +36,7 @@ static int s_lastError;
 static int s_lastQueuedBytes;
 static int s_outputRate;
 static unsigned int s_playCalls;
+static int s_minQueuedBytes;
 
 enum
 {
@@ -53,6 +55,7 @@ int PS2_SNDDMA_GetLastError(void)   { return s_lastError; }
 int PS2_SNDDMA_GetQueuedBytes(void) { return s_lastQueuedBytes; }
 int PS2_SNDDMA_GetRate(void)        { return s_outputRate; }
 unsigned int PS2_SNDDMA_GetPlayCalls(void) { return s_playCalls; }
+int PS2_SNDDMA_GetMinQueuedBytes(void) { return s_minQueuedBytes; }
 
 qboolean SNDDMA_Init(void)
 {
@@ -68,6 +71,7 @@ qboolean SNDDMA_Init(void)
     s_lastQueuedBytes = 0;
     s_outputRate = 0;
     s_playCalls = 0;
+    s_minQueuedBytes = -1;
 
     if (!PS2_InitAudioIop())
     {
@@ -108,7 +112,7 @@ qboolean SNDDMA_Init(void)
 
     dma.channels = PS2_DMA_CHANNELS;
     dma.samples = PS2_DMA_SAMPLES;
-    dma.submission_chunk = 64; /* stereo frames; power of two for snd_dma.c */
+    dma.submission_chunk = 256; /* stereo frames; power of two for snd_dma.c */
     dma.samplepos = 0;
     dma.samplebits = PS2_DMA_SAMPLE_BITS;
     dma.speed = rate;
@@ -116,6 +120,14 @@ qboolean SNDDMA_Init(void)
     memset(dma.buffer, 0, dma.samples * PS2_BYTES_PER_SAMPLE);
     s_outputRate = rate;
     s_audioStatus = PS2_AUDIO_ACTIVE;
+
+    /*
+     * audsrv can repeat stale ring-buffer data after an underrun. Keep a
+     * larger reserve than desktop Quake II so low-frame-rate PS2 scenes can
+     * replenish the IOP stream before it reaches that state.
+     */
+    if (s_mixahead != NULL && s_mixahead->value < PS2_AUDIO_MIN_MIXAHEAD)
+        Cvar_SetValue("s_mixahead", PS2_AUDIO_MIN_MIXAHEAD);
 
     Com_Printf("PS2 audio: audsrv PCM %d Hz, stereo 16-bit, %d KB EE ring.\n",
                rate, (dma.samples * PS2_BYTES_PER_SAMPLE) / 1024);
@@ -135,6 +147,9 @@ int SNDDMA_GetDMAPos(void)
     if (queued < 0)
         queued = 0;
     s_lastQueuedBytes = queued;
+    if (s_submittedFrames > 0 &&
+        (s_minQueuedBytes < 0 || queued < s_minQueuedBytes))
+        s_minQueuedBytes = queued;
 
     submittedBytes = s_submittedFrames * PS2_BYTES_PER_FRAME;
     if ((unsigned long long)queued > submittedBytes)
