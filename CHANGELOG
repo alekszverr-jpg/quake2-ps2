@@ -6,6 +6,29 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.44 - 2026-08-11
+
+### Fixed
+
+- Removed the alpha.43 blocking first-buffer wait, which can deadlock inside
+  `audsrv_wait_audio` when the SDK ring confuses its empty and full states.
+- Temporarily restricted the menu to `SOUND QUALITY: LOW (STABLE)` and force
+  11025 Hz/8-bit cache settings during PS2 audio initialization. This also
+  repairs archived `HIGH` settings automatically, so affected configurations
+  boot with sound instead of remaining silent or hanging.
+
+### Known limitation
+
+- 22050 Hz `HIGH` quality remains disabled until the port has a callback-driven
+  or custom IOP streaming path that never relies on blocking `audsrv` waits.
+
+### Validation target
+
+- Boot with the same configuration that previously selected `HIGH`; confirm
+  the game starts, reports 11025 Hz and produces sound without hanging.
+- Recheck whether the larger alpha.41 queue reserve reduced low-quality
+  chatter. Report `q/min/n` after combat if buzzing remains.
+
 ## 0.1.0-alpha.43 - 2026-08-11
 
 ### Fixed

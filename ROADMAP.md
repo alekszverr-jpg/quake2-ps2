@@ -107,8 +107,8 @@ development tools.
 
 ## Immediate priorities
 
-1. Validate alpha.43 first-block handoff from startup silence to real PCM and
-   confirm that `HIGH` advances beyond its former `q0/min-1/n2` state.
+1. Validate alpha.44 safe recovery from archived HIGH settings and quantify
+   any remaining 11025 Hz underrun chatter without blocking the game thread.
 2. Repeat the audio smoke test on a real PS2 and check attenuation, stereo
    positioning, looping, distortion, minimum queue depth and FPS regression.
 3. Use the queue low-water mark to decide whether hot effects
