@@ -1918,7 +1918,16 @@ static menulist_s s_testmap_list;
 static menulist_s s_testmap_mipmaps_list;
 static menulist_s s_testmap_texture_list;
 static menulist_s s_testmap_diagnostics_list;
+static menuseparator_s s_testmap_audio_status;
+static menulist_s s_testmap_audio_test_list;
 static menuaction_s s_testmap_load_action;
+static char s_testmap_audio_status_text[64];
+
+extern int PS2_SNDDMA_GetStatus(void);
+extern int PS2_SNDDMA_GetLastError(void);
+extern int PS2_SNDDMA_GetQueuedBytes(void);
+extern int PS2_SNDDMA_GetRate(void);
+extern unsigned int PS2_SNDDMA_GetPlayCalls(void);
 
 static const char * s_testmap_mipmap_names[] =
 {
@@ -1931,6 +1940,10 @@ static const char * s_testmap_texture_names[] =
 static const char * s_testmap_diagnostics_names[] =
 {
     "off", "fps only", "full", 0
+};
+static const char * s_testmap_audio_test_names[] =
+{
+    "off", "tone", 0
 };
 
 static const char * s_testmap_ids[] =
@@ -2036,6 +2049,48 @@ static void TestMapDiagnosticsFunc(void * unused)
     Cvar_SetValue("ps2_show_drawstats", mode >= 2);
 }
 
+static void TestMapAudioTestFunc(void * unused)
+{
+    (void)unused;
+    Cvar_SetValue("s_testsound", s_testmap_audio_test_list.curvalue != 0);
+}
+
+static void TestMapUpdateAudioStatus(void)
+{
+    const int status = PS2_SNDDMA_GetStatus();
+    const int error = PS2_SNDDMA_GetLastError();
+
+    switch (status)
+    {
+    case 1:
+        Com_sprintf(s_testmap_audio_status_text,
+                    sizeof(s_testmap_audio_status_text), "audio: iop failed");
+        break;
+    case 2:
+        Com_sprintf(s_testmap_audio_status_text,
+                    sizeof(s_testmap_audio_status_text), "audio: audsrv fail %d", error);
+        break;
+    case 3:
+        Com_sprintf(s_testmap_audio_status_text,
+                    sizeof(s_testmap_audio_status_text), "audio: format fail %d", error);
+        break;
+    case 4:
+        Com_sprintf(s_testmap_audio_status_text,
+                    sizeof(s_testmap_audio_status_text), "audio: active %dhz q%d n%u",
+                    PS2_SNDDMA_GetRate(), PS2_SNDDMA_GetQueuedBytes(),
+                    PS2_SNDDMA_GetPlayCalls());
+        break;
+    case 5:
+        Com_sprintf(s_testmap_audio_status_text,
+                    sizeof(s_testmap_audio_status_text), "audio: stream fail %d", error);
+        break;
+    default:
+        Com_sprintf(s_testmap_audio_status_text,
+                    sizeof(s_testmap_audio_status_text), "audio: not started");
+        break;
+    }
+}
+
 static void TestMap_MenuInit(void)
 {
     s_testmap_menu.x = viddef.width * 0.50;
@@ -2102,10 +2157,27 @@ static void TestMap_MenuInit(void)
     else
         s_testmap_diagnostics_list.curvalue = 0;
 
+    TestMapUpdateAudioStatus();
+    s_testmap_audio_status.generic.type = MTYPE_SEPARATOR;
+    s_testmap_audio_status.generic.x = 0;
+    s_testmap_audio_status.generic.y = 80;
+    s_testmap_audio_status.generic.name = s_testmap_audio_status_text;
+
+    s_testmap_audio_test_list.generic.type = MTYPE_SPINCONTROL;
+    s_testmap_audio_test_list.generic.x = 0;
+    s_testmap_audio_test_list.generic.y = 100;
+    s_testmap_audio_test_list.generic.name = "audio test";
+    s_testmap_audio_test_list.generic.statusbar = "tone bypasses wav loading and positional mixing";
+    s_testmap_audio_test_list.generic.callback = TestMapAudioTestFunc;
+    s_testmap_audio_test_list.itemnames = s_testmap_audio_test_names;
+    Cvar_Get("s_testsound", "0", 0);
+    s_testmap_audio_test_list.curvalue =
+        Cvar_VariableValue("s_testsound") != 0.0F;
+
     s_testmap_load_action.generic.type = MTYPE_ACTION;
     s_testmap_load_action.generic.flags = QMF_LEFT_JUSTIFY;
     s_testmap_load_action.generic.x = 0;
-    s_testmap_load_action.generic.y = 80;
+    s_testmap_load_action.generic.y = 120;
     s_testmap_load_action.generic.name = "load selected map";
     s_testmap_load_action.generic.statusbar = "start this map in single player";
     s_testmap_load_action.generic.callback = TestMapLoadFunc;
@@ -2114,12 +2186,15 @@ static void TestMap_MenuInit(void)
     Menu_AddItem(&s_testmap_menu, &s_testmap_mipmaps_list);
     Menu_AddItem(&s_testmap_menu, &s_testmap_texture_list);
     Menu_AddItem(&s_testmap_menu, &s_testmap_diagnostics_list);
+    Menu_AddItem(&s_testmap_menu, &s_testmap_audio_status);
+    Menu_AddItem(&s_testmap_menu, &s_testmap_audio_test_list);
     Menu_AddItem(&s_testmap_menu, &s_testmap_load_action);
     Menu_Center(&s_testmap_menu);
 }
 
 static void TestMap_MenuDraw(void)
 {
+    TestMapUpdateAudioStatus();
     M_Banner("m_banner_game");
     Menu_AdjustCursor(&s_testmap_menu, 1);
     Menu_Draw(&s_testmap_menu);

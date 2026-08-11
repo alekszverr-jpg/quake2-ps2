@@ -6,6 +6,25 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.39 - 2026-08-11
+
+### Added
+
+- Added a controller-accessible audio diagnostic to `GAME -> TEST MAP`. The
+  live status distinguishes IOP-module, `audsrv` initialization, PCM-format
+  and streaming failures, and reports the output rate, latest queued byte
+  count and successful PCM submission count when active.
+- Added `AUDIO TEST: TONE`, which feeds the stock mixer's generated sine wave
+  directly into the PS2 PCM backend. This bypasses WAV loading, spatialization
+  and gameplay events so silent output can be isolated without a console.
+
+### Validation target
+
+- Open `GAME -> TEST MAP` and report the complete `AUDIO:` status line.
+- Switch `AUDIO TEST` from `OFF` to `TONE`, close the menu and listen for a
+  steady tone. Reopen the menu and report whether the queue/submission numbers
+  change. Return the test to `OFF` afterward.
+
 ## 0.1.0-alpha.38 - 2026-08-11
 
 ### Added

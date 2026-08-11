@@ -107,8 +107,8 @@ development tools.
 
 ## Immediate priorities
 
-1. Validate the first `audsrv` PCM effects build in PCSX2: menu feedback,
-   weapons, enemies, doors, stereo attenuation and sustained playback.
+1. Use the alpha.39 gamepad audio status and generated tone to isolate the
+   silent alpha.38 output between IOP startup, `audsrv` format and PCM queueing.
 2. Repeat the audio smoke test on a real PS2 and watch for IOP-module startup
    failures, underruns or a measurable frame-rate regression.
 3. Add audio timing/underrun diagnostics, then decide whether hot effects

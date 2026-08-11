@@ -30,6 +30,29 @@ extern int PS2_InitAudioIop(void);
 
 static unsigned long long s_submittedFrames;
 static int s_audsrvStarted;
+static int s_audioStatus;
+static int s_lastError;
+static int s_lastQueuedBytes;
+static int s_outputRate;
+static unsigned int s_playCalls;
+
+enum
+{
+    PS2_AUDIO_NOT_ATTEMPTED = 0,
+    PS2_AUDIO_IOP_FAILED,
+    PS2_AUDIO_AUDSRV_FAILED,
+    PS2_AUDIO_FORMAT_FAILED,
+    PS2_AUDIO_ACTIVE,
+    PS2_AUDIO_STREAM_FAILED
+};
+
+/* Read-only diagnostics used by GAME -> TEST MAP. They intentionally avoid
+ * RPC calls: the real-time path records the latest queue state for the menu. */
+int PS2_SNDDMA_GetStatus(void)      { return s_audioStatus; }
+int PS2_SNDDMA_GetLastError(void)   { return s_lastError; }
+int PS2_SNDDMA_GetQueuedBytes(void) { return s_lastQueuedBytes; }
+int PS2_SNDDMA_GetRate(void)        { return s_outputRate; }
+unsigned int PS2_SNDDMA_GetPlayCalls(void) { return s_playCalls; }
 
 qboolean SNDDMA_Init(void)
 {
@@ -40,9 +63,15 @@ qboolean SNDDMA_Init(void)
     memset(&dma, 0, sizeof(dma));
     s_submittedFrames = 0;
     s_audsrvStarted = 0;
+    s_audioStatus = PS2_AUDIO_NOT_ATTEMPTED;
+    s_lastError = 0;
+    s_lastQueuedBytes = 0;
+    s_outputRate = 0;
+    s_playCalls = 0;
 
     if (!PS2_InitAudioIop())
     {
+        s_audioStatus = PS2_AUDIO_IOP_FAILED;
         Com_Printf("WARNING: PS2 audio modules unavailable; continuing without sound.\n");
         return false;
     }
@@ -50,6 +79,8 @@ qboolean SNDDMA_Init(void)
     result = audsrv_init();
     if (result != AUDSRV_ERR_NOERROR)
     {
+        s_audioStatus = PS2_AUDIO_AUDSRV_FAILED;
+        s_lastError = result;
         Com_Printf("WARNING: audsrv_init failed (%d: %s); continuing without sound.\n",
                    result, audsrv_get_error_string());
         return false;
@@ -65,6 +96,8 @@ qboolean SNDDMA_Init(void)
     result = audsrv_set_format(&format);
     if (result != AUDSRV_ERR_NOERROR)
     {
+        s_audioStatus = PS2_AUDIO_FORMAT_FAILED;
+        s_lastError = result;
         Com_Printf("WARNING: audsrv_set_format failed (%d: %s).\n",
                    result, audsrv_get_error_string());
         SNDDMA_Shutdown();
@@ -81,6 +114,8 @@ qboolean SNDDMA_Init(void)
     dma.speed = rate;
     dma.buffer = Z_Malloc(dma.samples * PS2_BYTES_PER_SAMPLE);
     memset(dma.buffer, 0, dma.samples * PS2_BYTES_PER_SAMPLE);
+    s_outputRate = rate;
+    s_audioStatus = PS2_AUDIO_ACTIVE;
 
     Com_Printf("PS2 audio: audsrv PCM %d Hz, stereo 16-bit, %d KB EE ring.\n",
                rate, (dma.samples * PS2_BYTES_PER_SAMPLE) / 1024);
@@ -99,6 +134,7 @@ int SNDDMA_GetDMAPos(void)
     queued = audsrv_queued();
     if (queued < 0)
         queued = 0;
+    s_lastQueuedBytes = queued;
 
     submittedBytes = s_submittedFrames * PS2_BYTES_PER_FRAME;
     if ((unsigned long long)queued > submittedBytes)
@@ -177,11 +213,14 @@ void SNDDMA_Submit(void)
         sentBytes = audsrv_play_audio(source, framesToSend * PS2_BYTES_PER_FRAME);
         if (sentBytes <= 0)
         {
+            s_audioStatus = PS2_AUDIO_STREAM_FAILED;
+            s_lastError = audsrv_get_error();
             Com_DPrintf("PS2 audio: audsrv_play_audio failed (%d: %s).\n",
                         sentBytes, audsrv_get_error_string());
             break;
         }
 
+        s_playCalls++;
         s_submittedFrames += (unsigned int)(sentBytes / PS2_BYTES_PER_FRAME);
         pendingFrames = paintedFrames - s_submittedFrames;
         availableBytes -= sentBytes;

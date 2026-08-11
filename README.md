@@ -1,7 +1,7 @@
 # Quake II for PlayStation 2
 
 [![Build](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml/badge.svg)](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml)
-[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.38-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
+[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.39-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](LICENSE)
 
 An active continuation of the unofficial Quake II port for the Sony
