@@ -94,6 +94,112 @@ play on a retail console.
 - [~] Validate long sessions for EE RAM, IOP RAM and VRAM leaks
 - [ ] Target a stable 30 FPS minimum, with 60 FPS where practical
 
+## Performance and optimization program
+
+This section is the implementation plan for Milestone 4. Changes should be
+profiled on PCSX2 first and periodically validated on a retail PS2. Visual
+correctness, deterministic level loading and campaign stability take priority
+over synthetic peak frame rate.
+
+### P0 - Measurement and release baseline
+
+- [ ] Add repeatable benchmark scenes for a light BSP room, a heavy combat
+  scene, water/particles and a high-entity outdoor scene
+- [ ] Record CPU time, VU wait time, texture DMA/upload time, visible surfaces,
+  triangles, batches and minimum FPS for each benchmark
+- [ ] Add a release configuration without permanent draw, memory, texture and
+  audio diagnostics; keep a gamepad-selectable profiling build
+- [ ] Establish regression limits for frame time, EE RAM, IOP RAM and GS VRAM
+
+Completion criterion: the same camera positions and encounters produce a
+comparable PCSX2/PS2 profile, and release builds do not pay for disabled
+diagnostic formatting or rendering.
+
+### P1 - VU1 geometry and lighting
+
+- [ ] Move BSP vertex transformation and lighting from the EE to VU1
+- [ ] Move MD2 interpolation, transformation and vertex lighting to VU1
+- [ ] Double-buffer VU1 input/output so EE scene preparation overlaps VU1 work
+- [ ] Keep a guarded EE fallback until BSP and every MD2 render flag match
+
+Completion criterion: BSP and MD2 output remains visually equivalent while EE
+geometry time and VU1 idle time are measurably reduced in the benchmark scenes.
+
+### P2 - DMA/VIF batching and draw submission
+
+- [ ] Build larger DMA/VIF batches instead of submitting small surface/model
+  packets independently
+- [ ] Sort opaque draws by texture, lightmap and render state to reduce GS state
+  changes and texture uploads
+- [ ] Submit transparent surfaces in a separate order-correct pass
+- [ ] Track batch count, average vertices per batch and state changes in the
+  profiling build
+
+Completion criterion: batch/state-change counts drop without reintroducing
+weapon, particle, glass, water or world-geometry corruption.
+
+### P3 - BSP visibility and culling
+
+- [ ] Precompute reusable visible BSP surface sets from Quake II PVS data
+- [ ] Cache per-view-cluster visibility work and invalidate it only when the
+  camera crosses the relevant BSP boundary
+- [ ] Add more aggressive frustum, backface, entity and bounding-box culling
+- [ ] Avoid lighting, transforming or batching surfaces rejected by visibility
+
+Completion criterion: heavy scenes submit substantially fewer surfaces and
+vertices, with no visible popping, missing doors or broken moving brush models.
+
+### P4 - Texture residency and VRAM traffic
+
+- [ ] Measure texture upload churn, evictions, VRAM waits and repeated uploads
+  per frame
+- [ ] Keep frequently used HUD, weapon, particle and common world textures in
+  stable VRAM slots where practical
+- [ ] Reuse texture allocations across frames and reduce allocator
+  fragmentation during level transitions
+- [ ] Group world draws by resident texture/lightmap and upload only when the
+  required generation is not already present
+
+Completion criterion: common gameplay frames perform few or no redundant
+uploads, zero-free-VRAM stress remains artifact-free, and level transitions do
+not accumulate stale texture allocations.
+
+### P5 - Specialized effect paths
+
+- [ ] Add a compact particle path with shared state and batched billboard data
+- [ ] Add a simplified turbulent water path with a bounded subdivision cost
+- [ ] Consolidate glass, sprites and other transparent surfaces into a minimal
+  state-change path
+- [ ] Add quality limits for particles and translucent layers that degrade
+  gracefully in unusually heavy scenes
+
+Completion criterion: water, particles and transparency remain visually stable
+while their combined EE time, batches and GS state changes are reduced.
+
+### P6 - Memory and sustained-play validation
+
+- [ ] Reuse per-level world/model work buffers instead of retaining temporary
+  allocations between maps
+- [ ] Validate Base 1 -> Base 2 -> Base 3 and other multi-level routes without
+  EE allocation failures
+- [ ] Run extended combat/audio sessions while tracking EE, IOP and VRAM high
+  water marks
+- [ ] Define a retail-PS2 memory reserve that must remain available before a
+  new map is accepted
+
+Completion criterion: repeated map transitions and long sessions complete
+without memory exhaustion, and the retail release maintains its reserved
+memory margin.
+
+### Recommended implementation order
+
+1. P0 profiling/release baseline
+2. P2 batching and P3 culling for lower-risk CPU wins
+3. P4 stable texture residency and reduced VRAM churn
+4. P1 BSP VU1 path, followed by the MD2 VU1 path
+5. P5 specialized particle, water and transparency paths
+6. P6 full campaign, transition and sustained-play validation
+
 ## Milestone 5 - Test release
 
 Target: a documented build that another user can install and test without
