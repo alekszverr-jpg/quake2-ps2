@@ -56,7 +56,7 @@ enough for normal gameplay.
 - [x] Turbulent water/lava/slime surfaces, validated in PCSX2
 - [x] Weapon depth-range and view-model render flags
 - [x] WAL mipmaps and stable minification filtering
-- [~] Power-of-two GS storage for NPOT WAL textures
+- [x] Power-of-two GS storage for NPOT WAL textures, validated on `bunk1`
 - [ ] Frustum/entity culling and renderer performance pass
 
 ## Milestone 2 - Audio
