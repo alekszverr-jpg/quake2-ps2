@@ -6,6 +6,23 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.43 - 2026-08-11
+
+### Fixed
+
+- Added one bounded `audsrv_wait_audio` during the first real PCM submission
+  after audio initialization or a quality change. Alpha.42 correctly primed
+  the IOP ring, but at 22050 Hz its nonblocking path could miss every writable
+  window until the primer drained, leaving `HIGH` stuck at `q0/min-1/n2`.
+  Normal submissions remain nonblocking after this first 2048-byte block.
+
+### Validation target
+
+- Switch to `SOUND QUALITY: HIGH` and verify that `n` advances beyond 2,
+  `min` becomes non-negative and gameplay audio is audible.
+- Compare residual buzzing on `LOW` and `HIGH`; report `q/min/n` after several
+  seconds rather than immediately after switching quality.
+
 ## 0.1.0-alpha.42 - 2026-08-11
 
 ### Fixed

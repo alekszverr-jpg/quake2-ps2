@@ -107,8 +107,8 @@ development tools.
 
 ## Immediate priorities
 
-1. Validate alpha.42 low/high startup priming and confirm that neither mode
-   reaches the `audsrv` empty/full ambiguity during normal gameplay.
+1. Validate alpha.43 first-block handoff from startup silence to real PCM and
+   confirm that `HIGH` advances beyond its former `q0/min-1/n2` state.
 2. Repeat the audio smoke test on a real PS2 and check attenuation, stereo
    positioning, looping, distortion, minimum queue depth and FPS regression.
 3. Use the queue low-water mark to decide whether hot effects

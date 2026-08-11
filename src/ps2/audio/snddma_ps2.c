@@ -27,6 +27,7 @@ extern int PS2_InitAudioIop(void);
 /* Keep each EE -> IOP RPC small. audsrv internally splits larger calls too,
  * but explicit chunks let Submit stop immediately when its queue is full. */
 #define PS2_AUDIO_CHUNK_BYTES 4096
+#define PS2_AUDIO_FIRST_CHUNK_BYTES 2048
 #define PS2_AUDIO_MIN_MIXAHEAD 0.35F
 
 static unsigned long long s_submittedFrames;
@@ -220,6 +221,7 @@ void SNDDMA_Submit(void)
     unsigned long long paintedFrames;
     unsigned long long pendingFrames;
     int availableBytes;
+    int waitResult;
 
     if (!s_audsrvStarted || dma.buffer == NULL)
         return;
@@ -233,6 +235,27 @@ void SNDDMA_Submit(void)
 
     pendingFrames = paintedFrames - s_submittedFrames;
     availableBytes = audsrv_available();
+
+    /*
+     * The startup silence intentionally fills the IOP ring. Wait once for a
+     * small writable window so the first real mixed block is guaranteed to
+     * enter the queue before the primer drains. All later submissions remain
+     * non-blocking, including normal low-frame-rate gameplay.
+     */
+    if (pendingFrames > 0 && s_submittedFrames == 0 &&
+        availableBytes < PS2_AUDIO_FIRST_CHUNK_BYTES)
+    {
+        waitResult = audsrv_wait_audio(PS2_AUDIO_FIRST_CHUNK_BYTES);
+        if (waitResult == AUDSRV_ERR_NOERROR)
+            availableBytes = audsrv_available();
+        else
+        {
+            s_audioStatus = PS2_AUDIO_STREAM_FAILED;
+            s_lastError = waitResult;
+            return;
+        }
+    }
+
     while (pendingFrames > 0 && availableBytes >= PS2_BYTES_PER_FRAME)
     {
         unsigned long long sampleIndex;
