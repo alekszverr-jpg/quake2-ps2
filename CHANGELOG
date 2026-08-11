@@ -27,6 +27,11 @@ Development priorities and completion criteria are tracked in
   `OFF`, closing the menu after each change. Confirm that the compact counter,
   all four panels, and the clean screen appear respectively.
 
+### Validated
+
+- PCSX2 testing confirmed the clean default screen and correct switching of
+  the `OFF`, `FPS ONLY`, and `FULL` diagnostic modes.
+
 ## 0.1.0-alpha.36 - 2026-08-11
 
 ### Fixed
