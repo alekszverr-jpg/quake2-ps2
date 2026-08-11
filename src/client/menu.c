@@ -1923,7 +1923,10 @@ static const char * s_testmap_mipmap_names[] =
 {
     "off", "auto", "level 0", "level 1", "level 2", "level 3", 0
 };
-static const char * s_testmap_texture_names[] = { "normal", "checker", 0 };
+static const char * s_testmap_texture_names[] =
+{
+    "normal", "checker rgb16", "checker psmt8", 0
+};
 
 static const char * s_testmap_ids[] =
 {
@@ -2014,7 +2017,7 @@ static void TestMapMipmapsFunc(void * unused)
 static void TestMapTextureFunc(void * unused)
 {
     (void)unused;
-    Cvar_SetValue("ps2_world_checker", s_testmap_texture_list.curvalue != 0);
+    Cvar_SetValue("ps2_world_checker", s_testmap_texture_list.curvalue);
 }
 
 static void TestMap_MenuInit(void)
@@ -2058,7 +2061,10 @@ static void TestMap_MenuInit(void)
     s_testmap_texture_list.itemnames = s_testmap_texture_names;
     Cvar_Get("ps2_world_checker", "0", 0);
     s_testmap_texture_list.curvalue =
-        Cvar_VariableValue("ps2_world_checker") != 0.0F;
+        (int)Cvar_VariableValue("ps2_world_checker");
+    if (s_testmap_texture_list.curvalue < 0 ||
+        s_testmap_texture_list.curvalue > 2)
+        s_testmap_texture_list.curvalue = 0;
 
     s_testmap_load_action.generic.type = MTYPE_ACTION;
     s_testmap_load_action.generic.flags = QMF_LEFT_JUSTIFY;

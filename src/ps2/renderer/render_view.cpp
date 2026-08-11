@@ -1460,8 +1460,10 @@ void DrawTextureChains(const math::Mat4 & mvp)
     for (int i = 0; i < s_chainTextureCount; ++i)
     {
         const tex::Texture * texture = s_chainTextures[i];
+        const int checkerMode = static_cast<int>(worldChecker->value);
         const tex::Texture & drawTexture =
-            worldChecker->value != 0.0f ? tex::DebugTexture(1) : *texture;
+            checkerMode == 2 ? tex::DebugPaletteTexture() :
+            (checkerMode == 1 ? tex::DebugTexture(1) : *texture);
 
         for (const mod::ModelSurface * surf = texture->textureChain; surf != nullptr; surf = surf->textureChain)
         {

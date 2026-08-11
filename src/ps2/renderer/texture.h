@@ -154,6 +154,11 @@ constexpr int kNumDebugTextures = 6;
 // several distinct textures to exercise VRAM streaming.
 const Texture & DebugTexture(int index = 0);
 
+// Permanent 8-bit checker using the shared palette. Paired with DebugTexture
+// by the gamepad diagnostic to distinguish PSMT8/TBW defects from streaming
+// or BSP geometry defects.
+const Texture & DebugPaletteTexture();
+
 // Original Quake II 8x8 dot texture used by the 3D particle pass.
 const Texture & ParticleTexture();
 

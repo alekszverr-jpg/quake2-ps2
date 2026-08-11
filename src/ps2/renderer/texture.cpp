@@ -162,6 +162,25 @@ const u16 * MakeCheckerPattern(int variant)
     return buffer;
 }
 
+const u8 * MakePaletteCheckerPattern()
+{
+    // Avoid index 255 (transparent in the global CLUT). The exact palette
+    // colours are unimportant; alternating indices make addressing defects
+    // visible while exercising the same PSMT8 + CLUT path as a WAL.
+    alignas(16) static u8 buffer[kCheckerDim * kCheckerDim];
+    constexpr int squareSize = kCheckerDim / kCheckerSquares;
+    for (int y = 0; y < kCheckerDim; ++y)
+    {
+        for (int x = 0; x < kCheckerDim; ++x)
+        {
+            const bool alternate =
+                (((y / squareSize) + (x / squareSize)) & 1) != 0;
+            buffer[x + (y * kCheckerDim)] = alternate ? 32 : 208;
+        }
+    }
+    return buffer;
+}
+
 const u32 * MakeParticlePattern()
 {
     constexpr u8 dots[8][8] = {
@@ -195,6 +214,7 @@ public:
     void Init();
     const Texture * Find(const char * name, const ImageType type);
     const Texture & DebugTexture(int index) const;
+    const Texture & DebugPaletteTexture() const;
 
     void BeginRegistration();
     void EndRegistration();
@@ -222,6 +242,7 @@ private:
 
     TexturePool m_texturePool;
     const Texture * m_debugTextures[kNumDebugTextures] = {};
+    const Texture * m_debugPaletteTexture = nullptr;
 
     // Level load/change cycle counter; textures stamped with an older value
     // are the ones EndRegistration() frees. See tex::BeginRegistration().
@@ -410,6 +431,12 @@ const Texture & TextureCache::DebugTexture(int index) const
     return *m_debugTextures[index];
 }
 
+const Texture & TextureCache::DebugPaletteTexture() const
+{
+    PS2_Assert(m_debugPaletteTexture != nullptr);
+    return *m_debugPaletteTexture;
+}
+
 Texture & TextureCache::Register(const char * name, const void * pixels, int width, int height,
                                  int pixelBytes, int mipLevels,
                                  PixelFormat format, TexComponents components,
@@ -500,6 +527,7 @@ void TextureCache::Init()
         { "pics/debug3.pcx",    MakeCheckerPattern(3), kCheckerDim,     kCheckerDim,      PixelFormat::RGB16,    TexComponents::RGB  },
         { "pics/debug4.pcx",    MakeCheckerPattern(4), kCheckerDim,     kCheckerDim,      PixelFormat::RGB16,    TexComponents::RGB  },
         { "pics/debug5.pcx",    MakeCheckerPattern(5), kCheckerDim,     kCheckerDim,      PixelFormat::RGB16,    TexComponents::RGB  },
+        { "pics/debugpal.pcx",  MakePaletteCheckerPattern(), kCheckerDim, kCheckerDim,    PixelFormat::Palette8, TexComponents::RGB  },
     };
 
     for (const BuiltinImage & builtin : builtins)
@@ -516,6 +544,8 @@ void TextureCache::Init()
         m_debugTextures[i] = Find(name, ImageType::Pic);
         PS2_Assert(m_debugTextures[i] != nullptr);
     }
+    m_debugPaletteTexture = Find("debugpal", ImageType::Pic);
+    PS2_Assert(m_debugPaletteTexture != nullptr);
 
     Com_Printf("Texture cache initialised: %u built-in images registered.\n", m_texturePool.UsedCount());
 }
@@ -556,6 +586,11 @@ void TouchTexture(const Texture & texture)
 const Texture & DebugTexture(int index)
 {
     return s_cache.DebugTexture(index);
+}
+
+const Texture & DebugPaletteTexture()
+{
+    return s_cache.DebugPaletteTexture();
 }
 
 const Texture & ParticleTexture()

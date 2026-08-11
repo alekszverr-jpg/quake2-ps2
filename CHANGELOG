@@ -6,6 +6,26 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.35 - 2026-08-11
+
+### Added
+
+- Split the clean alpha.34 checker diagnostic into `CHECKER RGB16` and
+  `CHECKER PSMT8`. The latter is a permanent, single-level indexed texture
+  using the same shared-CLUT format as world WALs.
+- Real-PS2 alpha.34 results confirmed that the reported vertical strips are
+  not missing BSP triangles or depth artifacts: replacing WALs with the RGB16
+  checker removes them completely, while the normal path visibly samples
+  fragments of unrelated textures and model skins.
+
+### Validation target
+
+- At the same `bunk1` wall select `WORLD TEXTURE: CHECKER PSMT8` and compare
+  near/far views. If it stays clean, the remaining fault is WAL residency or
+  streaming reuse; if it corrupts, the remaining fault is the common PSMT8
+  upload/TBW path.
+- Return `WORLD TEXTURE` to `NORMAL` after the test.
+
 ## 0.1.0-alpha.34 - 2026-08-11
 
 ### Added
