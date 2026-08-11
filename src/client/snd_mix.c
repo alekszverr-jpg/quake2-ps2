@@ -374,8 +374,14 @@ void S_PaintChannelFrom8(channel_t * ch, sfxcache_t * sc, int count, int offset)
     if (ch->rightvol > 255)
         ch->rightvol = 255;
 
-    lscale = snd_scaletable[ch->leftvol >> 11];
-    rscale = snd_scaletable[ch->rightvol >> 11];
+    /*
+     * Channel volumes are clamped to 0..255 above.  The portable mixer in
+     * the original GPL release shifts by 11 here, which always selects row
+     * zero and therefore mixes silence.  The x86 assembly path masks off the
+     * low three bits, so the equivalent C table row is volume / 8.
+     */
+    lscale = snd_scaletable[ch->leftvol >> 3];
+    rscale = snd_scaletable[ch->rightvol >> 3];
     sfx = (signed char *)sc->data + ch->pos;
 
     samp = &paintbuffer[offset];

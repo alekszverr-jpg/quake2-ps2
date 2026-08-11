@@ -65,7 +65,7 @@ Target: gameplay sound effects and ambient audio work on real hardware.
 
 - [~] Select and initialise a PS2 audio backend (`audsrv` PCM stream)
 - [ ] Upload/cache Quake II sound samples in IOP/SPU2 memory
-- [~] Validate stock channel mixing, attenuation and looping through the PS2 backend
+- [~] Validate the corrected portable channel mixer, attenuation and looping through the PS2 backend
 - [ ] Add music playback or document the selected replacement strategy
 - [ ] Validate audio during level transitions and sustained gameplay
 
@@ -107,10 +107,10 @@ development tools.
 
 ## Immediate priorities
 
-1. Use the alpha.39 gamepad audio status and generated tone to isolate the
-   silent alpha.38 output between IOP startup, `audsrv` format and PCM queueing.
-2. Repeat the audio smoke test on a real PS2 and watch for IOP-module startup
-   failures, underruns or a measurable frame-rate regression.
+1. Validate alpha.40 menu and gameplay WAV effects after correcting the
+   portable 8-bit channel mixer's always-silent volume-table lookup.
+2. Repeat the audio smoke test on a real PS2 and check attenuation, stereo
+   positioning, looping, distortion and measurable frame-rate regression.
 3. Add audio timing/underrun diagnostics, then decide whether hot effects
    should remain in the EE software mixer or move to cached SPU2 ADPCM voices.
 4. Continue optimizing the remaining MD2/entity EE path after renderer and

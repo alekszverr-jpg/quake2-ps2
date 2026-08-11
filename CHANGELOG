@@ -6,6 +6,23 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.40 - 2026-08-11
+
+### Fixed
+
+- Fixed silent gameplay and menu WAV sounds in the portable 8-bit Quake II
+  mixer. Channel volume is stored in the range 0..255, but the original GPL C
+  fallback selected its 32-row volume table with a shift of 11, so every
+  channel used the silent row. The PS2 path now uses the x86 mixer's intended
+  8-step volume quantization.
+
+### Validation target
+
+- Leave `AUDIO TEST` set to `OFF`, move through the menus and fire a weapon in
+  a map. Confirm that menu and gameplay effects are audible.
+- Listen for obvious distortion and confirm that turning around a sound source
+  changes left/right balance while moving away reduces its volume.
+
 ## 0.1.0-alpha.39 - 2026-08-11
 
 ### Added
