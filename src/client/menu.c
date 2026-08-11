@@ -1916,12 +1916,14 @@ TEST MAP MENU
 static menuframework_s s_testmap_menu;
 static menulist_s s_testmap_list;
 static menulist_s s_testmap_mipmaps_list;
+static menulist_s s_testmap_texture_list;
 static menuaction_s s_testmap_load_action;
 
 static const char * s_testmap_mipmap_names[] =
 {
     "off", "auto", "level 0", "level 1", "level 2", "level 3", 0
 };
+static const char * s_testmap_texture_names[] = { "normal", "checker", 0 };
 
 static const char * s_testmap_ids[] =
 {
@@ -2009,6 +2011,12 @@ static void TestMapMipmapsFunc(void * unused)
     Cvar_SetValue("ps2_world_mip_level", mode >= 2 ? mode - 2 : -1);
 }
 
+static void TestMapTextureFunc(void * unused)
+{
+    (void)unused;
+    Cvar_SetValue("ps2_world_checker", s_testmap_texture_list.curvalue != 0);
+}
+
 static void TestMap_MenuInit(void)
 {
     s_testmap_menu.x = viddef.width * 0.50;
@@ -2041,16 +2049,28 @@ static void TestMap_MenuInit(void)
     if (s_testmap_mipmaps_list.curvalue > 5)
         s_testmap_mipmaps_list.curvalue = 5;
 
+    s_testmap_texture_list.generic.type = MTYPE_SPINCONTROL;
+    s_testmap_texture_list.generic.x = 0;
+    s_testmap_texture_list.generic.y = 40;
+    s_testmap_texture_list.generic.name = "world texture";
+    s_testmap_texture_list.generic.statusbar = "diagnostic: replace opaque WALs with a checker";
+    s_testmap_texture_list.generic.callback = TestMapTextureFunc;
+    s_testmap_texture_list.itemnames = s_testmap_texture_names;
+    Cvar_Get("ps2_world_checker", "0", 0);
+    s_testmap_texture_list.curvalue =
+        Cvar_VariableValue("ps2_world_checker") != 0.0F;
+
     s_testmap_load_action.generic.type = MTYPE_ACTION;
     s_testmap_load_action.generic.flags = QMF_LEFT_JUSTIFY;
     s_testmap_load_action.generic.x = 0;
-    s_testmap_load_action.generic.y = 40;
+    s_testmap_load_action.generic.y = 60;
     s_testmap_load_action.generic.name = "load selected map";
     s_testmap_load_action.generic.statusbar = "start this map in single player";
     s_testmap_load_action.generic.callback = TestMapLoadFunc;
 
     Menu_AddItem(&s_testmap_menu, &s_testmap_list);
     Menu_AddItem(&s_testmap_menu, &s_testmap_mipmaps_list);
+    Menu_AddItem(&s_testmap_menu, &s_testmap_texture_list);
     Menu_AddItem(&s_testmap_menu, &s_testmap_load_action);
     Menu_Center(&s_testmap_menu);
 }

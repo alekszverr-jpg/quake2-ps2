@@ -6,6 +6,27 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.34 - 2026-08-11
+
+### Added
+
+- Added `WORLD TEXTURE: NORMAL / CHECKER` to `GAME -> TEST MAP`. `CHECKER`
+  replaces opaque world WALs with a permanent RGB16, single-level debug
+  texture while preserving the same BSP triangles, lighting, clipping and
+  depth path.
+- This follow-up diagnostic is based on real-PS2 alpha.33 results: the grate
+  artifact occurs at every forced mip level, excluding formulaic GS LOD
+  selection as the root cause.
+
+### Validation target
+
+- Load `bunk1 - ammo depot`, face the affected grate wall, set
+  `WORLD TEXTURE` to `CHECKER`, close the menu and compare the same near and
+  far viewpoints. One screenshot is sufficient.
+- Return `WORLD TEXTURE` to `NORMAL` after the test. If the vertical holes
+  remain with the checker, investigate BSP/depth; if they disappear,
+  investigate the PSMT8 WAL upload/residency path.
+
 ## 0.1.0-alpha.33 - 2026-08-09
 
 ### Added

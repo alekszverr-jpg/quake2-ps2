@@ -1449,9 +1449,19 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
 // Draws every texture chain built by RecursiveWorldNode and resets them.
 void DrawTextureChains(const math::Mat4 & mvp)
 {
+    // Gamepad-accessible diagnostic: use a permanent non-palettized,
+    // non-mipped texture while retaining the exact BSP geometry, lighting,
+    // clipping and depth path. If the reported wall strips remain, they are
+    // geometry/depth holes; if they disappear, the PSMT8 WAL/VRAM path is at
+    // fault. Kept live so no map reload or console is required.
+    static const cvar_t * worldChecker =
+        Cvar_Get("ps2_world_checker", "0", 0);
+
     for (int i = 0; i < s_chainTextureCount; ++i)
     {
         const tex::Texture * texture = s_chainTextures[i];
+        const tex::Texture & drawTexture =
+            worldChecker->value != 0.0f ? tex::DebugTexture(1) : *texture;
 
         for (const mod::ModelSurface * surf = texture->textureChain; surf != nullptr; surf = surf->textureChain)
         {
@@ -1460,11 +1470,11 @@ void DrawTextureChains(const math::Mat4 & mvp)
             {
                 if (poly->numVerts >= 3) // Need at least one triangle.
                 {
-                    GatherPolyTriangles(*poly, *surf, mvp, *texture, cacheKey);
+                    GatherPolyTriangles(*poly, *surf, mvp, drawTexture, cacheKey);
                 }
             }
         }
-        FlushScratch(mvp, *texture);
+        FlushScratch(mvp, drawTexture);
 
         texture->textureChain = nullptr; // Reset for the next frame.
     }
