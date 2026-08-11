@@ -1917,6 +1917,7 @@ static menuframework_s s_testmap_menu;
 static menulist_s s_testmap_list;
 static menulist_s s_testmap_mipmaps_list;
 static menulist_s s_testmap_texture_list;
+static menulist_s s_testmap_diagnostics_list;
 static menuaction_s s_testmap_load_action;
 
 static const char * s_testmap_mipmap_names[] =
@@ -1926,6 +1927,10 @@ static const char * s_testmap_mipmap_names[] =
 static const char * s_testmap_texture_names[] =
 {
     "normal", "checker rgb16", "checker psmt8", 0
+};
+static const char * s_testmap_diagnostics_names[] =
+{
+    "off", "fps only", "full", 0
 };
 
 static const char * s_testmap_ids[] =
@@ -2020,6 +2025,17 @@ static void TestMapTextureFunc(void * unused)
     Cvar_SetValue("ps2_world_checker", s_testmap_texture_list.curvalue);
 }
 
+static void TestMapDiagnosticsFunc(void * unused)
+{
+    const int mode = s_testmap_diagnostics_list.curvalue;
+    (void)unused;
+
+    Cvar_SetValue("ps2_show_fps", mode >= 1);
+    Cvar_SetValue("ps2_show_memstats", mode >= 2);
+    Cvar_SetValue("ps2_show_vramstats", mode >= 2);
+    Cvar_SetValue("ps2_show_drawstats", mode >= 2);
+}
+
 static void TestMap_MenuInit(void)
 {
     s_testmap_menu.x = viddef.width * 0.50;
@@ -2066,10 +2082,30 @@ static void TestMap_MenuInit(void)
         s_testmap_texture_list.curvalue > 2)
         s_testmap_texture_list.curvalue = 0;
 
+    s_testmap_diagnostics_list.generic.type = MTYPE_SPINCONTROL;
+    s_testmap_diagnostics_list.generic.x = 0;
+    s_testmap_diagnostics_list.generic.y = 60;
+    s_testmap_diagnostics_list.generic.name = "diagnostics";
+    s_testmap_diagnostics_list.generic.statusbar = "off for gameplay; full for profiling";
+    s_testmap_diagnostics_list.generic.callback = TestMapDiagnosticsFunc;
+    s_testmap_diagnostics_list.itemnames = s_testmap_diagnostics_names;
+    Cvar_Get("ps2_show_fps", "0", 0);
+    Cvar_Get("ps2_show_memstats", "0", 0);
+    Cvar_Get("ps2_show_vramstats", "0", 0);
+    Cvar_Get("ps2_show_drawstats", "0", 0);
+    if (Cvar_VariableValue("ps2_show_memstats") != 0.0F ||
+        Cvar_VariableValue("ps2_show_vramstats") != 0.0F ||
+        Cvar_VariableValue("ps2_show_drawstats") != 0.0F)
+        s_testmap_diagnostics_list.curvalue = 2;
+    else if (Cvar_VariableValue("ps2_show_fps") != 0.0F)
+        s_testmap_diagnostics_list.curvalue = 1;
+    else
+        s_testmap_diagnostics_list.curvalue = 0;
+
     s_testmap_load_action.generic.type = MTYPE_ACTION;
     s_testmap_load_action.generic.flags = QMF_LEFT_JUSTIFY;
     s_testmap_load_action.generic.x = 0;
-    s_testmap_load_action.generic.y = 60;
+    s_testmap_load_action.generic.y = 80;
     s_testmap_load_action.generic.name = "load selected map";
     s_testmap_load_action.generic.statusbar = "start this map in single player";
     s_testmap_load_action.generic.callback = TestMapLoadFunc;
@@ -2077,6 +2113,7 @@ static void TestMap_MenuInit(void)
     Menu_AddItem(&s_testmap_menu, &s_testmap_list);
     Menu_AddItem(&s_testmap_menu, &s_testmap_mipmaps_list);
     Menu_AddItem(&s_testmap_menu, &s_testmap_texture_list);
+    Menu_AddItem(&s_testmap_menu, &s_testmap_diagnostics_list);
     Menu_AddItem(&s_testmap_menu, &s_testmap_load_action);
     Menu_Center(&s_testmap_menu);
 }

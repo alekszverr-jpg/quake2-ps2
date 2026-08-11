@@ -319,10 +319,12 @@ qboolean PS2_RefInit(void * hinstance, void * wndproc)
     ps2::vu1::Init();
     ps2::mod::Init();
 
-    s_showFpsCount  = Cvar_Get("ps2_show_fps", "1", 0);
-    s_showMemStats  = Cvar_Get("ps2_show_memstats", "1", 0);
-    s_showVramStats = Cvar_Get("ps2_show_vramstats", "1", 0);
-    s_showDrawStats = Cvar_Get("ps2_show_drawstats", "1", 0);
+    // Keep normal gameplay clean. All diagnostics remain available from the
+    // gamepad-driven GAME -> TEST MAP menu, so a console is not required.
+    s_showFpsCount  = Cvar_Get("ps2_show_fps", "0", 0);
+    s_showMemStats  = Cvar_Get("ps2_show_memstats", "0", 0);
+    s_showVramStats = Cvar_Get("ps2_show_vramstats", "0", 0);
+    s_showDrawStats = Cvar_Get("ps2_show_drawstats", "0", 0);
 
     s_texConchars = ps2::tex::Find("conchars", ps2::tex::ImageType::Pic);
     s_texBacktile = ps2::tex::Find("backtile", ps2::tex::ImageType::Pic);

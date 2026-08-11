@@ -6,6 +6,27 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.37 - 2026-08-11
+
+### Added
+
+- Added a gamepad-accessible `DIAGNOSTICS` selector to `GAME -> TEST MAP`.
+  `OFF` hides all development panels, `FPS ONLY` keeps the compact frame-rate
+  counter, and `FULL` restores draw, EE-memory and GS-VRAM statistics.
+
+### Changed
+
+- Diagnostic overlays are now disabled by default, leaving an unobstructed
+  gameplay screen on a fresh boot without requiring console commands.
+
+### Validation target
+
+- Start the ELF and load a map without changing `DIAGNOSTICS`; confirm that no
+  FPS, draw, memory or VRAM panels appear.
+- In `GAME -> TEST MAP`, cycle `DIAGNOSTICS` through `FPS ONLY`, `FULL`, and
+  `OFF`, closing the menu after each change. Confirm that the compact counter,
+  all four panels, and the clean screen appear respectively.
+
 ## 0.1.0-alpha.36 - 2026-08-11
 
 ### Fixed

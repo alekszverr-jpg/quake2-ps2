@@ -33,7 +33,7 @@ without crashes or severe rendering corruption.
 - [~] Validate cold boot and repeated boot through uLaunchELF
 - [x] Validate full-height PAL output and CRT safe area
 - [x] Validate WAL mipmaps and minification filtering on real hardware
-- [ ] Make diagnostic overlays optional and disabled by default
+- [~] Make diagnostic overlays optional and disabled by default
 - [ ] Run a complete first-level playthrough on real hardware
 - [ ] Record a small compatibility matrix: console region, video mode,
   USB device and launch method
@@ -118,7 +118,8 @@ development tools.
    completeness work is stable.
 5. Revisit VU1 overlap and texture churn if later profiles show their
    currently small wait times growing.
-6. Make diagnostic overlays optional and disabled by default.
+6. Validate the new `OFF / FPS ONLY / FULL` diagnostic selector and clean
+   default gameplay screen on PCSX2.
 
 Update this file whenever priorities, milestone status or completion criteria
 change. Record completed user-visible work in `CHANGELOG` in the same commit.
