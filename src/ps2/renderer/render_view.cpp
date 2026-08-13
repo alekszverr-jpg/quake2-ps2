@@ -665,21 +665,23 @@ static_assert(sizeof(ClipVertex) == 96, "ClipVertex must be exactly six quadword
 
 void SetClipDistances(ClipVertex & vertex, const math::Mat4 & mvp);
 
-// Camera-independent output of adaptive BSP lighting. Keep lightmap UVs beside
-// a packed colour so an animated lightstyle can recolour an existing topology
-// without recursively tessellating the source triangle again. The layout stays
-// at three qwords, preserving the existing cache budget.
+// Camera-independent output of adaptive BSP lighting. Position.w and st.zw are
+// constants in this path, so storing them as full Vec4s wasted one third of the
+// cache. Keep the seven useful floats plus packed colour in two qwords: the
+// same 1.5 MB budget now retains 50% more tessellated vertices.
 struct alignas(16) CachedLitVertex
 {
-    math::Vec4 pos;
-    math::Vec4 st;
+    float x;
+    float y;
+    float z;
+    u32 packedColor;
+    float s;
+    float t;
     float lightmapS;
     float lightmapT;
-    u32 packedColor;
-    u32 reserved;
 };
-static_assert(sizeof(CachedLitVertex) == 48,
-              "CachedLitVertex must be exactly three quadwords");
+static_assert(sizeof(CachedLitVertex) == 32,
+              "CachedLitVertex must be exactly two quadwords");
 
 constexpr int kMaxCachedVertsPerTriangle =
     3 * (1 << kMaxLightSubdivideDepth);
@@ -1300,12 +1302,14 @@ void AppendCachedTriangle(const ClipVertex (&corners)[3])
     for (const ClipVertex & corner : corners)
     {
         CachedLitVertex & out = s_litBuildVerts[s_litBuildVertCount++];
-        out.pos = corner.pos;
-        out.st = corner.st;
+        out.x = corner.pos.x;
+        out.y = corner.pos.y;
+        out.z = corner.pos.z;
+        out.s = corner.st.x;
+        out.t = corner.st.y;
         out.lightmapS = corner.lightmap.x;
         out.lightmapT = corner.lightmap.y;
         out.packedColor = PackFloatColor(corner.color);
-        out.reserved = 0;
     }
 }
 
@@ -1503,8 +1507,8 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
             {
                 const CachedLitVertex & src = drawVertices[first + v];
                 ClipVertex & corner = corners[v];
-                corner.pos = src.pos;
-                corner.st = src.st;
+                corner.pos = { src.x, src.y, src.z, 1.0f };
+                corner.st = { src.s, src.t, 0.0f, 0.0f };
                 corner.lightmap = {
                     src.lightmapS, src.lightmapT, 0.0f, 0.0f
                 };

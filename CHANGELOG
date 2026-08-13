@@ -6,6 +6,18 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.48 - 2026-08-13
+
+### Performance
+
+- Compacted cached adaptive BSP vertices from 48 to 32 bytes by omitting the
+  constant position W and unused diffuse-ST lanes. All seven meaningful values
+  remain full-precision floats and vertex colour remains packed GS RGBA.
+- Increased retained BSP tessellation capacity by 50% inside the unchanged
+  1.5 MB lighting-cache budget. Heavy scenes that exhausted alpha.47's cache
+  can now avoid rebuilding uncached triangles every frame without consuming
+  additional EE memory.
+
 ## 0.1.0-alpha.47 - 2026-08-13
 
 ### Performance
@@ -13,8 +25,8 @@ Development priorities and completion criteria are tracked in
 - Split the adaptive BSP-lighting cache into a persistent topology key and a
   live colour key. Animated light styles now recolour the cached vertices
   instead of recursively subdividing the same BSP triangles every frame.
-- Preserved the existing 48-byte cached-vertex layout and 1.5 MB cache budget
-  by storing lightmap coordinates plus packed GS colour in the third quadword.
+- Preserved alpha.46's cache budget while retaining lightmap coordinates and
+  packed GS colour for inexpensive animated-light updates.
 
 ### Diagnostics
 

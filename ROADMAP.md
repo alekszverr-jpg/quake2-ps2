@@ -167,6 +167,8 @@ not return under zero-free-VRAM stress.
 - [ ] Avoid lighting, transforming or batching surfaces rejected by visibility
 - [~] Cache adaptive BSP tessellation independently from animated lightstyle
   colours, updating cached vertex colours without rebuilding the topology
+- [~] Compact retained BSP-lighting vertices so heavy scenes fit more reusable
+  topology inside the fixed cache budget
 - [ ] Cache reusable surface lists for common cluster/area combinations where
   memory cost is lower than repeated BSP traversal cost
 
