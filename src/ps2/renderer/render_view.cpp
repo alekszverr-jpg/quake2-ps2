@@ -226,6 +226,18 @@ void SetupFrame(const refdef_t & viewDef)
     if (s_lightErrorTolerance < 1.0f)  { s_lightErrorTolerance = 1.0f; }
     if (s_lightErrorTolerance > 24.0f) { s_lightErrorTolerance = 24.0f; }
 
+#if PS2_PROFILE
+    // PROFILE-only quality/performance experiment. Keep release rendering at
+    // the user's archived values until the denser-vs-coarser comparison has
+    // been visually validated on representative indoor and outdoor scenes.
+    if (s_lightMaxSamplesPerEdge < 12.0f) { s_lightMaxSamplesPerEdge = 12.0f; }
+    if (s_lightErrorTolerance < 8.0f)     { s_lightErrorTolerance = 8.0f; }
+#endif
+    PS2_STAT_SET(lightGridStep,
+                 static_cast<int>(s_lightMaxSamplesPerEdge + 0.5f));
+    PS2_STAT_SET(lightErrorLimit,
+                 static_cast<int>(s_lightErrorTolerance + 0.5f));
+
     static const cvar_t * worldLightGammaCvar =
         Cvar_Get("ps2_world_light_gamma", "0.70", CVAR_ARCHIVE);
     float worldLightGamma = worldLightGammaCvar->value;

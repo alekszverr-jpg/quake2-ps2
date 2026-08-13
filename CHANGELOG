@@ -6,6 +6,17 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.49 - 2026-08-13
+
+### Performance
+
+- Added a PROFILE-only moderate BSP-lighting quality experiment: effective
+  adaptive spacing is at least 12 lightmap cells and interpolation tolerance
+  is at least 8 modulation units. Release rendering still uses the archived
+  `ps2_light_subdivide` and `ps2_light_error` values unchanged.
+- Added `LitStep` and `LitErr` to full diagnostics so screenshots record the
+  exact effective tessellation settings used for each comparison.
+
 ## 0.1.0-alpha.48 - 2026-08-13
 
 ### Performance

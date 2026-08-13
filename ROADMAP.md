@@ -169,6 +169,8 @@ not return under zero-free-VRAM stress.
   colours, updating cached vertex colours without rebuilding the topology
 - [~] Compact retained BSP-lighting vertices so heavy scenes fit more reusable
   topology inside the fixed cache budget
+- [~] Profile a moderately coarser adaptive light grid before committing any
+  quality default to release builds
 - [ ] Cache reusable surface lists for common cluster/area combinations where
   memory cost is lower than repeated BSP traversal cost
 

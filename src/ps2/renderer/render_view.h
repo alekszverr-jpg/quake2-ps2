@@ -31,6 +31,8 @@ struct DrawStats
     int lightCacheBuilds;  // Original BSP triangles rebuilt this frame.
     int lightCacheRelights;// Cached BSP triangles whose colours were refreshed.
     int lightCacheBytes;   // Current adaptive BSP cache footprint.
+    int lightGridStep;     // Effective maximum lightmap-cell edge spacing.
+    int lightErrorLimit;   // Effective adaptive interpolation tolerance.
     int aliasUniqueVerts;  // MD2 vertices interpolated/lit once this frame.
     int aliasCorners;      // Indexed MD2 triangle corners submitted this frame.
     int playerLightLevel;  // r_lightlevel byte sent to server-side monster AI.
