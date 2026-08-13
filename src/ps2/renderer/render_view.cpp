@@ -1291,6 +1291,11 @@ ClipVertex MakeSkyVertex(float s, float t, int axis, const refdef_t & viewDef,
                   0.0f, 0.0f };
     vertex.color = { 128.0f, 128.0f, 128.0f, 128.0f };
     SetClipDistances(vertex, mvp);
+    // The sky projection deliberately places z exactly on the far plane.
+    // The generic EE clipper subtracts kClipEpsilon and would otherwise
+    // reject that boundary even though VU1/GS accept it. Keep all other clip
+    // distances intact and explicitly admit only the artificial far depth.
+    vertex.d.f[1] = 1.0f;
     return vertex;
 }
 
@@ -1302,12 +1307,14 @@ void DrawSkyBox(const refdef_t & viewDef)
     }
     ResolveSkyTextures();
 
-    // Force every surviving sky fragment to the far end of reversed Z. Drawn
-    // after the scene, it passes only where the depth buffer is still clear;
-    // real world geometry, entities and particles can never be overwritten.
+    // Force every surviving sky fragment to the exact far end of reversed Z.
+    // The previous -0.999 value quantised to about Z=32 in the 16-bit buffer,
+    // allowing the late sky pass to overwrite very distant walls whose depth
+    // was smaller. Z=0 matches the cleared buffer and can only fill untouched
+    // pixels; visible world geometry remains in front of it.
     math::Mat4 farDepth = math::Identity();
     farDepth.m[2][2] = 0.0f;
-    farDepth.m[3][2] = -0.999f;
+    farDepth.m[3][2] = -1.0f;
     const math::Mat4 skyMvp = s_viewProjMatrix * farDepth;
 
     constexpr float st[4][2] = {

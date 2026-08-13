@@ -6,6 +6,16 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.56 - 2026-08-13
+
+### Fixed
+
+- Moved the late skybox pass from approximately `Z=32` to the exact far value
+  `Z=0` in the reversed 16-bit depth buffer. This prevents orange sky texels
+  appearing as distant dots and strips over real walls.
+- Explicitly admits the sky's intentional far-plane boundary through the EE
+  epsilon clipper while retaining its normal near and side-plane clipping.
+
 ## 0.1.0-alpha.55 - 2026-08-13
 
 ### Performance
@@ -19,6 +29,9 @@ Development priorities and completion criteria are tracked in
   persistent map-hunk allocation or level-transition memory pressure.
 - Added the PROFILE `SurfCull` counter so per-face savings can be measured
   independently from whole-node and entity `BoxCull` results.
+- PCSX2 validation reached `SurfCull` values from 8 to 112 across the supplied
+  Base1 views without missing geometry. The test also exposed a separate,
+  pre-existing far-sky depth leak addressed in alpha.56.
 
 ## 0.1.0-alpha.54 - 2026-08-13
 

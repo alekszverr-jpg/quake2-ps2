@@ -172,7 +172,9 @@ not return under zero-free-VRAM stress.
   world faces outside the frustum even when their parent BSP node intersects it
 - [~] Avoid lighting, transforming or batching surfaces rejected by visibility;
   alpha.55 performs a conservative per-face check before texture/alpha chaining
-  and exposes the independent PROFILE `SurfCull` counter
+  and exposes the independent PROFILE `SurfCull` counter. PCSX2 validation
+  reached 8-112 rejected faces in the supplied Base1 views without geometry
+  popping
 - [~] Cache adaptive BSP tessellation independently from animated lightstyle
   colours, updating cached vertex colours without rebuilding the topology
 - [~] Compact retained BSP-lighting vertices so heavy scenes fit more reusable
