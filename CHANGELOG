@@ -13,6 +13,10 @@ Development priorities and completion criteria are tracked in
 - Added conservative per-frame frustum culling for MD2 entities before static
   world-light sampling, vertex interpolation, lighting and triangle expansion.
   View weapons bypass this culling path.
+- PROFILE validation with several enemies showed the expected reduction when
+  turning away from them: FPS increased from 31 to 43, `Ent us` fell from 8330
+  to 4589, `MD2Vert` from 1346 to 330 and `MD2Corner` from 7452 to 1707. No
+  premature disappearance was observed at the screen edges.
 - Reverted the PROFILE-only lighting depth 7-8 experiment. Testing showed that
   it substantially increased `LitFine` and cache use without changing the
   remaining triangular boundary around a floor lamp.

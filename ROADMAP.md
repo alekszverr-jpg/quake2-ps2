@@ -165,7 +165,10 @@ not return under zero-free-VRAM stress.
   camera crosses the relevant BSP boundary
 - [~] Add more aggressive frustum, backface, entity and bounding-box culling;
   world BSP nodes, brush entities and MD2 entities now have conservative
-  frustum tests before their expensive render preparation
+  frustum tests before their expensive render preparation. Alpha.54 PROFILE
+  validation reduced `MD2Vert` from 1346 to 330, `MD2Corner` from 7452 to 1707
+  and `Ent us` from 8330 to 4589 when looking away from several enemies, while
+  FPS rose from 31 to 43 with no edge popping
 - [ ] Avoid lighting, transforming or batching surfaces rejected by visibility
 - [~] Cache adaptive BSP tessellation independently from animated lightstyle
   colours, updating cached vertex colours without rebuilding the topology
@@ -286,9 +289,9 @@ development tools.
 
 ## Immediate priorities
 
-1. Compare alpha.45 RELEASE and PROFILE at the same camera positions in a light
-   room, a heavy combat scene and a water/particle scene; record minimum FPS and
-   the PROFILE timing counters.
+1. Keep alpha.54 PROFILE as the culling baseline: repeat the same camera pairs
+   after each renderer optimization and compare FPS, `Ent us`, `MD2Vert`,
+   `MD2Corner`, `BoxCull` and visual popping.
 2. Start P1 by inventorying every VIF1/GIF wait and aligning large referenced
    vertex/DMA buffers to 128 bytes before changing synchronization behaviour.
 3. Combine compatible world submissions into larger VIF chains, then remove
@@ -297,8 +300,9 @@ development tools.
    11025 Hz as the nonblocking baseline until then.
 5. Recheck multi-level transitions after the next optimization pass, including
    a longer Base 1 -> Base 2 -> Base 3 session on PCSX2 and real hardware.
-6. Use the resulting PROFILE measurements to choose between P2 texture/batch
-   scheduling and P3 culling as the next highest-impact stage.
+6. Continue P3 by rejecting invisible surfaces before lighting and batching;
+   then use the resulting PROFILE measurements to choose between further P3
+   work and P2 texture/batch scheduling.
 
 Update this file whenever priorities, milestone status or completion criteria
 change. Record completed user-visible work in `CHANGELOG` in the same commit.
