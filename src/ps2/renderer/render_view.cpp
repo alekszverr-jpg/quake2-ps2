@@ -1378,25 +1378,63 @@ void BuildCachedLitTriangle(const ClipVertex (&corners)[3],
     const int edgeB = (longest + 1) % 3;
     const int opposite = (longest + 2) % 3;
     const ClipVertex midpoint = LightMidpoint(corners[edgeA], corners[edgeB], surface);
+    const float midpointError = MaxLightError(
+        midpoint.color,
+        (corners[edgeA].color.x + corners[edgeB].color.x) * 0.5f,
+        (corners[edgeA].color.y + corners[edgeB].color.y) * 0.5f,
+        (corners[edgeA].color.z + corners[edgeB].color.z) * 0.5f);
+    const ClipVertex centroid = LightCentroid(corners, surface);
+    const float centroidError = MaxLightError(
+        centroid.color,
+        (corners[0].color.x + corners[1].color.x + corners[2].color.x) / 3.0f,
+        (corners[0].color.y + corners[1].color.y + corners[2].color.y) / 3.0f,
+        (corners[0].color.z + corners[1].color.z + corners[2].color.z) / 3.0f);
 
-    bool shouldSplit =
-        edgeLengthSq[longest] >
-        s_lightMaxSamplesPerEdge * s_lightMaxSamplesPerEdge;
-    if (!shouldSplit)
+    // The PROFILE grid is intentionally coarse over smooth walls, but a small
+    // floor lamp can otherwise expose the diagonal of a large interpolated
+    // triangle. Restore the release-quality 8/5 limits only where the probes
+    // detect a genuinely sharp gradient. Uniform bright regions remain on the
+    // cheap path, and release builds (already 8/5 by default) are unchanged.
+    math::Vec3 minLight = {
+        corners[0].color.x, corners[0].color.y, corners[0].color.z
+    };
+    math::Vec3 maxLight = minLight;
+    const ClipVertex * probes[] = {
+        &corners[0], &corners[1], &corners[2], &midpoint, &centroid
+    };
+    for (const ClipVertex * probe : probes)
     {
-        const float midpointError = MaxLightError(
-            midpoint.color,
-            (corners[edgeA].color.x + corners[edgeB].color.x) * 0.5f,
-            (corners[edgeA].color.y + corners[edgeB].color.y) * 0.5f,
-            (corners[edgeA].color.z + corners[edgeB].color.z) * 0.5f);
-        const ClipVertex centroid = LightCentroid(corners, surface);
-        const float centroidError = MaxLightError(
-            centroid.color,
-            (corners[0].color.x + corners[1].color.x + corners[2].color.x) / 3.0f,
-            (corners[0].color.y + corners[1].color.y + corners[2].color.y) / 3.0f,
-            (corners[0].color.z + corners[1].color.z + corners[2].color.z) / 3.0f);
-        shouldSplit = midpointError > s_lightErrorTolerance ||
-                      centroidError > s_lightErrorTolerance;
+        minLight.x = std::min(minLight.x, probe->color.x);
+        minLight.y = std::min(minLight.y, probe->color.y);
+        minLight.z = std::min(minLight.z, probe->color.z);
+        maxLight.x = std::max(maxLight.x, probe->color.x);
+        maxLight.y = std::max(maxLight.y, probe->color.y);
+        maxLight.z = std::max(maxLight.z, probe->color.z);
+    }
+    constexpr float kFineLightSpan = 40.0f;
+    const float lightSpan = std::max(maxLight.x - minLight.x,
+                            std::max(maxLight.y - minLight.y,
+                                     maxLight.z - minLight.z));
+    const bool useFineLimits = lightSpan >= kFineLightSpan;
+    const float localMaxSamples = useFineLimits
+        ? std::min(s_lightMaxSamplesPerEdge, 8.0f)
+        : s_lightMaxSamplesPerEdge;
+    const float localError = useFineLimits
+        ? std::min(s_lightErrorTolerance, 5.0f)
+        : s_lightErrorTolerance;
+
+    const bool coarseWouldSplit =
+        edgeLengthSq[longest] >
+            s_lightMaxSamplesPerEdge * s_lightMaxSamplesPerEdge ||
+        midpointError > s_lightErrorTolerance ||
+        centroidError > s_lightErrorTolerance;
+    const bool shouldSplit =
+        edgeLengthSq[longest] > localMaxSamples * localMaxSamples ||
+        midpointError > localError || centroidError > localError;
+
+    if (shouldSplit && !coarseWouldSplit)
+    {
+        PS2_STAT_INC(lightFineSplits);
     }
 
     if (!shouldSplit)

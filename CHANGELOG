@@ -6,6 +6,18 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.50 - 2026-08-13
+
+### Performance
+
+- Kept the PROFILE build's coarse `12/8` adaptive BSP-lighting grid on smooth
+  surfaces, but locally restored the release-quality `8/5` limits when sampled
+  light spans at least 40 modulation units. This targets visible triangular
+  transitions around small, bright floor lamps without globally returning to
+  the previous triangle and CPU cost.
+- Added `LitFine` to full diagnostics. It counts only subdivisions introduced
+  by the high-contrast refinement, making its visual and memory cost measurable.
+
 ## 0.1.0-alpha.49 - 2026-08-13
 
 ### Performance

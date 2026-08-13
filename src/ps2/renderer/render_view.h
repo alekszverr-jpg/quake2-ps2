@@ -33,6 +33,7 @@ struct DrawStats
     int lightCacheBytes;   // Current adaptive BSP cache footprint.
     int lightGridStep;     // Effective maximum lightmap-cell edge spacing.
     int lightErrorLimit;   // Effective adaptive interpolation tolerance.
+    int lightFineSplits;   // Extra splits retained around high-contrast light gradients.
     int aliasUniqueVerts;  // MD2 vertices interpolated/lit once this frame.
     int aliasCorners;      // Indexed MD2 triangle corners submitted this frame.
     int playerLightLevel;  // r_lightlevel byte sent to server-side monster AI.

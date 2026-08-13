@@ -171,6 +171,9 @@ not return under zero-free-VRAM stress.
   topology inside the fixed cache budget
 - [~] Profile a moderately coarser adaptive light grid before committing any
   quality default to release builds
+- [~] Retain the coarse PROFILE light grid on smooth BSP surfaces while locally
+  refining high-contrast lamp gradients; validate `LitFine`, `LitKB` and
+  `LitBuild` together so the quality fix stays inside the persistent cache
 - [ ] Cache reusable surface lists for common cluster/area combinations where
   memory cost is lower than repeated BSP traversal cost
 

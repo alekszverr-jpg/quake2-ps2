@@ -281,6 +281,7 @@ void DrawDrawStatsOverlay()
         { "LitKB",    stats.lightCacheBytes / 1024 },
         { "LitStep",  stats.lightGridStep },
         { "LitErr",   stats.lightErrorLimit },
+        { "LitFine",  stats.lightFineSplits },
         { "MD2Vert",  stats.aliasUniqueVerts },
         { "MD2Corner",stats.aliasCorners },
         { "PlayerLit",stats.playerLightLevel },
