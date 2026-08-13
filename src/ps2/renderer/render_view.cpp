@@ -1650,6 +1650,56 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
         }
 
         PS2_Assert(drawVertices != nullptr && drawVertexCount >= 3);
+
+        // Adaptive lighting subdivides each source fan triangle independently.
+        // A split edge can therefore meet an unsplit neighbour as a T-junction.
+        // After the GS converts projected coordinates to 12.4 fixed point, the
+        // two rasterized edges can leave isolated one-pixel holes which expose
+        // the already drawn sky.  Draw the unsplit source triangle first as a
+        // depth-identical crack seal; the refined triangles below overwrite it
+        // (the world pass uses GEQUAL) and retain the detailed lighting.
+        if (drawVertexCount > 3)
+        {
+            ClipVertex sealCorners[3] = {};
+            for (int v = 0; v < 3; ++v)
+            {
+                const mod::PolyVertex & src =
+                    poly.vertexes[tri.vertexes[v]];
+                ClipVertex & corner = sealCorners[v];
+                corner.pos = {
+                    src.position.x, src.position.y, src.position.z, 1.0f
+                };
+                corner.st = {
+                    src.texture_s, src.texture_t, 0.0f, 0.0f
+                };
+                corner.lightmap = {
+                    src.lightmap_s, src.lightmap_t, 0.0f, 0.0f
+                };
+
+                // Every source corner survives in at least one refined child.
+                // Reuse its already cached (and, for animated styles, relit)
+                // colour instead of adding three lightmap samples per frame.
+                bool foundCachedCorner = false;
+                for (int cached = 0; cached < drawVertexCount; ++cached)
+                {
+                    const CachedLitVertex & lit = drawVertices[cached];
+                    if (lit.x == corner.pos.x && lit.y == corner.pos.y &&
+                        lit.z == corner.pos.z)
+                    {
+                        UnpackCachedColor(corner.color, lit.packedColor);
+                        foundCachedCorner = true;
+                        break;
+                    }
+                }
+                if (!foundCachedCorner)
+                {
+                    SampleVertexLight(corner, surface);
+                }
+                SetClipDistances(corner, mvp);
+            }
+            SubmitWorldTriangle(sealCorners, mvp, texture);
+        }
+
         for (int first = 0; first < drawVertexCount; first += 3)
         {
             ClipVertex corners[3] = {};

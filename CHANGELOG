@@ -6,6 +6,17 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.58 - 2026-08-14
+
+### Fixed
+
+- Added a depth-identical source-triangle seal below adaptively subdivided BSP
+  lighting geometry. This closes one-pixel T-junction cracks caused by the GS
+  12.4 fixed-point rasterizer, preventing the orange skybox from leaking
+  through otherwise opaque walls as distant points and short lines.
+- The refined adaptive-lighting triangles still render over the seal, so the
+  existing lighting detail and conservative BSP culling remain enabled.
+
 ## 0.1.0-alpha.57 - 2026-08-13
 
 ### Fixed

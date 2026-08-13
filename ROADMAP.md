@@ -21,7 +21,7 @@ Status markers:
 - [x] Animated MD2 enemies, corpses and first-person weapons
 - [x] NTSC/PAL framebuffer selection
 - [~] Texture streaming within the PS2's 4 MB GS VRAM
-- [~] Adaptive BSP vertex/lightmap lighting
+- [~] Adaptive BSP vertex/lightmap lighting with source-triangle crack sealing
 - [x] MD2 vertex lighting
 - [~] Sound effects through the stock mixer and PS2 `audsrv`
 
