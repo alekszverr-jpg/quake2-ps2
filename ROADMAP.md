@@ -174,6 +174,9 @@ not return under zero-free-VRAM stress.
 - [~] Retain the coarse PROFILE light grid on smooth BSP surfaces while locally
   refining high-contrast lamp gradients; validate `LitFine`, `LitKB` and
   `LitBuild` together so the quality fix stays inside the persistent cache
+- [~] Pack retained lightmap UVs to UNORM16 and carry locally detected lamp
+  refinement through one child level, improving both cache headroom and the
+  remaining high-contrast interpolation boundary
 - [ ] Cache reusable surface lists for common cluster/area combinations where
   memory cost is lower than repeated BSP traversal cost
 

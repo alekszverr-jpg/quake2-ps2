@@ -6,6 +6,18 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.51 - 2026-08-13
+
+### Performance
+
+- Packed retained lightmap UVs as UNORM16 values. The 128x128 atlas still gets
+  512 sub-texel steps, while cached BSP vertices shrink from 32 to 28 bytes and
+  the unchanged 1.5 MB allocation holds about 14% more lighting geometry.
+- Extended high-contrast refinement through one child level after a sharp
+  region is detected. Small floor lamps no longer immediately fall back to the
+  coarse grid after their first split, avoiding the remaining triangular edge
+  without globally increasing BSP density.
+
 ## 0.1.0-alpha.50 - 2026-08-13
 
 ### Performance

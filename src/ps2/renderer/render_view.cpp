@@ -678,10 +678,10 @@ static_assert(sizeof(ClipVertex) == 96, "ClipVertex must be exactly six quadword
 void SetClipDistances(ClipVertex & vertex, const math::Mat4 & mvp);
 
 // Camera-independent output of adaptive BSP lighting. Position.w and st.zw are
-// constants in this path, so storing them as full Vec4s wasted one third of the
-// cache. Keep the seven useful floats plus packed colour in two qwords: the
-// same 1.5 MB budget now retains 50% more tessellated vertices.
-struct alignas(16) CachedLitVertex
+// constants in this path. Lightmap UVs address a 128x128 atlas and do not need
+// full floats: UNORM16 still provides 512 sub-texel steps, while reducing each
+// retained vertex from 32 to 28 bytes.
+struct CachedLitVertex
 {
     float x;
     float y;
@@ -689,11 +689,11 @@ struct alignas(16) CachedLitVertex
     u32 packedColor;
     float s;
     float t;
-    float lightmapS;
-    float lightmapT;
+    u16 lightmapS;
+    u16 lightmapT;
 };
-static_assert(sizeof(CachedLitVertex) == 32,
-              "CachedLitVertex must be exactly two quadwords");
+static_assert(sizeof(CachedLitVertex) == 28,
+              "CachedLitVertex must remain compact");
 
 constexpr int kMaxCachedVertsPerTriangle =
     3 * (1 << kMaxLightSubdivideDepth);
@@ -709,8 +709,8 @@ constexpr int kLitCacheChunkCount =
     kLitCacheBudgetBytes / kLitCacheChunkBytes;
 static_assert((kLitCacheBudgetBytes % kLitCacheChunkBytes) == 0,
               "Lighting cache chunks must exactly cover the budget");
-static_assert((kLitCacheChunkBytes % sizeof(CachedLitVertex)) == 0,
-              "Lighting cache chunks must contain whole vertices");
+static_assert(kLitCacheChunkBytes >= sizeof(CachedLitVertex),
+              "Lighting cache chunks must contain vertices");
 
 struct LitCacheChunk
 {
@@ -1319,8 +1319,10 @@ void AppendCachedTriangle(const ClipVertex (&corners)[3])
         out.z = corner.pos.z;
         out.s = corner.st.x;
         out.t = corner.st.y;
-        out.lightmapS = corner.lightmap.x;
-        out.lightmapT = corner.lightmap.y;
+        out.lightmapS = static_cast<u16>(
+            std::clamp(corner.lightmap.x, 0.0f, 1.0f) * 65535.0f + 0.5f);
+        out.lightmapT = static_cast<u16>(
+            std::clamp(corner.lightmap.y, 0.0f, 1.0f) * 65535.0f + 0.5f);
         out.packedColor = PackFloatColor(corner.color);
     }
 }
@@ -1331,8 +1333,11 @@ void RelightCachedVertices(CachedLitVertex * vertices, int vertexCount,
     ClipVertex sample = {};
     for (int i = 0; i < vertexCount; ++i)
     {
+        constexpr float kUnpackUNorm16 = 1.0f / 65535.0f;
         sample.lightmap = {
-            vertices[i].lightmapS, vertices[i].lightmapT, 0.0f, 0.0f
+            static_cast<float>(vertices[i].lightmapS) * kUnpackUNorm16,
+            static_cast<float>(vertices[i].lightmapT) * kUnpackUNorm16,
+            0.0f, 0.0f
         };
         SampleVertexLight(sample, surface);
         vertices[i].packedColor = PackFloatColor(sample.color);
@@ -1355,7 +1360,8 @@ void UnpackCachedColor(math::Vec4 & color, u32 packed)
 // around lamps and shadows. The expensive recursion and light sampling run only
 // when this surface's relevant animated styles actually change.
 void BuildCachedLitTriangle(const ClipVertex (&corners)[3],
-                            const mod::ModelSurface & surface, int depth)
+                            const mod::ModelSurface & surface, int depth,
+                            int inheritedFineLevels = 0)
 {
     float edgeLengthSq[3] = {
         LightEdgeLengthSq(corners[0], corners[1]),
@@ -1415,7 +1421,8 @@ void BuildCachedLitTriangle(const ClipVertex (&corners)[3],
     const float lightSpan = std::max(maxLight.x - minLight.x,
                             std::max(maxLight.y - minLight.y,
                                      maxLight.z - minLight.z));
-    const bool useFineLimits = lightSpan >= kFineLightSpan;
+    const bool detectedFineRegion = lightSpan >= kFineLightSpan;
+    const bool useFineLimits = detectedFineRegion || inheritedFineLevels > 0;
     const float localMaxSamples = useFineLimits
         ? std::min(s_lightMaxSamplesPerEdge, 8.0f)
         : s_lightMaxSamplesPerEdge;
@@ -1445,8 +1452,14 @@ void BuildCachedLitTriangle(const ClipVertex (&corners)[3],
 
     const ClipVertex first[3]  = { corners[edgeA], midpoint, corners[opposite] };
     const ClipVertex second[3] = { midpoint, corners[edgeB], corners[opposite] };
-    BuildCachedLitTriangle(first,  surface, depth + 1);
-    BuildCachedLitTriangle(second, surface, depth + 1);
+    // A sharp parent grants its children one fine level even if each half's
+    // reduced colour span falls below the threshold. This removes the visible
+    // boundary where refinement previously stopped immediately after one cut.
+    const int childFineLevels = detectedFineRegion
+        ? 1
+        : std::max(inheritedFineLevels - 1, 0);
+    BuildCachedLitTriangle(first,  surface, depth + 1, childFineLevels);
+    BuildCachedLitTriangle(second, surface, depth + 1, childFineLevels);
 }
 
 // Appends a polygon's adaptively lit triangles to the scratch buffer.
@@ -1560,7 +1573,9 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
                 corner.pos = { src.x, src.y, src.z, 1.0f };
                 corner.st = { src.s, src.t, 0.0f, 0.0f };
                 corner.lightmap = {
-                    src.lightmapS, src.lightmapT, 0.0f, 0.0f
+                    static_cast<float>(src.lightmapS) * (1.0f / 65535.0f),
+                    static_cast<float>(src.lightmapT) * (1.0f / 65535.0f),
+                    0.0f, 0.0f
                 };
                 UnpackCachedColor(corner.color, src.packedColor);
 
