@@ -665,14 +665,18 @@ static_assert(sizeof(ClipVertex) == 96, "ClipVertex must be exactly six quadword
 
 void SetClipDistances(ClipVertex & vertex, const math::Mat4 & mvp);
 
-// Camera-independent output of adaptive BSP lighting. Positions, diffuse UVs
-// and final vertex colours can be reused until one of the surface's own light
-// styles changes; clip distances still have to be rebuilt for the current MVP.
+// Camera-independent output of adaptive BSP lighting. Keep lightmap UVs beside
+// a packed colour so an animated lightstyle can recolour an existing topology
+// without recursively tessellating the source triangle again. The layout stays
+// at three qwords, preserving the existing cache budget.
 struct alignas(16) CachedLitVertex
 {
     math::Vec4 pos;
     math::Vec4 st;
-    math::Vec4 color;
+    float lightmapS;
+    float lightmapT;
+    u32 packedColor;
+    u32 reserved;
 };
 static_assert(sizeof(CachedLitVertex) == 48,
               "CachedLitVertex must be exactly three quadwords");
@@ -758,6 +762,7 @@ void ClearLitTriangleCaches()
     {
         triangle->litCacheVertices = nullptr;
         triangle->litCacheKey = 0;
+        triangle->litCacheColorKey = 0;
         triangle->litCacheVertexCount = 0;
         triangle->litCacheCapacity = 0;
     }
@@ -1257,19 +1262,36 @@ void DrawSkyBox(const refdef_t & viewDef)
     }
 }
 
-u32 LitTriangleCacheKey(const mod::ModelSurface & surface)
+u32 MixCacheFloat(u32 key, float value)
 {
-    u32 key = mod::StaticLightStyleKey(surface);
-    auto mixFloat = [&key](float value)
-    {
-        u32 bits;
-        std::memcpy(&bits, &value, sizeof(bits));
-        key ^= bits + 0x9E3779B9u + (key << 6) + (key >> 2);
-    };
-    mixFloat(s_lightMaxSamplesPerEdge);
-    mixFloat(s_lightErrorTolerance);
-    mixFloat(s_worldLightGamma);
+    u32 bits;
+    std::memcpy(&bits, &value, sizeof(bits));
+    key ^= bits + 0x9E3779B9u + (key << 6) + (key >> 2);
     return key;
+}
+
+// Topology changes only when the adaptive-lighting controls or the surface's
+// style layout change. Live style RGB values intentionally stay out: otherwise
+// every flickering lamp forces a full recursive rebuild each frame.
+u32 LitTriangleTopologyKey(const mod::ModelSurface & surface)
+{
+    u32 key = 0x811C9DC5u;
+    for (int slot = 0; slot < mod::kMaxLightmaps; ++slot)
+    {
+        key = (key ^ surface.styles[slot]) * 0x01000193u;
+        if (surface.styles[slot] == 255)
+        {
+            break;
+        }
+    }
+    key = MixCacheFloat(key, s_lightMaxSamplesPerEdge);
+    key = MixCacheFloat(key, s_lightErrorTolerance);
+    return key;
+}
+
+u32 LitTriangleColorKey(const mod::ModelSurface & surface)
+{
+    return MixCacheFloat(mod::StaticLightStyleKey(surface), s_worldLightGamma);
 }
 
 void AppendCachedTriangle(const ClipVertex (&corners)[3])
@@ -1280,8 +1302,35 @@ void AppendCachedTriangle(const ClipVertex (&corners)[3])
         CachedLitVertex & out = s_litBuildVerts[s_litBuildVertCount++];
         out.pos = corner.pos;
         out.st = corner.st;
-        out.color = corner.color;
+        out.lightmapS = corner.lightmap.x;
+        out.lightmapT = corner.lightmap.y;
+        out.packedColor = PackFloatColor(corner.color);
+        out.reserved = 0;
     }
+}
+
+void RelightCachedVertices(CachedLitVertex * vertices, int vertexCount,
+                           const mod::ModelSurface & surface)
+{
+    ClipVertex sample = {};
+    for (int i = 0; i < vertexCount; ++i)
+    {
+        sample.lightmap = {
+            vertices[i].lightmapS, vertices[i].lightmapT, 0.0f, 0.0f
+        };
+        SampleVertexLight(sample, surface);
+        vertices[i].packedColor = PackFloatColor(sample.color);
+    }
+}
+
+void UnpackCachedColor(math::Vec4 & color, u32 packed)
+{
+    color = {
+        static_cast<float>( packed        & 0xFFu),
+        static_cast<float>((packed >> 8)  & 0xFFu),
+        static_cast<float>((packed >> 16) & 0xFFu),
+        static_cast<float>((packed >> 24) & 0xFFu)
+    };
 }
 
 // Bisects the longest lightmap-space edge and stores the resulting leaf
@@ -1349,7 +1398,7 @@ void BuildCachedLitTriangle(const ClipVertex (&corners)[3],
 // Appends a polygon's adaptively lit triangles to the scratch buffer.
 void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & surface,
                          const math::Mat4 & mvp, const tex::Texture & texture,
-                         const u32 cacheKey)
+                         const u32 topologyKey, const u32 colorKey)
 {
     const int numTriangles = poly.numVerts - 2;
     for (int t = 0; t < numTriangles; ++t)
@@ -1362,7 +1411,7 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
 
         const CachedLitVertex * drawVertices = nullptr;
         int drawVertexCount = 0;
-        if (tri.litCacheVertices == nullptr || tri.litCacheKey != cacheKey)
+        if (tri.litCacheVertices == nullptr || tri.litCacheKey != topologyKey)
         {
             PS2_STAT_INC(lightCacheBuilds);
             ClipVertex sourceCorners[3] = {};
@@ -1416,7 +1465,8 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
                     static_cast<size_t>(s_litBuildVertCount) *
                         sizeof(CachedLitVertex));
                 tri.litCacheVertexCount = static_cast<u16>(s_litBuildVertCount);
-                tri.litCacheKey = cacheKey;
+                tri.litCacheKey = topologyKey;
+                tri.litCacheColorKey = colorKey;
                 drawVertices = static_cast<const CachedLitVertex *>(
                     tri.litCacheVertices);
                 drawVertexCount = tri.litCacheVertexCount;
@@ -1432,8 +1482,16 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
         else
         {
             PS2_STAT_INC(lightCacheHits);
-            drawVertices = static_cast<const CachedLitVertex *>(
+            auto * cachedVertices = static_cast<CachedLitVertex *>(
                 tri.litCacheVertices);
+            if (tri.litCacheColorKey != colorKey)
+            {
+                RelightCachedVertices(cachedVertices,
+                                      tri.litCacheVertexCount, surface);
+                tri.litCacheColorKey = colorKey;
+                PS2_STAT_INC(lightCacheRelights);
+            }
+            drawVertices = cachedVertices;
             drawVertexCount = tri.litCacheVertexCount;
         }
 
@@ -1447,7 +1505,10 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
                 ClipVertex & corner = corners[v];
                 corner.pos = src.pos;
                 corner.st = src.st;
-                corner.color = src.color;
+                corner.lightmap = {
+                    src.lightmapS, src.lightmapT, 0.0f, 0.0f
+                };
+                UnpackCachedColor(corner.color, src.packedColor);
 
                 SetClipDistances(corner, mvp);
             }
@@ -1477,12 +1538,14 @@ void DrawTextureChains(const math::Mat4 & mvp)
 
         for (const mod::ModelSurface * surf = texture->textureChain; surf != nullptr; surf = surf->textureChain)
         {
-            const u32 cacheKey = LitTriangleCacheKey(*surf);
+            const u32 topologyKey = LitTriangleTopologyKey(*surf);
+            const u32 colorKey = LitTriangleColorKey(*surf);
             for (const mod::ModelPoly * poly = surf->polys; poly != nullptr; poly = poly->next)
             {
                 if (poly->numVerts >= 3) // Need at least one triangle.
                 {
-                    GatherPolyTriangles(*poly, *surf, mvp, drawTexture, cacheKey);
+                    GatherPolyTriangles(*poly, *surf, mvp, drawTexture,
+                                        topologyKey, colorKey);
                 }
             }
         }

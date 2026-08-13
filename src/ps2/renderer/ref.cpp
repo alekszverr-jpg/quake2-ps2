@@ -277,6 +277,7 @@ void DrawDrawStatsOverlay()
         { "VRAMsync", gsTiming.vramStalls },
         { "LitHit",   stats.lightCacheHits },
         { "LitBuild", stats.lightCacheBuilds },
+        { "LitColor", stats.lightCacheRelights },
         { "LitKB",    stats.lightCacheBytes / 1024 },
         { "MD2Vert",  stats.aliasUniqueVerts },
         { "MD2Corner",stats.aliasCorners },

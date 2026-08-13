@@ -6,6 +6,22 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.47 - 2026-08-13
+
+### Performance
+
+- Split the adaptive BSP-lighting cache into a persistent topology key and a
+  live colour key. Animated light styles now recolour the cached vertices
+  instead of recursively subdividing the same BSP triangles every frame.
+- Preserved the existing 48-byte cached-vertex layout and 1.5 MB cache budget
+  by storing lightmap coordinates plus packed GS colour in the third quadword.
+
+### Diagnostics
+
+- Added `LitColor` to PROFILE full diagnostics. It counts cached BSP triangles
+  recoloured for animated light styles, while `LitBuild` now represents actual
+  topology rebuilds.
+
 ## 0.1.0-alpha.46 - 2026-08-13
 
 ### Performance

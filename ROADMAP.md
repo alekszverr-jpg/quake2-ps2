@@ -165,6 +165,8 @@ not return under zero-free-VRAM stress.
   camera crosses the relevant BSP boundary
 - [ ] Add more aggressive frustum, backface, entity and bounding-box culling
 - [ ] Avoid lighting, transforming or batching surfaces rejected by visibility
+- [~] Cache adaptive BSP tessellation independently from animated lightstyle
+  colours, updating cached vertex colours without rebuilding the topology
 - [ ] Cache reusable surface lists for common cluster/area combinations where
   memory cost is lower than repeated BSP traversal cost
 

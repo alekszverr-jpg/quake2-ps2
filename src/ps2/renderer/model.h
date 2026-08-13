@@ -108,7 +108,8 @@ struct ModelTriangle
     // Renderer-owned adaptive-lighting cache. Mutable because model geometry
     // is otherwise immutable after load; cleared before the world hunk dies.
     mutable void * litCacheVertices;
-    mutable u32 litCacheKey;
+    mutable u32 litCacheKey;      // Tessellation/settings key.
+    mutable u32 litCacheColorKey; // Current light-style/gamma key.
     mutable u16 litCacheVertexCount;
     mutable u16 litCacheCapacity;
 };

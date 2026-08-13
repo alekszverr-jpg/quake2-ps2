@@ -29,6 +29,7 @@ struct DrawStats
     int particleMicros;// Particle preparation and submission.
     int lightCacheHits;    // Original BSP triangles reusing cached tessellation.
     int lightCacheBuilds;  // Original BSP triangles rebuilt this frame.
+    int lightCacheRelights;// Cached BSP triangles whose colours were refreshed.
     int lightCacheBytes;   // Current adaptive BSP cache footprint.
     int aliasUniqueVerts;  // MD2 vertices interpolated/lit once this frame.
     int aliasCorners;      // Indexed MD2 triangle corners submitted this frame.
