@@ -6,6 +6,8 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.45 - 2026-08-13
+
 ### Performance
 
 - Split PS2 builds into an ordinary `quake2.elf` release and a separate

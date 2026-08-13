@@ -269,18 +269,19 @@ development tools.
 
 ## Immediate priorities
 
-1. Validate alpha.44 safe recovery from archived HIGH settings and quantify
-   any remaining 11025 Hz underrun chatter without blocking the game thread.
-2. Repeat the audio smoke test on a real PS2 and check attenuation, stereo
-   positioning, looping, distortion, minimum queue depth and FPS regression.
-3. Use the queue low-water mark to decide whether hot effects
-   should remain in the EE software mixer or move to cached SPU2 ADPCM voices.
-4. Continue optimizing the remaining MD2/entity EE path after renderer and
-   audio completeness work is stable.
+1. Compare alpha.45 RELEASE and PROFILE at the same camera positions in a light
+   room, a heavy combat scene and a water/particle scene; record minimum FPS and
+   the PROFILE timing counters.
+2. Start P1 by inventorying every VIF1/GIF wait and aligning large referenced
+   vertex/DMA buffers to 128 bytes before changing synchronization behaviour.
+3. Combine compatible world submissions into larger VIF chains, then remove
+   per-draw waits only where texture and PATH ordering remain proven safe.
+4. Revisit audio streaming after frame pacing is more stable; retain LOW
+   11025 Hz as the nonblocking baseline until then.
 5. Recheck multi-level transitions after the next optimization pass, including
    a longer Base 1 -> Base 2 -> Base 3 session on PCSX2 and real hardware.
-6. Revisit VU1 overlap and texture churn if later profiles show their
-   currently small wait times growing.
+6. Use the resulting PROFILE measurements to choose between P2 texture/batch
+   scheduling and P3 culling as the next highest-impact stage.
 
 Update this file whenever priorities, milestone status or completion criteria
 change. Record completed user-visible work in `CHANGELOG` in the same commit.
