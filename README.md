@@ -1,7 +1,7 @@
 # Quake II for PlayStation 2
 
 [![Build](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml/badge.svg)](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml)
-[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.44-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
+[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.45-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](LICENSE)
 
 An active continuation of the unofficial Quake II port for the Sony
@@ -151,11 +151,22 @@ With `PS2DEV` and `PS2SDK` configured:
 make
 ```
 
-The resulting ELF is written to:
+This produces the normal gameplay build, with per-frame profiling counters and
+diagnostic overlays compiled out:
 
 ```text
 build/quake2.elf
 ```
+
+For performance investigations, build the separate gamepad-controlled profile
+variant:
+
+```sh
+make BUILD=profile
+```
+
+Its output is `build/quake2-profile.elf`. Release and profile objects are kept
+in separate directories, so the two variants can be built back-to-back safely.
 
 Host utilities can be built separately with:
 

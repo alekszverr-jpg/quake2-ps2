@@ -89,7 +89,7 @@ play on a retail console.
 - [x] Establish initial frame-time budgets for EE, VU1, GS and texture loading
 - [ ] Reduce texture upload churn and VRAM fragmentation
 - [~] Validate GS completion barriers for streamed textures under zero-free-VRAM churn
-- [ ] Add release builds with assertions/diagnostics disabled
+- [~] Add release builds with permanent profiling/diagnostics disabled
 - [x] Profile and optimize first-pass model interpolation and BSP lighting
 - [~] Validate long sessions for EE RAM, IOP RAM and VRAM leaks
 - [ ] Target a stable 30 FPS minimum, with 60 FPS where practical
@@ -113,8 +113,10 @@ texture-page behaviour before adding more complex MFIFO scheduling.
   scene, water/particles and a high-entity outdoor scene
 - [ ] Record CPU time, VU wait time, texture DMA/upload time, visible surfaces,
   triangles, batches and minimum FPS for each benchmark
-- [ ] Add a release configuration without permanent draw, memory, texture and
-  audio diagnostics; keep a gamepad-selectable profiling build
+- [x] Add a release configuration without permanent draw, memory, texture and
+  renderer timing diagnostics; keep a gamepad-selectable profiling build
+- [ ] Move the remaining audio status polling behind the profile build once the
+  streaming backend no longer needs it for stability testing
 - [ ] Establish regression limits for frame time, EE RAM, IOP RAM and GS VRAM
 
 Completion criterion: the same camera positions and encounters produce a

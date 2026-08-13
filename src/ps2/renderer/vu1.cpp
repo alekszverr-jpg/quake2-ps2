@@ -270,9 +270,13 @@ void SendChainAndWait(VifPacket & pkt)
     pkt.AddFlush();
     pkt.AddEndTag();
     pkt.Send();
+#if PS2_PROFILE
     const timing::Stamp waitStart = timing::Now();
+#endif
     pkt.Wait();
+#if PS2_PROFILE
     s_timingStats.waitMicros += timing::ElapsedMicros(waitStart);
+#endif
 }
 
 } // namespace

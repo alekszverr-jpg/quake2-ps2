@@ -13,6 +13,14 @@
 #include <cstddef>
 #include <cstdint>
 
+#ifndef PS2_PROFILE
+#define PS2_PROFILE 0
+#endif
+
+#ifndef PS2_RELEASE
+#define PS2_RELEASE 0
+#endif
+
 // PS2_MemAlloc / MemTags (shared with common.c's Z_Malloc)
 #include "ps2/system/heap.h"
 

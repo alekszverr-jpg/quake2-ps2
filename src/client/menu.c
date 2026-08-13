@@ -1912,7 +1912,11 @@ static const char * s_testmap_texture_names[] =
 };
 static const char * s_testmap_diagnostics_names[] =
 {
+#if PS2_PROFILE
     "off", "fps only", "full", 0
+#else
+    "off (release build)", 0
+#endif
 };
 static const char * s_testmap_audio_test_names[] =
 {
@@ -2013,7 +2017,12 @@ static void TestMapTextureFunc(void * unused)
 
 static void TestMapDiagnosticsFunc(void * unused)
 {
+#if PS2_PROFILE
     const int mode = s_testmap_diagnostics_list.curvalue;
+#else
+    const int mode = 0;
+    s_testmap_diagnostics_list.curvalue = 0;
+#endif
     (void)unused;
 
     Cvar_SetValue("ps2_show_fps", mode >= 1);
@@ -2121,6 +2130,7 @@ static void TestMap_MenuInit(void)
     Cvar_Get("ps2_show_memstats", "0", 0);
     Cvar_Get("ps2_show_vramstats", "0", 0);
     Cvar_Get("ps2_show_drawstats", "0", 0);
+#if PS2_PROFILE
     if (Cvar_VariableValue("ps2_show_memstats") != 0.0F ||
         Cvar_VariableValue("ps2_show_vramstats") != 0.0F ||
         Cvar_VariableValue("ps2_show_drawstats") != 0.0F)
@@ -2129,6 +2139,10 @@ static void TestMap_MenuInit(void)
         s_testmap_diagnostics_list.curvalue = 1;
     else
         s_testmap_diagnostics_list.curvalue = 0;
+#else
+    s_testmap_diagnostics_list.curvalue = 0;
+    TestMapDiagnosticsFunc(NULL);
+#endif
 
     TestMapUpdateAudioStatus();
     s_testmap_audio_status.generic.type = MTYPE_SEPARATOR;

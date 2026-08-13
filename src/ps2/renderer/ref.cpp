@@ -32,10 +32,12 @@ constexpr int kGlyphSize = 8;
 // Vertex colour applied to textured 2D (GS modulate: 128 = texels unchanged).
 constexpr u8 kUiBrightness = 128;
 
+#if PS2_PROFILE
 static const cvar_t * s_showFpsCount  = nullptr;
 static const cvar_t * s_showMemStats  = nullptr;
 static const cvar_t * s_showVramStats = nullptr;
 static const cvar_t * s_showDrawStats = nullptr;
+#endif
 
 // Built-ins used every frame, cached at init to skip the name lookup.
 static const ps2::tex::Texture * s_texConchars = nullptr;
@@ -79,6 +81,7 @@ void DrawGlyph(int x, int y, int c)
                               col, row, col + kGlyphSize, row + kGlyphSize, kUiBrightness);
 }
 
+#if PS2_PROFILE
 void DrawInternalString(int x, int y, const char * str)
 {
     const int initialX = x;
@@ -301,6 +304,8 @@ void DrawDrawStatsOverlay()
     }
 }
 
+#endif // PS2_PROFILE
+
 } // namespace
 
 extern "C" {
@@ -319,12 +324,13 @@ qboolean PS2_RefInit(void * hinstance, void * wndproc)
     ps2::vu1::Init();
     ps2::mod::Init();
 
-    // Keep normal gameplay clean. All diagnostics remain available from the
-    // gamepad-driven GAME -> TEST MAP menu, so a console is not required.
+#if PS2_PROFILE
+    // PROFILE keeps gamepad-controlled telemetry; RELEASE compiles it out.
     s_showFpsCount  = Cvar_Get("ps2_show_fps", "0", 0);
     s_showMemStats  = Cvar_Get("ps2_show_memstats", "0", 0);
     s_showVramStats = Cvar_Get("ps2_show_vramstats", "0", 0);
     s_showDrawStats = Cvar_Get("ps2_show_drawstats", "0", 0);
+#endif
 
     s_texConchars = ps2::tex::Find("conchars", ps2::tex::ImageType::Pic);
     s_texBacktile = ps2::tex::Find("backtile", ps2::tex::ImageType::Pic);
@@ -487,7 +493,9 @@ void PS2_CinematicSetPalette(const unsigned char * palette)
 void PS2_BeginFrame(float cameraSeparation)
 {
     (void)cameraSeparation;
+#if PS2_PROFILE
     ps2::vu1::BeginFrameStats();
+#endif
     ps2::gs::BeginFrame();
     // 2D and 3D now draw freely between here and PS2_EndFrame: 2D primitives
     // open the deferred overlay batch lazily and it flushes automatically at
@@ -507,10 +515,12 @@ void PS2_EndFrame()
     // its own z-test). gs::EndFrame() then sends any remaining 2D and flips.
     ps2::test::DrawRotatingCube();
 
+#if PS2_PROFILE
     DrawFpsCounter();
     DrawMemUsageOverlay();
     DrawVramUsageOverlay();
     DrawDrawStatsOverlay();
+#endif
 
     ps2::gs::EndFrame();
 }

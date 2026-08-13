@@ -63,14 +63,23 @@ jobs:
         run: |
           make tools
 
-      - name: Build PS2 ELF
+      - name: Build PS2 release and profile ELFs
         run: |
           export PATH="$PS2DEV/bin:$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin:$PATH"
           set +e
-          make 2>&1 | tee build.log
+          make BUILD=release 2>&1 | tee build-release.log
           build_status=${PIPESTATUS[0]}
           if [ "$build_status" -ne 0 ]; then
-            grep -E '(^|: )(fatal )?error:' build.log | head -20 | while IFS= read -r line; do
+            grep -E '(^|: )(fatal )?error:' build-release.log | head -20 | while IFS= read -r line; do
+              echo "::error::$line"
+            done
+            exit "$build_status"
+          fi
+
+          make BUILD=profile 2>&1 | tee build-profile.log
+          build_status=${PIPESTATUS[0]}
+          if [ "$build_status" -ne 0 ]; then
+            grep -E '(^|: )(fatal )?error:' build-profile.log | head -20 | while IFS= read -r line; do
               echo "::error::$line"
             done
           fi
@@ -82,4 +91,5 @@ jobs:
           name: quake2-ps2-build
           path: |
             build/quake2.elf
+            build/quake2-profile.elf
             build/tools/

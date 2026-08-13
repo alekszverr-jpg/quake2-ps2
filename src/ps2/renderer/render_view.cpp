@@ -150,6 +150,16 @@ alignas(16) static PreparedAliasVertex s_preparedAliasVerts[MAX_VERTS];
 // GetDrawStats() by the ps2_show_drawstats overlay.
 static DrawStats s_drawStats = {};
 
+#if PS2_PROFILE
+#define PS2_STAT_INC(field) (++s_drawStats.field)
+#define PS2_STAT_ADD(field, value) (s_drawStats.field += (value))
+#define PS2_STAT_SET(field, value) (s_drawStats.field = (value))
+#else
+#define PS2_STAT_INC(field) ((void)0)
+#define PS2_STAT_ADD(field, value) ((void)0)
+#define PS2_STAT_SET(field, value) ((void)0)
+#endif
+
 // ------------------------------------------------------------------------------------------------
 // Frame setup: camera matrices and frustum
 // ------------------------------------------------------------------------------------------------
@@ -192,7 +202,7 @@ inline bool ShouldCullBBox(float * mins, float * maxs)
     {
         if (BOX_ON_PLANE_SIDE(mins, maxs, &plane) == 2)
         {
-            ++s_drawStats.boxesCulled;
+            PS2_STAT_INC(boxesCulled);
             return true;
         }
     }
@@ -469,7 +479,7 @@ const tex::Texture * TextureAnimation(const mod::ModelTexInfo * texInfo, int fra
 
 void ChainOpaqueSurface(mod::ModelSurface & surface, int animationFrame)
 {
-    ++s_drawStats.surfaces;
+    PS2_STAT_INC(surfaces);
     const tex::Texture * texture =
         TextureAnimation(surface.texInfo, animationFrame);
     if (texture->textureChain == nullptr)
@@ -501,7 +511,7 @@ void RecursiveWorldNode(const refdef_t & viewDef, const mod::ModelInstance & wor
         return; // Entirely outside the view frustum.
     }
 
-    ++s_drawStats.nodesWalked;
+    PS2_STAT_INC(nodesWalked);
 
     // Leaf: stamp its surfaces as drawable this frame.
     if (node->contents != -1)
@@ -578,7 +588,7 @@ void RecursiveWorldNode(const refdef_t & viewDef, const mod::ModelInstance & wor
             // Translucent/warped: kept for a later back-to-front alpha pass.
             surf->textureChain = s_alphaSurfaces;
             s_alphaSurfaces = surf;
-            ++s_drawStats.surfacesAlpha;
+            PS2_STAT_INC(surfacesAlpha);
             continue;
         }
 
@@ -600,7 +610,7 @@ inline void FlushScratch(const math::Mat4 & mvp, const tex::Texture & texture,
 {
     if (s_scratchVertCount > 0)
     {
-        ++s_drawStats.drawBatches;
+        PS2_STAT_INC(drawBatches);
         vu1::DrawTriangles(mvp, texture, s_scratchVerts, s_scratchVertCount,
                            alphaBlend, fixedAlpha);
         s_scratchVertCount = 0;
@@ -924,13 +934,13 @@ void SubmitWorldTriangle(const ClipVertex (&corners)[3], const math::Mat4 & mvp,
 
     if (outsideAny)
     {
-        ++s_drawStats.trisCulled;
+        PS2_STAT_INC(trisCulled);
         return;
     }
 
     if (insideTotal == 3 * kNumClipPlanes)
     {
-        ++s_drawStats.trisDrawn;
+        PS2_STAT_INC(trisDrawn);
         if (s_scratchVertCount + 3 > kScratchMaxVerts)
         {
             FlushScratch(mvp, texture, alphaBlend, fixedAlpha);
@@ -942,7 +952,7 @@ void SubmitWorldTriangle(const ClipVertex (&corners)[3], const math::Mat4 & mvp,
         return;
     }
 
-    ++s_drawStats.trisClipped;
+    PS2_STAT_INC(trisClipped);
     ClipVertex bufferA[3 + kNumClipPlanes];
     ClipVertex bufferB[3 + kNumClipPlanes];
 
@@ -974,7 +984,7 @@ void SubmitWorldTriangle(const ClipVertex (&corners)[3], const math::Mat4 & mvp,
         EmitScratchVertex(in[v]);
         EmitScratchVertex(in[v + 1]);
     }
-    s_drawStats.trisDrawn += count - 2;
+    PS2_STAT_ADD(trisDrawn, count - 2);
 }
 
 void DrawTranslucentSurface(const mod::ModelSurface & surface,
@@ -1354,7 +1364,7 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
         int drawVertexCount = 0;
         if (tri.litCacheVertices == nullptr || tri.litCacheKey != cacheKey)
         {
-            ++s_drawStats.lightCacheBuilds;
+            PS2_STAT_INC(lightCacheBuilds);
             ClipVertex sourceCorners[3] = {};
             for (int v = 0; v < 3; ++v)
             {
@@ -1421,7 +1431,7 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
         }
         else
         {
-            ++s_drawStats.lightCacheHits;
+            PS2_STAT_INC(lightCacheHits);
             drawVertices = static_cast<const CachedLitVertex *>(
                 tri.litCacheVertices);
             drawVertexCount = tri.litCacheVertexCount;
@@ -1621,7 +1631,7 @@ void DrawBrushModel(const entity_t & entity, const mod::ModelInstance & model,
         if (entityTranslucent ||
             (texFlags & (SURF_TRANS33 | SURF_TRANS66 | SURF_WARP)) != 0)
         {
-            ++s_drawStats.surfacesAlpha;
+            PS2_STAT_INC(surfacesAlpha);
             continue;
         }
         ChainOpaqueSurface(*surface, entity.frame);
@@ -1836,7 +1846,7 @@ void UpdatePlayerLightLevel(const refdef_t & viewDef)
     // user command byte, and p_client stores it on the player edict for AI.
     static cvar_t * lightLevel = Cvar_Get("r_lightlevel", "0", 0);
     lightLevel->value = level;
-    s_drawStats.playerLightLevel = static_cast<int>(level + 0.5f);
+    PS2_STAT_SET(playerLightLevel, static_cast<int>(level + 0.5f));
 }
 
 math::Vec4 AliasVertexColor(const math::Vec3 & modelLight,
@@ -1970,8 +1980,8 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model,
             AliasVertexColor(modelLight, shadeVector, v.lightnormalindex);
         out.color.w = entityAlpha * 128.0f;
     }
-    s_drawStats.aliasUniqueVerts += md2->num_xyz;
-    s_drawStats.aliasCorners += md2->num_tris * 3;
+    PS2_STAT_ADD(aliasUniqueVerts, md2->num_xyz);
+    PS2_STAT_ADD(aliasCorners, md2->num_tris * 3);
 
     PS2_Assert(s_scratchVertCount == 0);
     if (clipViewWeapon)
@@ -2042,7 +2052,7 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model,
                 out.t = (static_cast<float>(st.t) + 0.5f) * invGsSkinH;
                 out.q = 1.0f;
             }
-            ++s_drawStats.trisDrawn;
+            PS2_STAT_INC(trisDrawn);
         }
     }
     FlushScratch(mvp, texture, translucent);
@@ -2112,8 +2122,8 @@ void DrawSpriteModel(const entity_t & entity, const mod::ModelInstance & model)
         out.q = 1.0f;
     }
 
-    s_drawStats.trisDrawn += 2;
-    ++s_drawStats.drawBatches;
+    PS2_STAT_ADD(trisDrawn, 2);
+    PS2_STAT_INC(drawBatches);
     vu1::DrawTriangles(s_viewProjMatrix, texture, s_scratchVerts,
                        s_scratchVertCount, translucent);
     s_scratchVertCount = 0;
@@ -2191,7 +2201,7 @@ void RenderParticles(const refdef_t & viewDef)
         }
         if (s_scratchVertCount + 3 > kScratchMaxVerts)
         {
-            ++s_drawStats.drawBatches;
+            PS2_STAT_INC(drawBatches);
             vu1::DrawTriangles(s_viewProjMatrix, texture, s_scratchVerts,
                                s_scratchVertCount, true);
             s_scratchVertCount = 0;
@@ -2232,12 +2242,12 @@ void RenderParticles(const refdef_t & viewDef)
             out.t = texT[corner];
             out.q = 1.0f;
         }
-        ++s_drawStats.trisDrawn;
+        PS2_STAT_INC(trisDrawn);
     }
 
     if (s_scratchVertCount != 0)
     {
-        ++s_drawStats.drawBatches;
+        PS2_STAT_INC(drawBatches);
         vu1::DrawTriangles(s_viewProjMatrix, texture, s_scratchVerts,
                            s_scratchVertCount, true);
         s_scratchVertCount = 0;
@@ -2282,7 +2292,9 @@ void RenderWorldModel(const refdef_t & viewDef)
 void BeginRegistration()
 {
     ClearLitTriangleCaches();
+#if PS2_PROFILE
     s_drawStats = {};
+#endif
 
     // New map: forget the previous map's clusters so the first frame re-marks.
     s_viewCluster     = kInvalidCluster;
@@ -2300,7 +2312,9 @@ void RenderFrame(const refdef_t & viewDef)
 {
     PS2_Assert(viewDef.width > 0 && viewDef.height > 0);
 
+#if PS2_PROFILE
     s_drawStats = {};
+#endif
 
     // Alpha.12 deliberately releases the previous renderer world before the
     // integrated server reads the next BSP. SCR_UpdateScreen can still request
@@ -2313,13 +2327,19 @@ void RenderFrame(const refdef_t & viewDef)
         return;
     }
 
+#if PS2_PROFILE
     timing::Stamp phaseStart = timing::Now();
+#endif
     SetupFrame(viewDef);
+#if PS2_PROFILE
     s_drawStats.setupMicros = timing::ElapsedMicros(phaseStart);
 
     phaseStart = timing::Now();
+#endif
     RenderWorldModel(viewDef);
+#if PS2_PROFILE
     s_drawStats.worldMicros = timing::ElapsedMicros(phaseStart);
+#endif
 
     // The sky is far-depth opaque background. Draw it after the BSP has
     // protected real geometry, but before alpha-tested/blended entities and
@@ -2328,19 +2348,27 @@ void RenderFrame(const refdef_t & viewDef)
     // a later sky pass fails its depth test.
     DrawSkyBox(viewDef);
 
+#if PS2_PROFILE
     phaseStart = timing::Now();
+#endif
     RenderEntities(viewDef);
+#if PS2_PROFILE
     s_drawStats.entityMicros = timing::ElapsedMicros(phaseStart);
+#endif
 
     // Draw translucent BSP surfaces before particles. The stable nine-qword
     // VU1 path keeps its original depth state; placing particles last prevents
     // their billboard triangles from rejecting a later water pass without
     // reprogramming ZBUF inside PATH1 batches.
     DrawAlphaSurfaces();
+#if PS2_PROFILE
     phaseStart = timing::Now();
+#endif
     RenderParticles(viewDef);
+#if PS2_PROFILE
     s_drawStats.particleMicros = timing::ElapsedMicros(phaseStart);
     s_drawStats.lightCacheBytes = s_litCacheBytes;
+#endif
     UpdatePlayerLightLevel(viewDef);
 
     // Later milestones continue here: remaining translucent entity variants.

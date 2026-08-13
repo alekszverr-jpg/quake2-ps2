@@ -6,6 +6,22 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+### Performance
+
+- Split PS2 builds into an ordinary `quake2.elf` release and a separate
+  `quake2-profile.elf`. Their object trees are isolated, preventing stale
+  profile instrumentation from leaking into release builds.
+- Compiled renderer phase clocks, VU1/GS timing probes, draw counters and all
+  diagnostic overlays out of the release ELF. The profile ELF retains the
+  controller-accessible FPS/full diagnostics used for optimization work.
+
+### Build
+
+- Updated CI to compile and publish both release and profile ELFs on every run.
+- Kept runtime integrity assertions enabled in both variants during the alpha;
+  memory-safety failures still produce an actionable on-screen error instead of
+  silently corrupting a level session.
+
 ### Documentation
 
 - Refined the performance roadmap using Sony's PS2 optimization guidance. The

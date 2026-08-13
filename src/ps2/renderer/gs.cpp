@@ -319,7 +319,9 @@ vram::Address LitClutAddress()
 void BeginFrame()
 {
     PS2_AssertMsg(!s_frameStarted, "BeginFrame: frame already started!");
+#if PS2_PROFILE
     s_timingStats = {};
+#endif
     s_frameStarted = true;
 
     s_packetIdx ^= 1;
@@ -450,7 +452,9 @@ void FillRect(int x, int y, int w, int h, u8 r, u8 g, u8 b, u8 a)
 // the GS has finished rasterizing them).
 static void SyncGsBeforeVramReuse()
 {
+#if PS2_PROFILE
     const timing::Stamp waitStart = timing::Now();
+#endif
     if (s_in2D)
     {
         RenderPacket & pkt = FramePacket();
@@ -472,7 +476,9 @@ static void SyncGsBeforeVramReuse()
         pkt.SendNormal();
         draw_wait_finish();
     }
+#if PS2_PROFILE
     s_timingStats.vramStallMicros += timing::ElapsedMicros(waitStart);
+#endif
     s_vramReuseHazard = false;
 }
 
@@ -590,7 +596,9 @@ void EnsureTextureResident(const tex::Texture & texture)
     pkt.TextureFlush();
 
     pkt.SendChain();
+#if PS2_PROFILE
     const timing::Stamp uploadStart = timing::Now();
+#endif
     dma_wait_fast();
 
     // Waiting for GIF DMA alone is insufficient here. A following VU1 XGKICK
@@ -609,7 +617,9 @@ void EnsureTextureResident(const tex::Texture & texture)
     pkt.SendNormal();
     dma_wait_fast();
     draw_wait_finish();
+#if PS2_PROFILE
     s_timingStats.textureUploadMicros += timing::ElapsedMicros(uploadStart);
+#endif
 
     vram::NoteTextureUpload(); // for the debug overlay's per-frame upload count
 }

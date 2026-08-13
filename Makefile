@@ -4,7 +4,8 @@
 #  Produces build/quake2.elf for the PS2 EE, using the modern ps2dev toolchain
 #  (mips64r5900el-ps2-elf-*). Built on top of the PS2SDK sample makefiles.
 #
-#    make            -> build build/quake2.elf   (VSCode: Shift+Cmd+B)
+#    make            -> release build/quake2.elf (VSCode: Shift+Cmd+B)
+#    make BUILD=profile -> profiling build/quake2-profile.elf
 #    make run        -> build + launch in PCSX2  (VSCode: F5)
 #    make tools      -> build host tools (imgdump, unpak) into build/tools/
 #    make clean      -> remove build artifacts
@@ -22,7 +23,19 @@ PCSX2  ?= /Applications/PCSX2.app/Contents/MacOS/PCSX2
 SRC_DIR    = src
 OUTPUT_DIR = build
 
-EE_BIN = $(OUTPUT_DIR)/quake2.elf
+BUILD ?= release
+
+ifeq ($(BUILD),release)
+BUILD_DIR = $(OUTPUT_DIR)/release
+EE_BIN    = $(OUTPUT_DIR)/quake2.elf
+PROFILE_DEFS = -DPS2_PROFILE=0 -DPS2_RELEASE=1
+else ifeq ($(BUILD),profile)
+BUILD_DIR = $(OUTPUT_DIR)/profile
+EE_BIN    = $(OUTPUT_DIR)/quake2-profile.elf
+PROFILE_DEFS = -DPS2_PROFILE=1 -DPS2_RELEASE=0
+else
+$(error Unknown BUILD='$(BUILD)'; expected release or profile)
+endif
 
 # ----------------------------------------------------------------------------
 #  Source files
@@ -96,15 +109,15 @@ ENGINE_C_SRC = \
 C_SRC   = $(PS2_C_SRC) $(ENGINE_C_SRC)
 CXX_SRC = $(PS2_CXX_SRC)
 
-C_OBJS   = $(addprefix $(OUTPUT_DIR)/$(SRC_DIR)/, $(C_SRC:.c=.o))
-CXX_OBJS = $(addprefix $(OUTPUT_DIR)/$(SRC_DIR)/, $(CXX_SRC:.cpp=.o))
+C_OBJS   = $(addprefix $(BUILD_DIR)/$(SRC_DIR)/, $(C_SRC:.c=.o))
+CXX_OBJS = $(addprefix $(BUILD_DIR)/$(SRC_DIR)/, $(CXX_SRC:.cpp=.o))
 
 # VU microprograms: vclpp -> openvcl -> dvp-as
 # Each .vcl assembles into .vudata with <name>_CodeStart/_CodeEnd link symbols
 # (see PS2_DECLARE_VU_MICROPROGRAM in ps2/renderer/vu1.h).
 VCL_PATH  = $(SRC_DIR)/ps2/renderer/vu1progs
 VCL_FILES = textured_triangles.vcl
-VU_OBJS   = $(addprefix $(OUTPUT_DIR)/vu/, $(VCL_FILES:.vcl=.o))
+VU_OBJS   = $(addprefix $(BUILD_DIR)/vu/, $(VCL_FILES:.vcl=.o))
 
 # Standalone command line tools under src/tools, built with the HOST compiler
 # (not the EE toolchain) since they run on the development machine.
@@ -117,7 +130,7 @@ HOST_CFLAGS ?= -O2 -Wall
 # by ps2/system/iop_boot.cpp when the game data isn't on host: (real hardware).
 IRX_PATH  = $(PS2SDK)/iop/irx
 IRX_FILES = iomanX.irx fileXio.irx bdm.irx bdmfs_fatfs.irx usbd.irx usbmass_bd.irx audsrv.irx
-IRX_OBJS  = $(addprefix $(OUTPUT_DIR)/irx/, $(IRX_FILES:.irx=.o))
+IRX_OBJS  = $(addprefix $(BUILD_DIR)/irx/, $(IRX_FILES:.irx=.o))
 
 EE_OBJS = $(C_OBJS) $(CXX_OBJS) $(VU_OBJS) $(IRX_OBJS)
 DEPS    = $(C_OBJS:.o=.d) $(CXX_OBJS:.o=.d)
@@ -126,9 +139,7 @@ DEPS    = $(C_OBJS:.o=.d) $(CXX_OBJS:.o=.d)
 #  Compiler / linker flags (appended to the SDK defaults from Makefile.eeglobal)
 # ----------------------------------------------------------------------------
 
-# TODO: Define a debug and a release (optimized) target. Release should disable asserts.
-
-COMMON_DEFS = -DGAME_HARD_LINKED -DPS2_QUAKE
+COMMON_DEFS = -DGAME_HARD_LINKED -DPS2_QUAKE $(PROFILE_DEFS)
 
 EE_INCS += -I$(SRC_DIR)
 
@@ -185,23 +196,23 @@ all: $(EE_BIN) tools
 # Out-of-tree object rules. These static-pattern rules take precedence over the
 # generic %.o rules from Makefile.eeglobal so objects land under build/ mirroring
 # the src/ tree. ($(EE_BIN) link rule is provided by Makefile.eeglobal_cpp.)
-$(C_OBJS): $(OUTPUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.c
+$(C_OBJS): $(BUILD_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.c
 	@mkdir -p $(dir $@)
 	$(EE_CC) $(EE_CFLAGS) $(EE_INCS) -c $< -o $@
 
-$(CXX_OBJS): $(OUTPUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.cpp
+$(CXX_OBJS): $(BUILD_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@mkdir -p $(dir $@)
 	$(EE_CXX) $(EE_CXXFLAGS) $(EE_INCS) -c $< -o $@
 
 # VU1 microprograms.
-$(OUTPUT_DIR)/vu/%.o: $(VCL_PATH)/%.vcl
+$(BUILD_DIR)/vu/%.o: $(VCL_PATH)/%.vcl
 	@mkdir -p $(dir $@)
 	vclpp $< $(basename $@).pp.vcl -j
 	openvcl -o $(basename $@).vsm $(basename $@).pp.vcl
 	dvp-as $(basename $@).vsm -o $@
 
 # IOP modules embedded via bin2c.
-$(OUTPUT_DIR)/irx/%.o: $(IRX_PATH)/%.irx
+$(BUILD_DIR)/irx/%.o: $(IRX_PATH)/%.irx
 	@mkdir -p $(dir $@)
 	bin2c $< $(basename $@).c $(notdir $(basename $@))_irx
 	$(EE_CC) $(EE_CFLAGS) $(EE_INCS) -c $(basename $@).c -o $@
@@ -227,10 +238,11 @@ compiledb:
 	@$(MAKE) -Bnk | python3 scripts/gen_compile_commands.py
 
 clean:
-	rm -rf $(OUTPUT_DIR)/src $(OUTPUT_DIR)/vu $(OUTPUT_DIR)/irx $(OUTPUT_DIR)/tools $(EE_BIN)
+	rm -rf $(OUTPUT_DIR)/release $(OUTPUT_DIR)/profile $(OUTPUT_DIR)/tools \
+		$(OUTPUT_DIR)/quake2.elf $(OUTPUT_DIR)/quake2-profile.elf
 
 clean_vu:
-	rm -rf $(OUTPUT_DIR)/vu
+	rm -rf $(OUTPUT_DIR)/release/vu $(OUTPUT_DIR)/profile/vu
 
 -include $(DEPS)
 
