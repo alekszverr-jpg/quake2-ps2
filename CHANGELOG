@@ -6,6 +6,17 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.53 - 2026-08-13
+
+### Graphics
+
+- Allowed only already-detected high-contrast PROFILE lighting regions to use
+  two additional subdivision levels. This removes the remaining large
+  triangular light boundary beside small floor lamps without increasing the
+  depth or triangle cost of ordinary BSP surfaces.
+- Enlarged only the temporary single-triangle lighting scratch buffer to cover
+  the deeper local path; the persistent 1.5 MB BSP-lighting cache is unchanged.
+
 ## 0.1.0-alpha.52 - 2026-08-13
 
 ### Performance

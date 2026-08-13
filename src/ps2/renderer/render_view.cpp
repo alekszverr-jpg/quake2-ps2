@@ -649,6 +649,14 @@ inline void FlushScratch(const math::Mat4 & mvp, const tex::Texture & texture,
 
 constexpr int kNumClipPlanes = 6;
 constexpr int kMaxLightSubdivideDepth = 6;
+#if PS2_PROFILE
+// Only a high-contrast region inherited from an already sampled parent may
+// enter these two extra levels. Smooth BSP faces still stop at the original
+// depth, keeping the normal PROFILE cost unchanged.
+constexpr int kMaxFineLightSubdivideDepth = 8;
+#else
+constexpr int kMaxFineLightSubdivideDepth = kMaxLightSubdivideDepth;
+#endif
 
 // Clip a hair early so the VU's judgement never flags a vertex this clipper
 // just placed on the boundary (clip-space units, i.e. ~world units here).
@@ -694,7 +702,7 @@ static_assert(sizeof(CachedLitVertex) == 24,
               "CachedLitVertex must remain compact");
 
 constexpr int kMaxCachedVertsPerTriangle =
-    3 * (1 << kMaxLightSubdivideDepth);
+    3 * (1 << kMaxFineLightSubdivideDepth);
 // Adaptive lighting can otherwise cache every visible subdivided BSP triangle
 // until it consumes the EE heap. Keep the 1.5 MB cap, but obtain it in a small
 // number of chunks: thousands of 144-byte allocations fragmented long-running
@@ -1382,7 +1390,10 @@ void BuildCachedLitTriangle(const ClipVertex (&corners)[3],
     if (edgeLengthSq[1] > edgeLengthSq[longest]) { longest = 1; }
     if (edgeLengthSq[2] > edgeLengthSq[longest]) { longest = 2; }
 
-    if (surface.samples == nullptr || depth >= kMaxLightSubdivideDepth ||
+    const int localMaxDepth = inheritedFineLevels > 0
+        ? kMaxFineLightSubdivideDepth
+        : kMaxLightSubdivideDepth;
+    if (surface.samples == nullptr || depth >= localMaxDepth ||
         edgeLengthSq[longest] <=
             kMinLightSamplesPerEdge * kMinLightSamplesPerEdge)
     {
@@ -1469,11 +1480,11 @@ void BuildCachedLitTriangle(const ClipVertex (&corners)[3],
 
     const ClipVertex first[3]  = { corners[edgeA], midpoint, corners[opposite] };
     const ClipVertex second[3] = { midpoint, corners[edgeB], corners[opposite] };
-    // A sharp parent grants its children one fine level even if each half's
-    // reduced colour span falls below the threshold. This removes the visible
-    // boundary where refinement previously stopped immediately after one cut.
+    // A sharp parent grants its children enough lifetime to use the two
+    // PROFILE-only depth levels even if each half's reduced colour span falls
+    // below the threshold. Smooth triangles can never enter the deeper path.
     const int childFineLevels = detectedFineRegion
-        ? 1
+        ? kMaxFineLightSubdivideDepth - kMaxLightSubdivideDepth
         : std::max(inheritedFineLevels - 1, 0);
     BuildCachedLitTriangle(first,  surface, depth + 1, childFineLevels);
     BuildCachedLitTriangle(second, surface, depth + 1, childFineLevels);
