@@ -6,6 +6,24 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.54 - 2026-08-13
+
+### Performance
+
+- Added conservative per-frame frustum culling for MD2 entities before static
+  world-light sampling, vertex interpolation, lighting and triangle expansion.
+  View weapons bypass this culling path.
+- Reverted the PROFILE-only lighting depth 7-8 experiment. Testing showed that
+  it substantially increased `LitFine` and cache use without changing the
+  remaining triangular boundary around a floor lamp.
+
+### Known limitations
+
+- A hard triangular boundary may remain where the current vertex-lighting
+  approximation crosses BSP surface/triangulation boundaries near small,
+  high-contrast floor lamps. Further adaptive subdivision does not fix it;
+  resolving it requires a different cross-surface or lightmap rendering path.
+
 ## 0.1.0-alpha.53 - 2026-08-13
 
 ### Graphics

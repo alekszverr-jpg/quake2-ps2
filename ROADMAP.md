@@ -163,7 +163,9 @@ not return under zero-free-VRAM stress.
 - [x] Use Quake II PVS data to mark visible BSP leaves and parent nodes
 - [x] Cache per-view-cluster visibility work and invalidate it only when the
   camera crosses the relevant BSP boundary
-- [ ] Add more aggressive frustum, backface, entity and bounding-box culling
+- [~] Add more aggressive frustum, backface, entity and bounding-box culling;
+  world BSP nodes, brush entities and MD2 entities now have conservative
+  frustum tests before their expensive render preparation
 - [ ] Avoid lighting, transforming or batching surfaces rejected by visibility
 - [~] Cache adaptive BSP tessellation independently from animated lightstyle
   colours, updating cached vertex colours without rebuilding the topology
@@ -177,9 +179,9 @@ not return under zero-free-VRAM stress.
 - [x] Pack retained lightmap UVs to UNORM16, then remove them from the cache
   entirely by reconstructing them from world position; retained BSP vertices
   are now 24 bytes and PROFILE tests stay inside the fixed cache budget
-- [~] Retain the coarse PROFILE light grid on ordinary surfaces while allowing
-  only detected high-contrast lamp regions to use a local `4/3` grid and two
-  extra subdivision levels; validate the last lamp-boundary case in PCSX2
+- [~] Retain the coarse PROFILE light grid on ordinary surfaces and use a local
+  `4/3` grid in detected high-contrast lamp regions; depth 7-8 was rejected
+  after testing showed higher cache use without fixing the cross-surface edge
 - [ ] Cache reusable surface lists for common cluster/area combinations where
   memory cost is lower than repeated BSP traversal cost
 

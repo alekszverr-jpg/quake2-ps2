@@ -649,14 +649,7 @@ inline void FlushScratch(const math::Mat4 & mvp, const tex::Texture & texture,
 
 constexpr int kNumClipPlanes = 6;
 constexpr int kMaxLightSubdivideDepth = 6;
-#if PS2_PROFILE
-// Only a high-contrast region inherited from an already sampled parent may
-// enter these two extra levels. Smooth BSP faces still stop at the original
-// depth, keeping the normal PROFILE cost unchanged.
-constexpr int kMaxFineLightSubdivideDepth = 8;
-#else
 constexpr int kMaxFineLightSubdivideDepth = kMaxLightSubdivideDepth;
-#endif
 
 // Clip a hair early so the VU's judgement never flags a vertex this clipper
 // just placed on the boundary (clip-space units, i.e. ~world units here).
@@ -1390,10 +1383,7 @@ void BuildCachedLitTriangle(const ClipVertex (&corners)[3],
     if (edgeLengthSq[1] > edgeLengthSq[longest]) { longest = 1; }
     if (edgeLengthSq[2] > edgeLengthSq[longest]) { longest = 2; }
 
-    const int localMaxDepth = inheritedFineLevels > 0
-        ? kMaxFineLightSubdivideDepth
-        : kMaxLightSubdivideDepth;
-    if (surface.samples == nullptr || depth >= localMaxDepth ||
+    if (surface.samples == nullptr || depth >= kMaxLightSubdivideDepth ||
         edgeLengthSq[longest] <=
             kMinLightSamplesPerEdge * kMinLightSamplesPerEdge)
     {
@@ -1480,11 +1470,12 @@ void BuildCachedLitTriangle(const ClipVertex (&corners)[3],
 
     const ClipVertex first[3]  = { corners[edgeA], midpoint, corners[opposite] };
     const ClipVertex second[3] = { midpoint, corners[edgeB], corners[opposite] };
-    // A sharp parent grants its children enough lifetime to use the two
-    // PROFILE-only depth levels even if each half's reduced colour span falls
-    // below the threshold. Smooth triangles can never enter the deeper path.
+    // Keep one child generation on the fine limits even if its reduced colour
+    // span falls below the threshold. Deeper subdivision was profiled in
+    // alpha.53 and increased cache use without changing the remaining
+    // cross-surface lamp boundary.
     const int childFineLevels = detectedFineRegion
-        ? kMaxFineLightSubdivideDepth - kMaxLightSubdivideDepth
+        ? 1
         : std::max(inheritedFineLevels - 1, 0);
     BuildCachedLitTriangle(first,  surface, depth + 1, childFineLevels);
     BuildCachedLitTriangle(second, surface, depth + 1, childFineLevels);
@@ -2091,6 +2082,41 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model,
                 + frontLerp * frame->translate[i];
         frontScale[i] = frontLerp * frame->scale[i];
         backScale[i]  = backLerp  * oldFrame->scale[i];
+    }
+
+    // Reject off-screen MD2s before world-light sampling, per-vertex frame
+    // interpolation and triangle expansion. MD2 positions are unsigned bytes,
+    // so the complete [0,255] range of both lerped frames gives a cheap,
+    // conservative local bound without touching the vertex arrays. A sphere
+    // around entity.origin remains valid under all Quake pitch/yaw/roll
+    // rotations. View weapons intentionally bypass world-frustum culling.
+    if ((entity.flags & RF_DEPTHHACK) == 0)
+    {
+        float radiusSq = 0.0f;
+        for (int axisIndex = 0; axisIndex < 3; ++axisIndex)
+        {
+            const float frontSpan = 255.0f * frontScale[axisIndex];
+            const float backSpan  = 255.0f * backScale[axisIndex];
+            const float localMin = move[axisIndex] +
+                std::min(0.0f, frontSpan) + std::min(0.0f, backSpan);
+            const float localMax = move[axisIndex] +
+                std::max(0.0f, frontSpan) + std::max(0.0f, backSpan);
+            const float extent = std::max(std::fabs(localMin),
+                                          std::fabs(localMax));
+            radiusSq += extent * extent;
+        }
+        const float radius = std::sqrt(radiusSq);
+        float mins[3];
+        float maxs[3];
+        for (int axisIndex = 0; axisIndex < 3; ++axisIndex)
+        {
+            mins[axisIndex] = entity.origin[axisIndex] - radius;
+            maxs[axisIndex] = entity.origin[axisIndex] + radius;
+        }
+        if (ShouldCullBBox(mins, maxs))
+        {
+            return;
+        }
     }
 
     const auto * triangles = MD2DataAt<dtriangle_t>(*md2, md2->ofs_tris);
