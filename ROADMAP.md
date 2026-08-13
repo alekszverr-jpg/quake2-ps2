@@ -168,8 +168,11 @@ not return under zero-free-VRAM stress.
   frustum tests before their expensive render preparation. Alpha.54 PROFILE
   validation reduced `MD2Vert` from 1346 to 330, `MD2Corner` from 7452 to 1707
   and `Ent us` from 8330 to 4589 when looking away from several enemies, while
-  FPS rose from 31 to 43 with no edge popping
-- [ ] Avoid lighting, transforming or batching surfaces rejected by visibility
+  FPS rose from 31 to 43 with no edge popping. Alpha.55 also rejects individual
+  world faces outside the frustum even when their parent BSP node intersects it
+- [~] Avoid lighting, transforming or batching surfaces rejected by visibility;
+  alpha.55 performs a conservative per-face check before texture/alpha chaining
+  and exposes the independent PROFILE `SurfCull` counter
 - [~] Cache adaptive BSP tessellation independently from animated lightstyle
   colours, updating cached vertex colours without rebuilding the topology
 - [~] Compact retained BSP-lighting vertices so heavy scenes fit more reusable

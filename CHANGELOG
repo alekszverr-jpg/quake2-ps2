@@ -6,6 +6,20 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.55 - 2026-08-13
+
+### Performance
+
+- Added conservative per-surface frustum culling for world BSP faces after PVS,
+  node-box and backface checks but before opaque/alpha texture chaining.
+- Off-screen faces inside partially visible BSP nodes now skip texture-chain
+  preparation, adaptive lighting/cache work, retained-vertex reconstruction,
+  triangle clipping and batching.
+- Reconstructs temporary face bounds from existing BSP surfedges, adding no
+  persistent map-hunk allocation or level-transition memory pressure.
+- Added the PROFILE `SurfCull` counter so per-face savings can be measured
+  independently from whole-node and entity `BoxCull` results.
+
 ## 0.1.0-alpha.54 - 2026-08-13
 
 ### Performance

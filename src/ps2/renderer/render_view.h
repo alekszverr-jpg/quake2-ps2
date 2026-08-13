@@ -22,6 +22,7 @@ struct DrawStats
     int trisClipped;   // Triangles re-cut against the VU clip volume.
     int trisCulled;    // Triangles dropped whole, entirely outside the view volume.
     int boxesCulled;   // Whole meshes culled via bounding box checks.
+    int surfacesCulled;// Individual BSP faces rejected before draw-chain preparation.
     int drawBatches;   // vu1::DrawTriangles calls (one or more per texture).
     int setupMicros;   // Camera/frustum setup on the EE.
     int worldMicros;   // BSP walk, lighting, clipping and world submission.

@@ -209,6 +209,61 @@ inline bool ShouldCullBBox(float * mins, float * maxs)
     return false;
 }
 
+// A visible leaf can belong to a BSP node whose box intersects the frustum
+// while one of that node's individual faces is still completely off-screen.
+// Reject that face before it enters a texture/alpha chain; otherwise the later
+// pass may sample lighting, rebuild its adaptive cache, reconstruct every
+// retained vertex and clip all triangles only to discard them afterwards.
+//
+// Bounds are reconstructed from the immutable BSP surfedges instead of being
+// stored per surface. This keeps the map hunk unchanged, which matters during
+// the level-transition memory peak. Only four side planes are tested, matching
+// the conservative node/entity frustum path (near/far remain with the clipper).
+bool ShouldCullWorldSurface(const mod::ModelInstance & world,
+                            const mod::ModelSurface & surface)
+{
+    if (surface.numEdges <= 0)
+    {
+        return false;
+    }
+
+    float mins[3];
+    float maxs[3];
+    for (int edgeIndex = 0; edgeIndex < surface.numEdges; ++edgeIndex)
+    {
+        const int surfEdge = world.surfEdges[surface.firstEdge + edgeIndex];
+        const mod::ModelEdge & edge = world.edges[surfEdge >= 0 ? surfEdge : -surfEdge];
+        const int vertexIndex = edge.v[surfEdge >= 0 ? 0 : 1];
+        const math::Vec3 & position = world.vertexes[vertexIndex].position;
+
+        if (edgeIndex == 0)
+        {
+            mins[0] = maxs[0] = position.x;
+            mins[1] = maxs[1] = position.y;
+            mins[2] = maxs[2] = position.z;
+        }
+        else
+        {
+            mins[0] = std::min(mins[0], position.x);
+            mins[1] = std::min(mins[1], position.y);
+            mins[2] = std::min(mins[2], position.z);
+            maxs[0] = std::max(maxs[0], position.x);
+            maxs[1] = std::max(maxs[1], position.y);
+            maxs[2] = std::max(maxs[2], position.z);
+        }
+    }
+
+    for (cplane_t & plane : s_frustum)
+    {
+        if (BOX_ON_PLANE_SIDE(mins, maxs, &plane) == 2)
+        {
+            PS2_STAT_INC(surfacesCulled);
+            return true;
+        }
+    }
+    return false;
+}
+
 void SetupFrame(const refdef_t & viewDef)
 {
     ++s_frameCount;
@@ -583,6 +638,10 @@ void RecursiveWorldNode(const refdef_t & viewDef, const mod::ModelInstance & wor
         if (HasFlag(surf->flags, mod::SurfaceFlags::PlaneBack) != cameraOnBack)
         {
             continue; // Facing away from the camera.
+        }
+        if (ShouldCullWorldSurface(world, *surf))
+        {
+            continue; // Face lies outside the view despite its node intersecting it.
         }
 
         const int texFlags = surf->texInfo->flags;
