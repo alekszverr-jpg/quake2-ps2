@@ -6,6 +6,16 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+### Documentation
+
+- Refined the performance roadmap using Sony's PS2 optimization guidance. The
+  plan now prioritizes 128-byte DMA-reference alignment, pass-level VIF chains,
+  removal of per-draw synchronization, batched texture residency preparation
+  and GS texture-page behaviour before the larger BSP/MD2 VU1 migration.
+- Added a guarded late-stage investigation of scratchpad staging, MFIFO and GIF
+  intermittent mode, to be retained only when profiling shows a measurable gain
+  without reintroducing PATH1/PATH3 texture-ordering corruption.
+
 ## 0.1.0-alpha.44 - 2026-08-11
 
 ### Fixed

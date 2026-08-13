@@ -101,6 +101,12 @@ profiled on PCSX2 first and periodically validated on a retail PS2. Visual
 correctness, deterministic level loading and campaign stability take priority
 over synthetic peak frame rate.
 
+The ordering below also incorporates the practical recommendations from Sony's
+`PS2 Programming Optimisations` material: keep EE, VIF/VU1 and GS working in
+parallel; align large DMA reference data to an 8-QW (128-byte) boundary; reduce
+DMA-tag and state-change overhead; batch texture transfers; and optimize GS
+texture-page behaviour before adding more complex MFIFO scheduling.
+
 ### P0 - Measurement and release baseline
 
 - [ ] Add repeatable benchmark scenes for a light BSP room, a heavy combat
@@ -115,41 +121,55 @@ Completion criterion: the same camera positions and encounters produce a
 comparable PCSX2/PS2 profile, and release builds do not pay for disabled
 diagnostic formatting or rendering.
 
-### P1 - VU1 geometry and lighting
+### P1 - DMA/VIF submission pipeline
 
-- [ ] Move BSP vertex transformation and lighting from the EE to VU1
-- [ ] Move MD2 interpolation, transformation and vertex lighting to VU1
-- [ ] Double-buffer VU1 input/output so EE scene preparation overlaps VU1 work
-- [ ] Keep a guarded EE fallback until BSP and every MD2 render flag match
+- [ ] Align large dynamic vertex arrays, VIF reference data and persistent DMA
+  buffers to 8 QW / 128 bytes; retain 16-byte alignment for small inline data
+- [ ] Measure the current full synchronization points: per-draw VIF `FLUSH`,
+  VIF1 DMA waits, texture-upload `FINISH` waits and framebuffer-clear waits
+- [ ] Replace per-`DrawTriangles` `FLUSH + Wait` submission with larger
+  pass-level VIF chains and wait only before a buffer or referenced range is
+  actually reused
+- [ ] Extend the existing VU1 double-buffered chunks to two or three EE-side
+  packet buffers so EE preparation overlaps VU1 work and GS rasterization
+- [ ] Reduce DMA tag count and report chain count, QW transferred, average
+  vertices per chain and wait time in the profiling build
 
-Completion criterion: BSP and MD2 output remains visually equivalent while EE
-geometry time and VU1 idle time are measurably reduced in the benchmark scenes.
+Completion criterion: ordinary opaque passes no longer block after every draw,
+DMA reference buffers meet the documented alignment, and measured VIF/VU/GS
+wait time falls without rendering corruption on PCSX2 or real hardware.
 
-### P2 - DMA/VIF batching and draw submission
+### P2 - Draw sorting and texture transfer scheduling
 
-- [ ] Build larger DMA/VIF batches instead of submitting small surface/model
-  packets independently
-- [ ] Sort opaque draws by texture, lightmap and render state to reduce GS state
-  changes and texture uploads
+- [x] Chain opaque BSP surfaces by texture before drawing
+- [ ] Sort all opaque world/entity draws by texture, lightmap and render state
+  to reduce GS register changes and uploads
 - [ ] Submit transparent surfaces in a separate order-correct pass
-- [ ] Track batch count, average vertices per batch and state changes in the
-  profiling build
+- [ ] Build a visible-frame texture working set before geometry submission;
+  upload missing textures in batches before any dependent VU1 `XGKICK`
+- [ ] Keep texture transfers and PATH1 geometry correctly ordered without a GS
+  `FINISH` after every individual texture
+- [ ] Track uploads, evictions, texture switches, GS waits and state changes in
+  the profiling build
 
-Completion criterion: batch/state-change counts drop without reintroducing
-weapon, particle, glass, water or world-geometry corruption.
+Completion criterion: texture and state-change counts drop, texture transfer
+waits are amortized across a pass, and the former black-strip/stale-page bugs do
+not return under zero-free-VRAM stress.
 
 ### P3 - BSP visibility and culling
 
-- [ ] Precompute reusable visible BSP surface sets from Quake II PVS data
-- [ ] Cache per-view-cluster visibility work and invalidate it only when the
+- [x] Use Quake II PVS data to mark visible BSP leaves and parent nodes
+- [x] Cache per-view-cluster visibility work and invalidate it only when the
   camera crosses the relevant BSP boundary
 - [ ] Add more aggressive frustum, backface, entity and bounding-box culling
 - [ ] Avoid lighting, transforming or batching surfaces rejected by visibility
+- [ ] Cache reusable surface lists for common cluster/area combinations where
+  memory cost is lower than repeated BSP traversal cost
 
 Completion criterion: heavy scenes submit substantially fewer surfaces and
 vertices, with no visible popping, missing doors or broken moving brush models.
 
-### P4 - Texture residency and VRAM traffic
+### P4 - Texture residency and GS page behaviour
 
 - [ ] Measure texture upload churn, evictions, VRAM waits and repeated uploads
   per frame
@@ -159,12 +179,29 @@ vertices, with no visible popping, missing doors or broken moving brush models.
   fragmentation during level transitions
 - [ ] Group world draws by resident texture/lightmap and upload only when the
   required generation is not already present
+- [ ] Keep related mip levels in predictable nearby GS pages and measure texture
+  page reload sensitivity in the benchmark scenes
+- [ ] Identify large projected surfaces or extreme texture-coordinate ranges
+  that cause repeated GS texture-page misses; subdivide only when measurement
+  shows a net gain
 
 Completion criterion: common gameplay frames perform few or no redundant
 uploads, zero-free-VRAM stress remains artifact-free, and level transitions do
 not accumulate stale texture allocations.
 
-### P5 - Specialized effect paths
+### P5 - VU1 geometry and lighting
+
+- [ ] Move BSP vertex transformation and lighting from the EE to VU1
+- [ ] Move MD2 interpolation, transformation and vertex lighting to VU1
+- [ ] Compress geometry input with VIF unpack formats where precision permits,
+  reducing EE RAM traffic and QW transferred per vertex
+- [ ] Schedule VU instructions so load/store work overlaps vector arithmetic
+- [ ] Keep a guarded EE fallback until BSP and every MD2 render flag match
+
+Completion criterion: BSP and MD2 output remains visually equivalent while EE
+geometry time, input bandwidth and VU1 idle time are measurably reduced.
+
+### P6 - Specialized effect paths
 
 - [ ] Add a compact particle path with shared state and batched billboard data
 - [ ] Add a simplified turbulent water path with a bounded subdivision cost
@@ -176,7 +213,22 @@ not accumulate stale texture allocations.
 Completion criterion: water, particles and transparency remain visually stable
 while their combined EE time, batches and GS state changes are reduced.
 
-### P6 - Memory and sustained-play validation
+### P7 - Advanced MFIFO and PATH scheduling
+
+- [ ] Consider scratchpad-staged DMA only after pass-level batching profiles
+  show main-memory packet generation or bus contention remains significant
+- [ ] Prototype MFIFO buffering only if VU1/GS stalls still prevent useful EE
+  overlap after P1-P5
+- [ ] Evaluate GIF intermittent mode for large batched PATH3 texture transfers
+  while VIF1/VU1 prepare PATH1 geometry
+- [ ] Keep the synchronous proven path selectable until texture/geometry
+  ordering survives PCSX2 and retail-PS2 stress tests
+
+Completion criterion: an advanced path is retained only if it improves measured
+frame time and never permits VU1 geometry to sample incomplete or reused texture
+pages. Otherwise the simpler pass-batched path remains the release default.
+
+### P8 - Memory and sustained-play validation
 
 - [ ] Reuse per-level world/model work buffers instead of retaining temporary
   allocations between maps
@@ -194,11 +246,13 @@ memory margin.
 ### Recommended implementation order
 
 1. P0 profiling/release baseline
-2. P2 batching and P3 culling for lower-risk CPU wins
-3. P4 stable texture residency and reduced VRAM churn
-4. P1 BSP VU1 path, followed by the MD2 VU1 path
-5. P5 specialized particle, water and transparency paths
-6. P6 full campaign, transition and sustained-play validation
+2. P1 DMA alignment, larger chains and removal of per-draw waits
+3. P2 draw sorting/pre-upload scheduling and P3 culling
+4. P4 stable texture residency and GS texture-page improvements
+5. P5 BSP VU1 path, followed by the MD2 VU1 path
+6. P6 specialized particle, water and transparency paths
+7. P7 scratchpad/MFIFO/GIF intermittent experiments only if profiles justify them
+8. P8 full campaign, transition and sustained-play validation
 
 ## Milestone 5 - Test release
 
