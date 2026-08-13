@@ -6,6 +6,20 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.52 - 2026-08-13
+
+### Performance
+
+- Removed lightmap UVs from retained BSP vertices and reconstruct them from
+  world position only when an animated style needs recolouring. Cached vertices
+  shrink from 28 to 24 bytes, leaving substantially more of the unchanged
+  1.5 MB budget for useful local detail.
+- Increased only detected high-contrast lamp regions from the coarse PROFILE
+  `12/8` grid to `4/3`, while smooth surfaces retain the faster settings.
+- Changed `LitFine` to report the number of high-contrast subdivisions already
+  retained in the persistent cache instead of only additions in the current
+  frame, so settled screenshots remain useful.
+
 ## 0.1.0-alpha.51 - 2026-08-13
 
 ### Performance

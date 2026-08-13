@@ -678,9 +678,9 @@ static_assert(sizeof(ClipVertex) == 96, "ClipVertex must be exactly six quadword
 void SetClipDistances(ClipVertex & vertex, const math::Mat4 & mvp);
 
 // Camera-independent output of adaptive BSP lighting. Position.w and st.zw are
-// constants in this path. Lightmap UVs address a 128x128 atlas and do not need
-// full floats: UNORM16 still provides 512 sub-texel steps, while reducing each
-// retained vertex from 32 to 28 bytes.
+// constants in this path. Lightmap UVs are affine projections of world
+// position and can be reconstructed from the owning surface when an animated
+// style needs recolouring, so the persistent cache keeps only six values.
 struct CachedLitVertex
 {
     float x;
@@ -689,10 +689,8 @@ struct CachedLitVertex
     u32 packedColor;
     float s;
     float t;
-    u16 lightmapS;
-    u16 lightmapT;
 };
-static_assert(sizeof(CachedLitVertex) == 28,
+static_assert(sizeof(CachedLitVertex) == 24,
               "CachedLitVertex must remain compact");
 
 constexpr int kMaxCachedVertsPerTriangle =
@@ -724,6 +722,8 @@ static std::vector<const mod::ModelTriangle *> s_cachedLitTriangles;
 static LitCacheChunk s_litCacheChunks[kLitCacheChunkCount] = {};
 static int s_litCacheChunkCount = 0;
 static int s_litCacheBytes = 0;
+static int s_litCacheFineSplits = 0;
+static int s_litBuildFineSplits = 0;
 
 CachedLitVertex * AllocateLitCacheVertices(const int vertexCount)
 {
@@ -790,6 +790,7 @@ void ClearLitTriangleCaches()
     }
     s_litCacheChunkCount = 0;
     s_litCacheBytes = 0;
+    s_litCacheFineSplits = 0;
 }
 
 // Sutherland-Hodgman pass of a convex polygon against one plane. 'out' must
@@ -1319,10 +1320,6 @@ void AppendCachedTriangle(const ClipVertex (&corners)[3])
         out.z = corner.pos.z;
         out.s = corner.st.x;
         out.t = corner.st.y;
-        out.lightmapS = static_cast<u16>(
-            std::clamp(corner.lightmap.x, 0.0f, 1.0f) * 65535.0f + 0.5f);
-        out.lightmapT = static_cast<u16>(
-            std::clamp(corner.lightmap.y, 0.0f, 1.0f) * 65535.0f + 0.5f);
         out.packedColor = PackFloatColor(corner.color);
     }
 }
@@ -1333,10 +1330,23 @@ void RelightCachedVertices(CachedLitVertex * vertices, int vertexCount,
     ClipVertex sample = {};
     for (int i = 0; i < vertexCount; ++i)
     {
-        constexpr float kUnpackUNorm16 = 1.0f / 65535.0f;
+        const CachedLitVertex & cached = vertices[i];
+        const float lms = cached.x * surface.texInfo->vecs[0][0] +
+                          cached.y * surface.texInfo->vecs[0][1] +
+                          cached.z * surface.texInfo->vecs[0][2] +
+                          surface.texInfo->vecs[0][3] -
+                          static_cast<float>(surface.textureMins[0]) +
+                          static_cast<float>(surface.light_s * 16) + 8.0f;
+        const float lmt = cached.x * surface.texInfo->vecs[1][0] +
+                          cached.y * surface.texInfo->vecs[1][1] +
+                          cached.z * surface.texInfo->vecs[1][2] +
+                          surface.texInfo->vecs[1][3] -
+                          static_cast<float>(surface.textureMins[1]) +
+                          static_cast<float>(surface.light_t * 16) + 8.0f;
+        constexpr float kInvLightmapAtlasUnits = 1.0f / (128.0f * 16.0f);
         sample.lightmap = {
-            static_cast<float>(vertices[i].lightmapS) * kUnpackUNorm16,
-            static_cast<float>(vertices[i].lightmapT) * kUnpackUNorm16,
+            lms * kInvLightmapAtlasUnits,
+            lmt * kInvLightmapAtlasUnits,
             0.0f, 0.0f
         };
         SampleVertexLight(sample, surface);
@@ -1398,7 +1408,7 @@ void BuildCachedLitTriangle(const ClipVertex (&corners)[3],
 
     // The PROFILE grid is intentionally coarse over smooth walls, but a small
     // floor lamp can otherwise expose the diagonal of a large interpolated
-    // triangle. Restore the release-quality 8/5 limits only where the probes
+    // triangle. Use a dense 4/3 limit only where the probes
     // detect a genuinely sharp gradient. Uniform bright regions remain on the
     // cheap path, and release builds (already 8/5 by default) are unchanged.
     math::Vec3 minLight = {
@@ -1423,11 +1433,18 @@ void BuildCachedLitTriangle(const ClipVertex (&corners)[3],
                                      maxLight.z - minLight.z));
     const bool detectedFineRegion = lightSpan >= kFineLightSpan;
     const bool useFineLimits = detectedFineRegion || inheritedFineLevels > 0;
+#if PS2_PROFILE
+    constexpr float kFineMaxSamples = 4.0f;
+    constexpr float kFineError = 3.0f;
+#else
+    const float kFineMaxSamples = s_lightMaxSamplesPerEdge;
+    const float kFineError = s_lightErrorTolerance;
+#endif
     const float localMaxSamples = useFineLimits
-        ? std::min(s_lightMaxSamplesPerEdge, 8.0f)
+        ? std::min(s_lightMaxSamplesPerEdge, kFineMaxSamples)
         : s_lightMaxSamplesPerEdge;
     const float localError = useFineLimits
-        ? std::min(s_lightErrorTolerance, 5.0f)
+        ? std::min(s_lightErrorTolerance, kFineError)
         : s_lightErrorTolerance;
 
     const bool coarseWouldSplit =
@@ -1441,7 +1458,7 @@ void BuildCachedLitTriangle(const ClipVertex (&corners)[3],
 
     if (shouldSplit && !coarseWouldSplit)
     {
-        PS2_STAT_INC(lightFineSplits);
+        ++s_litBuildFineSplits;
     }
 
     if (!shouldSplit)
@@ -1499,6 +1516,7 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
             }
 
             s_litBuildVertCount = 0;
+            s_litBuildFineSplits = 0;
             BuildCachedLitTriangle(sourceCorners, surface, 0);
             PS2_Assert(s_litBuildVertCount >= 3 &&
                        (s_litBuildVertCount % 3) == 0);
@@ -1520,6 +1538,7 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
                     if (firstAllocation)
                     {
                         s_cachedLitTriangles.push_back(&tri);
+                        s_litCacheFineSplits += s_litBuildFineSplits;
                     }
                 }
             }
@@ -1572,11 +1591,6 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
                 ClipVertex & corner = corners[v];
                 corner.pos = { src.x, src.y, src.z, 1.0f };
                 corner.st = { src.s, src.t, 0.0f, 0.0f };
-                corner.lightmap = {
-                    static_cast<float>(src.lightmapS) * (1.0f / 65535.0f),
-                    static_cast<float>(src.lightmapT) * (1.0f / 65535.0f),
-                    0.0f, 0.0f
-                };
                 UnpackCachedColor(corner.color, src.packedColor);
 
                 SetClipDistances(corner, mvp);
@@ -2500,6 +2514,7 @@ void RenderFrame(const refdef_t & viewDef)
 #if PS2_PROFILE
     s_drawStats.particleMicros = timing::ElapsedMicros(phaseStart);
     s_drawStats.lightCacheBytes = s_litCacheBytes;
+    s_drawStats.lightFineSplits = s_litCacheFineSplits;
 #endif
     UpdatePlayerLightLevel(viewDef);
 

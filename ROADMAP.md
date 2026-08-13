@@ -177,6 +177,9 @@ not return under zero-free-VRAM stress.
 - [~] Pack retained lightmap UVs to UNORM16 and carry locally detected lamp
   refinement through one child level, improving both cache headroom and the
   remaining high-contrast interpolation boundary
+- [~] Reconstruct cached lightmap UVs from world position, retain 24-byte BSP
+  vertices and spend the recovered cache capacity on a `4/3` grid restricted
+  to detected high-contrast lamp regions
 - [ ] Cache reusable surface lists for common cluster/area combinations where
   memory cost is lower than repeated BSP traversal cost
 
