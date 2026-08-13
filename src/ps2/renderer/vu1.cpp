@@ -53,8 +53,12 @@ static TimingStats s_timingStats = {};
 
 // Vertices per VU run: DrawTriangles splits larger draws into chunks of this
 // size. Bounded by the VU double buffer: input (10 + 2n) plus output
-// (9 + 3n), so n <= 95 - and chunks are whole triangles, hence 93.
-constexpr int kMaxVertsPerBatch = 93;
+// (9 + 3n), so n <= 95. Eighty-four is the largest practical count that is
+// also divisible by 3 triangles and 4 DrawVertex records: every successive
+// REF therefore begins on the Sony-recommended 8-QW / 128-byte boundary.
+constexpr int kMaxVertsPerBatch = 84;
+static_assert((kMaxVertsPerBatch * sizeof(DrawVertex)) % 128 == 0,
+              "Successive vertex REF chunks must remain 128-byte aligned");
 
 // VIF1 double-buffer registers: two 496-qword buffers above the constants.
 constexpr int kDoubleBufferBase   = 8;
@@ -70,8 +74,9 @@ constexpr int kVertexDataAddr  = kGifTagsAddr + 9;
 
 // The chain is tags plus small per-chunk inline unpacks; constants and
 // vertices are referenced in place. Sized so a DrawTriangles call fits ~30
-// chunks (~2900 verts) before it must flush the chain mid-call.
-constexpr int kDrawPacketQwords = 512;
+// chunks (~4000 verts) before it must flush the chain mid-call. This covers
+// the complete 3072-vertex world scratch buffer in one VIF1 chain.
+constexpr int kDrawPacketQwords = 768;
 
 // Conservative chain footprint of one chunk segment (header/tags inline
 // unpack, vertex REF unpack, FLUSH + MSCAL; ~11 qwords in practice) and of
@@ -116,7 +121,7 @@ struct alignas(16) FrameConstants
 };
 static_assert(sizeof(FrameConstants) == 7 * 16, "Must match the VU memory layout");
 
-static FrameConstants s_constants;
+alignas(128) static FrameConstants s_constants;
 static VifPacket s_drawPacket;
 static bool s_initialized = false;
 
@@ -205,6 +210,9 @@ void AddBatchChunk(VifPacket & pkt, const tex::Texture & texture, int ctx,
     PS2_Assert(vertCount > 0 && vertCount <= kMaxVertsPerBatch && (vertCount % 3) == 0);
     PS2_Assert(fixedAlpha >= -1 && fixedAlpha <= 128);
     pkt.EnsureSpace(kChunkChainQwords + kChainTailQwords);
+#if PS2_PROFILE
+    ++s_timingStats.chunks;
+#endif
 
     pkt.OpenInlineUnpack(kBatchHeaderAddr, true);
     {
@@ -269,6 +277,9 @@ void SendChainAndWait(VifPacket & pkt)
 {
     pkt.AddFlush();
     pkt.AddEndTag();
+#if PS2_PROFILE
+    ++s_timingStats.chains;
+#endif
     pkt.Send();
 #if PS2_PROFILE
     const timing::Stamp waitStart = timing::Now();
@@ -324,7 +335,8 @@ void DrawTriangles(const math::Mat4 & mvp, const tex::Texture & texture,
 {
     PS2_AssertMsg(s_initialized, "vu1::Init not called!");
     PS2_AssertMsg(vertCount > 0 && (vertCount % 3) == 0, "DrawTriangles wants whole triangles!");
-    PS2_AssertMsg((reinterpret_cast<std::uintptr_t>(verts) & 15u) == 0, "Vertex data must be 16-byte aligned!");
+    PS2_AssertMsg((reinterpret_cast<std::uintptr_t>(verts) & 127u) == 0,
+                  "Vertex DMA data must be 128-byte aligned!");
 
     // Send any 2D accumulated before this 3D burst so it draws underneath (and
     // its textures are consumed before our uploads can evict them). A no-op once

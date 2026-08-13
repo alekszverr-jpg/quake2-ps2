@@ -133,7 +133,7 @@ static bool s_skyVisible = false;
 // vu1::DrawTriangles when full. DrawTriangles is synchronous, so one buffer
 // serves every batch in turn, referenced in place by the DMA chain.
 constexpr int kScratchMaxVerts = 3072; // whole triangles (3 * 1024); 96 KB
-alignas(16) static vu1::DrawVertex s_scratchVerts[kScratchMaxVerts];
+alignas(128) static vu1::DrawVertex s_scratchVerts[kScratchMaxVerts];
 static int s_scratchVertCount = 0;
 
 // MD2 frames index shared positions separately from per-corner texture

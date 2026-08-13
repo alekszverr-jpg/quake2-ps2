@@ -37,9 +37,11 @@ int NextPowerOfTwo(int value)
 
 u8 * AllocPixels(int sizeBytes)
 {
-    // 16-byte aligned: the upload DMA chain references the buffer in place,
-    // and REF transfer tags require qword-aligned source addresses.
-    return static_cast<u8 *>(PS2_MemAllocAligned(16, static_cast<size_t>(sizeBytes), MEMTAG_TEXIMAGE));
+    // Large upload DMA references follow the recommended 8-QW boundary. Keep
+    // tiny images at the qword minimum to avoid needless allocator padding.
+    const size_t alignment = sizeBytes >= 128 ? 128u : 16u;
+    return static_cast<u8 *>(PS2_MemAllocAligned(
+        alignment, static_cast<size_t>(sizeBytes), MEMTAG_TEXIMAGE));
 }
 
 void FreePixels(u8 * pic, int sizeBytes)

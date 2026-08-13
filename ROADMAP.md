@@ -125,9 +125,9 @@ diagnostic formatting or rendering.
 
 ### P1 - DMA/VIF submission pipeline
 
-- [ ] Align large dynamic vertex arrays, VIF reference data and persistent DMA
+- [~] Align large dynamic vertex arrays, VIF reference data and persistent DMA
   buffers to 8 QW / 128 bytes; retain 16-byte alignment for small inline data
-- [ ] Measure the current full synchronization points: per-draw VIF `FLUSH`,
+- [~] Measure the current full synchronization points: per-draw VIF `FLUSH`,
   VIF1 DMA waits, texture-upload `FINISH` waits and framebuffer-clear waits
 - [ ] Replace per-`DrawTriangles` `FLUSH + Wait` submission with larger
   pass-level VIF chains and wait only before a buffer or referenced range is

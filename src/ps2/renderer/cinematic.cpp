@@ -30,7 +30,7 @@ constexpr int kFrameDim = 256;
 // buffers (~128 KB + 1 KB) rather than heap, matching the old renderer: the
 // buffers exist for the life of the program, only the VRAM copy is transient.
 // Zero-initialization also guarantees the rows past a short frame stay black.
-alignas(16) static u16 s_frameBuffer[kFrameDim * kFrameDim];
+alignas(128) static u16 s_frameBuffer[kFrameDim * kFrameDim];
 alignas(16) static u32 s_palette[256];
 
 // The frame texture, drawn through the regular 2D texture path. Linear

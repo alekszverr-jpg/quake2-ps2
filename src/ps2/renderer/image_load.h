@@ -14,7 +14,8 @@
 namespace ps2::img {
 
 // On success every loader hands back a pixel buffer allocated with
-// PS2_MemAllocAligned(16, ..., MEMTAG_TEXIMAGE) - DMA-ready - that the caller
+// PS2_MemAllocAligned(..., MEMTAG_TEXIMAGE) - 128-byte aligned for large DMA
+// sources and 16-byte aligned for tiny images - that the caller
 // owns and frees with PS2_MemFree (the loader-provided byte size when the
 // format carries a mip chain, otherwise width * height * bytes per texel).
 // On failure they warn via Com_DPrintf and return false with nothing allocated.

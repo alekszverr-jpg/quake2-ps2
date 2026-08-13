@@ -52,7 +52,7 @@ constexpr int kMaxTess = 8;
 // One face's worth of vertices, refilled before each face draw - since
 // DrawTriangles is synchronous a single buffer can serve all six faces in
 // turn, referenced in place by the DMA chain.
-alignas(16) static vu1::DrawVertex s_faceVerts[kMaxTess * kMaxTess * 6];
+alignas(128) static vu1::DrawVertex s_faceVerts[kMaxTess * kMaxTess * 6];
 
 // Emits the vertex at (u, v) in [0,1]^2 of a face: position and color are the
 // bilinear blend of the face's four corners (in winding order), s/t map the

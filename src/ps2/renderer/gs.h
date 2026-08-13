@@ -21,6 +21,8 @@ struct TimingStats
 {
     int textureUploadMicros; // Texture-transfer DMA wait time this frame.
     int vramStallMicros;     // Full GS waits before reusing resident VRAM.
+    int textureUploads;      // Synchronous texture upload batches this frame.
+    int vramStalls;          // Full GS reuse synchronizations this frame.
 };
 
 // Brings up the GS: allocates two 32-bit framebuffers, initialises the video

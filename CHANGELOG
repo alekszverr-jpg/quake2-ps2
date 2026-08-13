@@ -6,6 +6,25 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.46 - 2026-08-13
+
+### Performance
+
+- Aligned the world/MD2 VIF vertex scratch buffer, VU frame constants, debug
+  geometry, texture image allocations, sky conversion buffers, cinematics and
+  palette CLUTs to 128-byte DMA boundaries where their size warrants it.
+- Changed VU1 chunks from 93 to 84 vertices. The new size remains a whole
+  triangle count and advances each vertex REF by exactly 21 x 128 bytes, so
+  every chunk begins on the recommended DMA boundary.
+- Enlarged the VIF source-chain packet so the complete 3072-vertex world
+  scratch submission fits without an avoidable mid-call chain flush.
+
+### Diagnostics
+
+- Extended PROFILE full diagnostics with `VIFchain`, `VUchunk`, `TexUp` and
+  `VRAMsync` counters. These distinguish submission fragmentation from actual
+  VIF/GS wait time before synchronization is changed.
+
 ## 0.1.0-alpha.45 - 2026-08-13
 
 ### Performance

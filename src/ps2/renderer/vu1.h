@@ -18,6 +18,8 @@ namespace ps2::vu1 {
 struct TimingStats
 {
     int waitMicros; // EE wall time blocked waiting for VIF1/VU1 DMA.
+    int chains;     // VIF1 source chains submitted this frame.
+    int chunks;     // Double-buffered VU1 vertex chunks submitted this frame.
 };
 
 // Declares the linker symbols bracketing an assembled VU microprogram in the

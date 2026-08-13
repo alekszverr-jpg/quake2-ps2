@@ -105,8 +105,8 @@ static const tex::Texture * s_currentTex = nullptr;
 // texture's TEX0 points at. s_clutData holds the entries in the GS's CSM1
 // arrangement: within each 32-entry group the two middle 8-entry blocks swap
 // (index bits 3 and 4 exchange).
-alignas(16) static u32 s_clutData[256];
-alignas(16) static u32 s_litClutData[256];
+alignas(128) static u32 s_clutData[256];
+alignas(128) static u32 s_litClutData[256];
 static vram::Address s_clutVramAddr    = vram::Address::Invalid;
 static vram::Address s_litClutVramAddr = vram::Address::Invalid;
 
@@ -453,6 +453,7 @@ void FillRect(int x, int y, int w, int h, u8 r, u8 g, u8 b, u8 a)
 static void SyncGsBeforeVramReuse()
 {
 #if PS2_PROFILE
+    ++s_timingStats.vramStalls;
     const timing::Stamp waitStart = timing::Now();
 #endif
     if (s_in2D)
@@ -597,6 +598,7 @@ void EnsureTextureResident(const tex::Texture & texture)
 
     pkt.SendChain();
 #if PS2_PROFILE
+    ++s_timingStats.textureUploads;
     const timing::Stamp uploadStart = timing::Now();
 #endif
     dma_wait_fast();

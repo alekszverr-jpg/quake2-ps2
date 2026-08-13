@@ -146,7 +146,7 @@ const u16 * MakeCheckerPattern(int variant)
     };
     const u16 colors[2] = { variantColors[variant], Rgb16(0, 0, 0) };
 
-    alignas(16) static u16 s_buffers[kNumDebugTextures][kCheckerDim * kCheckerDim];
+    alignas(128) static u16 s_buffers[kNumDebugTextures][kCheckerDim * kCheckerDim];
     u16 * buffer = s_buffers[variant];
 
     constexpr int squareSize = kCheckerDim / kCheckerSquares;
@@ -167,7 +167,7 @@ const u8 * MakePaletteCheckerPattern()
     // Avoid index 255 (transparent in the global CLUT). The exact palette
     // colours are unimportant; alternating indices make addressing defects
     // visible while exercising the same PSMT8 + CLUT path as a WAL.
-    alignas(16) static u8 buffer[kCheckerDim * kCheckerDim];
+    alignas(128) static u8 buffer[kCheckerDim * kCheckerDim];
     constexpr int squareSize = kCheckerDim / kCheckerSquares;
     for (int y = 0; y < kCheckerDim; ++y)
     {
@@ -193,7 +193,7 @@ const u32 * MakeParticlePattern()
         { 0,0,0,0,0,0,0,0 },
         { 0,0,0,0,0,0,0,0 },
     };
-    alignas(16) static u32 pixels[8 * 8];
+    alignas(128) static u32 pixels[8 * 8];
     for (int y = 0; y < 8; ++y)
     {
         for (int x = 0; x < 8; ++x)
@@ -345,7 +345,7 @@ const Texture * TextureCache::LoadFromFile(const char * fullname, const ImageTyp
             const int texelCount = width * height;
             const size_t skyPixelBytes = static_cast<size_t>(texelCount) * sizeof(u16);
             auto * pic16 = static_cast<u16 *>(PS2_MemAllocAligned(
-                16, skyPixelBytes, MEMTAG_TEXIMAGE));
+                128, skyPixelBytes, MEMTAG_TEXIMAGE));
             for (int i = 0; i < texelCount; ++i)
             {
                 const u32 r = pic32[i * 4 + 0];

@@ -269,8 +269,12 @@ void DrawDrawStatsOverlay()
         { "3D us",    stats.setupMicros + stats.worldMicros +
                       stats.entityMicros + stats.particleMicros },
         { "VUwait",   vuTiming.waitMicros },
+        { "VIFchain", vuTiming.chains },
+        { "VUchunk",  vuTiming.chunks },
         { "TexDMA",   gsTiming.textureUploadMicros },
+        { "TexUp",    gsTiming.textureUploads },
         { "VRAMwait", gsTiming.vramStallMicros },
+        { "VRAMsync", gsTiming.vramStalls },
         { "LitHit",   stats.lightCacheHits },
         { "LitBuild", stats.lightCacheBuilds },
         { "LitKB",    stats.lightCacheBytes / 1024 },

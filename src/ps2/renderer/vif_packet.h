@@ -93,12 +93,17 @@ public:
 
     // References 'data' in place (REF tag) and unpacks it to VU data memory at
     // 'vuAddr' (qword address; relative to the current double buffer when
-    // 'useTop'). The data must be 16-byte aligned and stay untouched until the
-    // transfer completes. At most 256 qwords per unpack.
+    // 'useTop'). Large reference data follows the PS2 DMA recommendation and
+    // must be 8-QW / 128-byte aligned; tiny control blocks retain the hardware
+    // minimum of 16 bytes. The source must stay untouched until completion.
+    // At most 256 qwords per unpack.
     void AddUnpackData(u32 vuAddr, const void * data, u32 qwords, bool useTop)
     {
         PS2_AssertMsg(qwords <= 256, "VIF unpacks are limited to 256 qwords!");
         PS2_AssertMsg((reinterpret_cast<std::uintptr_t>(data) & 15u) == 0, "Unpack data must be 16-byte aligned!");
+        PS2_AssertMsg(qwords < 8 ||
+                      (reinterpret_cast<std::uintptr_t>(data) & 127u) == 0,
+                      "Large VIF REF data must be 128-byte aligned!");
 
         packet2_chain_ref(m_packet, data, qwords, 0, 0, 0);
         packet2_vif_stcycl(m_packet, 1, 1, 0);
