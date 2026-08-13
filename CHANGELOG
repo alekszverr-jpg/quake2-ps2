@@ -6,6 +6,16 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.57 - 2026-08-13
+
+### Fixed
+
+- Draws the discovered skybox after the BSP visibility walk but before the
+  queued opaque world chains. On reversed Z16S, extremely distant walls and
+  the exact far sky can both quantise to `Z=0`; drawing world geometry second
+  makes it win the `GREATER_EQUAL` tie and closes the remaining orange pinholes
+  and short strips along distant walls.
+
 ## 0.1.0-alpha.56 - 2026-08-13
 
 ### Fixed

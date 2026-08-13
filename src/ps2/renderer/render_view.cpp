@@ -2529,6 +2529,14 @@ void RenderWorldModel(const refdef_t & viewDef)
     SetUpViewClusters(viewDef, *world);
     MarkLeaves(*world);
     RecursiveWorldNode(viewDef, *world, world->nodes);
+
+    // The BSP walk above discovers whether this view contains sky and builds
+    // the opaque texture chains, but has not submitted them yet. Draw the
+    // far-depth background now so real geometry is rasterised afterwards.
+    // This ordering matters with reversed Z16S: a very distant wall and the
+    // exact far sky can both quantise to Z=0, and GREATER_EQUAL lets the later
+    // primitive win on equality. With sky first, the wall always wins.
+    DrawSkyBox(viewDef);
     DrawTextureChains(s_viewProjMatrix);
 }
 
@@ -2589,13 +2597,6 @@ void RenderFrame(const refdef_t & viewDef)
 #if PS2_PROFILE
     s_drawStats.worldMicros = timing::ElapsedMicros(phaseStart);
 #endif
-
-    // The sky is far-depth opaque background. Draw it after the BSP has
-    // protected real geometry, but before alpha-tested/blended entities and
-    // particles: those effects may update Z even in texels whose colour is
-    // transparent, which would otherwise leave clear-colour triangles where
-    // a later sky pass fails its depth test.
-    DrawSkyBox(viewDef);
 
 #if PS2_PROFILE
     phaseStart = timing::Now();
