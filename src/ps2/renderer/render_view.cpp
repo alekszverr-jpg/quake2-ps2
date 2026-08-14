@@ -1631,6 +1631,9 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
                 // the freshly built vertices before the shared buffer is reused.
                 drawVertices = s_litBuildVerts;
                 drawVertexCount = s_litBuildVertCount;
+                // Keep the topology result for the crack-seal pass that follows
+                // this texture batch, even when the persistent cache is full.
+                tri.litCacheVertexCount = static_cast<u16>(s_litBuildVertCount);
             }
         }
         else
@@ -1651,55 +1654,6 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
 
         PS2_Assert(drawVertices != nullptr && drawVertexCount >= 3);
 
-        // Adaptive lighting subdivides each source fan triangle independently.
-        // A split edge can therefore meet an unsplit neighbour as a T-junction.
-        // After the GS converts projected coordinates to 12.4 fixed point, the
-        // two rasterized edges can leave isolated one-pixel holes which expose
-        // the already drawn sky.  Draw the unsplit source triangle first as a
-        // depth-identical crack seal; the refined triangles below overwrite it
-        // (the world pass uses GEQUAL) and retain the detailed lighting.
-        if (drawVertexCount > 3)
-        {
-            ClipVertex sealCorners[3] = {};
-            for (int v = 0; v < 3; ++v)
-            {
-                const mod::PolyVertex & src =
-                    poly.vertexes[tri.vertexes[v]];
-                ClipVertex & corner = sealCorners[v];
-                corner.pos = {
-                    src.position.x, src.position.y, src.position.z, 1.0f
-                };
-                corner.st = {
-                    src.texture_s, src.texture_t, 0.0f, 0.0f
-                };
-                corner.lightmap = {
-                    src.lightmap_s, src.lightmap_t, 0.0f, 0.0f
-                };
-
-                // Every source corner survives in at least one refined child.
-                // Reuse its already cached (and, for animated styles, relit)
-                // colour instead of adding three lightmap samples per frame.
-                bool foundCachedCorner = false;
-                for (int cached = 0; cached < drawVertexCount; ++cached)
-                {
-                    const CachedLitVertex & lit = drawVertices[cached];
-                    if (lit.x == corner.pos.x && lit.y == corner.pos.y &&
-                        lit.z == corner.pos.z)
-                    {
-                        UnpackCachedColor(corner.color, lit.packedColor);
-                        foundCachedCorner = true;
-                        break;
-                    }
-                }
-                if (!foundCachedCorner)
-                {
-                    SampleVertexLight(corner, surface);
-                }
-                SetClipDistances(corner, mvp);
-            }
-            SubmitWorldTriangle(sealCorners, mvp, texture);
-        }
-
         for (int first = 0; first < drawVertexCount; first += 3)
         {
             ClipVertex corners[3] = {};
@@ -1718,6 +1672,70 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
     }
 }
 
+// Appends the original source triangles beneath adaptively subdivided BSP
+// geometry. The caller renders this pass after the refined triangles with a
+// slightly farther projection, so GREATER_EQUAL accepts it only in genuine
+// rasterization cracks instead of letting two coplanar meshes z-fight.
+void GatherPolyCrackSeals(const mod::ModelPoly & poly,
+                          const mod::ModelSurface & surface,
+                          const math::Mat4 & sealMvp,
+                          const tex::Texture & texture,
+                          const u32 topologyKey)
+{
+    const int numTriangles = poly.numVerts - 2;
+    for (int t = 0; t < numTriangles; ++t)
+    {
+        const mod::ModelTriangle & tri = poly.triangles[t];
+        if (tri.vertexes[0] == tri.vertexes[1] ||
+            tri.litCacheVertexCount <= 3)
+        {
+            continue;
+        }
+
+        const CachedLitVertex * cachedVertices =
+            (tri.litCacheVertices != nullptr && tri.litCacheKey == topologyKey)
+                ? static_cast<const CachedLitVertex *>(tri.litCacheVertices)
+                : nullptr;
+        const int cachedVertexCount = cachedVertices != nullptr
+            ? tri.litCacheVertexCount : 0;
+
+        ClipVertex sealCorners[3] = {};
+        for (int v = 0; v < 3; ++v)
+        {
+            const mod::PolyVertex & src = poly.vertexes[tri.vertexes[v]];
+            ClipVertex & corner = sealCorners[v];
+            corner.pos = {
+                src.position.x, src.position.y, src.position.z, 1.0f
+            };
+            corner.st = {
+                src.texture_s, src.texture_t, 0.0f, 0.0f
+            };
+            corner.lightmap = {
+                src.lightmap_s, src.lightmap_t, 0.0f, 0.0f
+            };
+
+            bool foundCachedCorner = false;
+            for (int cached = 0; cached < cachedVertexCount; ++cached)
+            {
+                const CachedLitVertex & lit = cachedVertices[cached];
+                if (lit.x == corner.pos.x && lit.y == corner.pos.y &&
+                    lit.z == corner.pos.z)
+                {
+                    UnpackCachedColor(corner.color, lit.packedColor);
+                    foundCachedCorner = true;
+                    break;
+                }
+            }
+            if (!foundCachedCorner)
+            {
+                SampleVertexLight(corner, surface);
+            }
+            SetClipDistances(corner, sealMvp);
+        }
+        SubmitWorldTriangle(sealCorners, sealMvp, texture);
+    }
+}
+
 // Draws every texture chain built by RecursiveWorldNode and resets them.
 void DrawTextureChains(const math::Mat4 & mvp)
 {
@@ -1728,6 +1746,17 @@ void DrawTextureChains(const math::Mat4 & mvp)
     // fault. Kept live so no map reload or console is required.
     static const cvar_t * worldChecker =
         Cvar_Get("ps2_world_checker", "0", 0);
+
+    // Preserve z/w=-1 exactly at the far plane while moving every nearer seal
+    // a few Z16S units away from the camera. Refined BSP triangles render first;
+    // this later pass then fails their GREATER_EQUAL depth test and fills only
+    // uncovered T-junction pixels. The inset is deliberately projection-only:
+    // x/y coverage and texture coordinates remain identical to the source face.
+    constexpr float kCrackSealDepthInset = 1.0f / 256.0f;
+    math::Mat4 sealDepthRange = math::Identity();
+    sealDepthRange.m[2][2] = 1.0f - kCrackSealDepthInset;
+    sealDepthRange.m[3][2] = -kCrackSealDepthInset;
+    const math::Mat4 sealMvp = mvp * sealDepthRange;
 
     for (int i = 0; i < s_chainTextureCount; ++i)
     {
@@ -1751,6 +1780,24 @@ void DrawTextureChains(const math::Mat4 & mvp)
             }
         }
         FlushScratch(mvp, drawTexture);
+
+        // A separate biased pass avoids the coplanar z-fighting produced by
+        // alpha.58's equal-depth underlay while retaining its sky-hole fix.
+        for (const mod::ModelSurface * surf = texture->textureChain;
+             surf != nullptr; surf = surf->textureChain)
+        {
+            const u32 topologyKey = LitTriangleTopologyKey(*surf);
+            for (const mod::ModelPoly * poly = surf->polys;
+                 poly != nullptr; poly = poly->next)
+            {
+                if (poly->numVerts >= 3)
+                {
+                    GatherPolyCrackSeals(*poly, *surf, sealMvp, drawTexture,
+                                         topologyKey);
+                }
+            }
+        }
+        FlushScratch(sealMvp, drawTexture);
 
         texture->textureChain = nullptr; // Reset for the next frame.
     }

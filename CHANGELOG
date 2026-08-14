@@ -6,6 +6,18 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.59 - 2026-08-14
+
+### Fixed
+
+- Moved BSP source-triangle crack seals to a separate pass after the refined
+  adaptive-lighting geometry and biased them conservatively farther in
+  reversed Z. Seals now fill only genuinely uncovered T-junction pixels
+  instead of z-fighting with every visible surface and producing dark bands.
+- Retained the subdivision result when the persistent lighting cache is full,
+  so the crack-seal pass remains correct without increasing level-lifetime
+  memory use.
+
 ## 0.1.0-alpha.58 - 2026-08-14
 
 ### Fixed
