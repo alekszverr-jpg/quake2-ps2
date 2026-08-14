@@ -1752,7 +1752,12 @@ void DrawTextureChains(const math::Mat4 & mvp)
     // this later pass then fails their GREATER_EQUAL depth test and fills only
     // uncovered T-junction pixels. The inset is deliberately projection-only:
     // x/y coverage and texture coordinates remain identical to the source face.
-    constexpr float kCrackSealDepthInset = 1.0f / 256.0f;
+    // 1/256 was sufficient nearby, but its separation collapsed below one
+    // Z16S step on distant walls and allowed the seal to band against the
+    // refined face again. 1/32 retains useful integer depth separation much
+    // farther into the view while the transform still maps the exact far
+    // plane to itself, so a seal can cover sky only through a real crack.
+    constexpr float kCrackSealDepthInset = 1.0f / 32.0f;
     math::Mat4 sealDepthRange = math::Identity();
     sealDepthRange.m[2][2] = 1.0f - kCrackSealDepthInset;
     sealDepthRange.m[3][2] = -kCrackSealDepthInset;

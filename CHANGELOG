@@ -6,6 +6,16 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.60 - 2026-08-14
+
+### Fixed
+
+- Increased the conservative reversed-Z separation of BSP crack seals so it
+  remains larger than Z16S quantisation on distant walls. This removes the
+  remaining far-view dark bands without restoring the orange skybox pinholes.
+- The depth transform still preserves the exact far plane, keeping seals
+  behind opaque BSP geometry but able to cover genuinely uncovered cracks.
+
 ## 0.1.0-alpha.59 - 2026-08-14
 
 ### Fixed
