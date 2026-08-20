@@ -164,8 +164,11 @@ diagnostic formatting or rendering.
   actually reused
 - [ ] Extend the existing VU1 double-buffered chunks to two or three EE-side
   packet buffers so EE preparation overlaps VU1 work and GS rasterization
-- [ ] Reduce DMA tag count and report chain count, QW transferred, average
-  vertices per chain and wait time in the profiling build
+- [~] Reduce DMA tag count and report chain count, QW transferred, average
+  vertices per chain and wait time in the profiling build. Alpha.62 caches the
+  invariant GIF/GS state in both VU1 double-buffer halves during a draw and
+  adds `VIFqw`, `VUvert` and `VUstate` counters; later chunks refresh only the
+  batch header and changing draw tag
 
 Completion criterion: ordinary opaque passes no longer block after every draw,
 DMA reference buffers meet the documented alignment, and measured VIF/VU/GS
@@ -333,11 +336,11 @@ development tools.
 1. Keep alpha.54 PROFILE as the culling baseline: repeat the same camera pairs
    after each renderer optimization and compare FPS, `Ent us`, `MD2Vert`,
    `MD2Corner`, `BoxCull` and visual popping.
-2. Use alpha.61 `BoxPlane` and `SurfBBox` measurements to quantify the BSP
-   plane-mask saving at the standard Base1 camera positions.
-3. Continue the P1 alignment inventory, then combine compatible world
-   submissions into larger VIF chains only where texture and PATH ordering
-   remain proven safe.
+2. Compare alpha.62 at the same Base1 camera positions and record `VIFqw`,
+   `VUvert`, `VUstate` and `VIFchain`. Verify that long draws use no more than
+   two full state loads while rendering remains unchanged.
+3. Continue P1 by combining compatible world submissions into larger VIF
+   chains only where texture and PATH ordering remain proven safe.
 4. Revisit audio streaming after frame pacing is more stable; retain LOW
    11025 Hz as the nonblocking sound-effect baseline until then. Implement
    music separately as user-supplied, double-buffered PS2 ADPCM streamed by

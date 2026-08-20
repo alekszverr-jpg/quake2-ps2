@@ -6,6 +6,17 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.62 - 2026-08-20
+
+### Performance
+
+- Cached invariant GIF/GS batch state in both halves of the VU1 double buffer.
+  Long multi-chunk draws now refresh only the batch header and changing draw
+  tag after each half has been seeded, reducing inline VIF payload without
+  changing draw order, texture residency or synchronization.
+- Added PROFILE `VIFqw`, `VUvert` and `VUstate` counters for measuring source
+  chain size, submitted VU1 vertices and full batch-state loads.
+
 ### Documentation
 
 - Added a dedicated music implementation plan: user-supplied tracks, offline

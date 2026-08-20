@@ -200,18 +200,23 @@ u64 MakeTestData()
                        DRAW_ENABLE, gs::DepthTestMethod());
 }
 
-// Emits one chunk into the chain: batch header and GIF tags unpacked inline
-// to the current double buffer, the vertex data referenced in place, and the
-// MSCAL that runs the microprogram over it.
+// Emits one chunk into the chain: its header, optionally the invariant GIF/GS
+// state, vertex data referenced in place, and the MSCAL that runs the
+// microprogram. XTOP alternates between two VU data-memory halves. Loading the
+// state for the first two chunks therefore seeds both halves; later chunks in
+// the same DrawTriangles call only need to replace the header and vertices.
 void AddBatchChunk(VifPacket & pkt, const tex::Texture & texture, int ctx,
                    const DrawVertex * verts, int vertCount, bool alphaBlend,
-                   int fixedAlpha)
+                   int fixedAlpha, bool includeState)
 {
     PS2_Assert(vertCount > 0 && vertCount <= kMaxVertsPerBatch && (vertCount % 3) == 0);
     PS2_Assert(fixedAlpha >= -1 && fixedAlpha <= 128);
     pkt.EnsureSpace(kChunkChainQwords + kChainTailQwords);
 #if PS2_PROFILE
     ++s_timingStats.chunks;
+    s_timingStats.vertices += vertCount;
+    if (includeState)
+        ++s_timingStats.stateLoads;
 #endif
 
     pkt.OpenInlineUnpack(kBatchHeaderAddr, true);
@@ -221,48 +226,43 @@ void AddBatchChunk(VifPacket & pkt, const tex::Texture & texture, int ctx,
         pkt.AddU32(0);
         pkt.AddU32(static_cast<u32>(vertCount));
 
-        // Seven A+D writes: pixel tests, the complete texture bind, alpha
-        // equation and explicit primitive control. MIPTBP1 must also be sent
-        // for translucent WALs:
-        // omitting it made distant glass sample stale mip addresses belonging
-        // to unrelated textures previously drawn in this GS context.
-        pkt.AddQword(GIF_SET_TAG(7, 0, 0, 0, GIF_FLG_PACKED, 1), GIF_REG_AD);
-        pkt.AddQword(MakeTestData(), static_cast<u64>(GS_REG_TEST + ctx));
-        pkt.AddQword(MakeTex1Data(texture), static_cast<u64>(GS_REG_TEX1 + ctx));
-        pkt.AddQword(MakeTex0Data(texture), static_cast<u64>(GS_REG_TEX0 + ctx));
-        pkt.AddQword(MakeMiptbp1Data(texture),
-                     static_cast<u64>(GS_REG_MIPTBP1 + ctx));
-        // C=source alpha for particles/models; C=FIX for Quake's constant
-        // TRANS33/TRANS66 brush surfaces. The fixed path is independent of
-        // TEX0 TCC and the sampled texture's alpha component.
-        const bool useFixedAlpha = fixedAlpha >= 0;
-        pkt.AddQword(GS_SET_ALPHA(0, 1, useFixedAlpha ? 2 : 0, 1,
-                                  useFixedAlpha ? fixedAlpha : 0),
-                     static_cast<u64>(GS_REG_ALPHA + ctx));
+        if (includeState)
+        {
+            // Seven A+D writes: pixel tests, the complete texture bind, alpha
+            // equation and explicit primitive control. MIPTBP1 must also be
+            // sent for translucent WALs; omitting it samples stale mip pages.
+            pkt.AddQword(GIF_SET_TAG(7, 0, 0, 0, GIF_FLG_PACKED, 1), GIF_REG_AD);
+            pkt.AddQword(MakeTestData(), static_cast<u64>(GS_REG_TEST + ctx));
+            pkt.AddQword(MakeTex1Data(texture), static_cast<u64>(GS_REG_TEX1 + ctx));
+            pkt.AddQword(MakeTex0Data(texture), static_cast<u64>(GS_REG_TEX0 + ctx));
+            pkt.AddQword(MakeMiptbp1Data(texture),
+                         static_cast<u64>(GS_REG_MIPTBP1 + ctx));
+            // C=source alpha for particles/models; C=FIX for Quake's constant
+            // TRANS33/TRANS66 brush surfaces.
+            const bool useFixedAlpha = fixedAlpha >= 0;
+            pkt.AddQword(GS_SET_ALPHA(0, 1, useFixedAlpha ? 2 : 0, 1,
+                                      useFixedAlpha ? fixedAlpha : 0),
+                         static_cast<u64>(GS_REG_ALPHA + ctx));
 
-        // Never inherit libdraw's global primitive-control mode. Select the
-        // PRIM register explicitly and write all primitive attributes through
-        // A+D; the following drawing tag deliberately has PRE=0. This makes
-        // ABE deterministic on PCSX2 and real GS hardware.
-        pkt.AddQword(GS_SET_PRMODECONT(1), static_cast<u64>(GS_REG_PRMODECONT));
-        const u64 prim = GIF_SET_PRIM(
-            PRIM_TRIANGLE,
-            1, // IIP: Gouraud shading.
-            1, // TME: texture mapping.
-            0, // FGE: fog is not used by this renderer.
-            alphaBlend ? 1 : 0, // ABE: apply the ALPHA register equation.
-            0, // AA1
-            0, // FST: perspective-correct STQ coordinates.
-            ctx,
-            0  // FIX
-        );
-        pkt.AddQword(prim, static_cast<u64>(GS_REG_PRIM));
+            // Never inherit libdraw's global primitive-control mode.
+            pkt.AddQword(GS_SET_PRMODECONT(1), static_cast<u64>(GS_REG_PRMODECONT));
+            const u64 prim = GIF_SET_PRIM(
+                PRIM_TRIANGLE, 1, 1, 0, alphaBlend ? 1 : 0,
+                0, 0, ctx, 0);
+            pkt.AddQword(prim, static_cast<u64>(GS_REG_PRIM));
+        }
+        else
+        {
+            // Leave the resident state at qwords 1..8 untouched and address
+            // the changing draw tag directly at qword 9.
+            pkt.CloseInlineUnpack();
+            pkt.OpenInlineUnpack(kGifTagsAddr + 8, true);
+        }
 
-        // Gouraud textured triangle list using the primitive state above and
-        // the per-vertex registers of kVertexRegList.
+        // The draw tag changes with the final short chunk's vertex count, so
+        // refresh it every time even after the rest of the state is resident.
         pkt.AddQword(GIF_SET_TAG(static_cast<u64>(vertCount), 1, 0, 0,
-                                GIF_FLG_PACKED, 3),
-                     kVertexRegList);
+                                GIF_FLG_PACKED, 3), kVertexRegList);
     }
     pkt.CloseInlineUnpack();
 
@@ -279,6 +279,7 @@ void SendChainAndWait(VifPacket & pkt)
     pkt.AddEndTag();
 #if PS2_PROFILE
     ++s_timingStats.chains;
+    s_timingStats.qwords += pkt.QwordCount();
 #endif
     pkt.Send();
 #if PS2_PROFILE
@@ -362,7 +363,9 @@ void DrawTriangles(const math::Mat4 & mvp, const tex::Texture & texture,
 
     // One chunk per VU run; the double buffer overlaps each chunk's unpack
     // with the previous chunk's transform.
-    for (int firstVert = 0; firstVert < vertCount; firstVert += kMaxVertsPerBatch)
+    int chunkIndex = 0;
+    for (int firstVert = 0; firstVert < vertCount;
+         firstVert += kMaxVertsPerBatch, ++chunkIndex)
     {
         // If the next chunk plus the chain tail might not fit the packet,
         // send what we have and open a fresh, self-contained chain. The
@@ -377,7 +380,7 @@ void DrawTriangles(const math::Mat4 & mvp, const tex::Texture & texture,
         const int remaining  = vertCount - firstVert;
         const int chunkVerts = (remaining < kMaxVertsPerBatch) ? remaining : kMaxVertsPerBatch;
         AddBatchChunk(pkt, texture, ctx, verts + firstVert, chunkVerts,
-                      alphaBlend, fixedAlpha);
+                      alphaBlend, fixedAlpha, chunkIndex < 2);
     }
 
     SendChainAndWait(pkt);

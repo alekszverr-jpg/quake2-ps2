@@ -20,6 +20,9 @@ struct TimingStats
     int waitMicros; // EE wall time blocked waiting for VIF1/VU1 DMA.
     int chains;     // VIF1 source chains submitted this frame.
     int chunks;     // Double-buffered VU1 vertex chunks submitted this frame.
+    int qwords;     // Source-chain qwords submitted this frame (REF payload excluded).
+    int vertices;   // Triangle-list vertices referenced by VIF1 this frame.
+    int stateLoads; // Per-half GS state blocks unpacked into VU1 data memory.
 };
 
 // Declares the linker symbols bracketing an assembled VU microprogram in the
