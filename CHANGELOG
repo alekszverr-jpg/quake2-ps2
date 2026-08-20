@@ -6,6 +6,19 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.61 - 2026-08-20
+
+### Performance
+
+- Propagated an active frustum-plane mask through the BSP traversal. Once a
+  parent node is wholly inside a side plane, every descendant skips that plane
+  instead of repeating the same box test.
+- Surfaces in wholly contained BSP branches now bypass temporary bounds
+  reconstruction and per-surface frustum tests. PVS, backface, depth and final
+  triangle clipping behaviour remain unchanged.
+- Added PROFILE `BoxPlane` and `SurfBBox` counters for measuring eliminated
+  plane tests and surface-bounds work in repeatable camera positions.
+
 ## 0.1.0-alpha.60 - 2026-08-14
 
 ### Fixed

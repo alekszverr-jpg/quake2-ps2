@@ -263,6 +263,8 @@ void DrawDrawStatsOverlay()
         { "Batches", stats.drawBatches   },
         { "BoxCull", stats.boxesCulled   },
         { "SurfCull",stats.surfacesCulled},
+        { "BoxPlane",stats.boxPlaneTests },
+        { "SurfBBox",stats.surfaceBoundsBuilds},
         { "Setup us", stats.setupMicros },
         { "World us", stats.worldMicros },
         { "Ent us",   stats.entityMicros },

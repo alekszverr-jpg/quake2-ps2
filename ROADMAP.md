@@ -128,7 +128,10 @@ diagnostic formatting or rendering.
 - [~] Align large dynamic vertex arrays, VIF reference data and persistent DMA
   buffers to 8 QW / 128 bytes; retain 16-byte alignment for small inline data
 - [~] Measure the current full synchronization points: per-draw VIF `FLUSH`,
-  VIF1 DMA waits, texture-upload `FINISH` waits and framebuffer-clear waits
+  VIF1 DMA waits, texture-upload `FINISH` waits and framebuffer-clear waits.
+  The current PROFILE samples put total `VUWait` near 0.2-0.45 ms, so the
+  riskier pass-level asynchronous packet staging is deferred until the larger
+  EE-side world/entity costs have been reduced
 - [ ] Replace per-`DrawTriangles` `FLUSH + Wait` submission with larger
   pass-level VIF chains and wait only before a buffer or referenced range is
   actually reused
@@ -169,12 +172,15 @@ not return under zero-free-VRAM stress.
   validation reduced `MD2Vert` from 1346 to 330, `MD2Corner` from 7452 to 1707
   and `Ent us` from 8330 to 4589 when looking away from several enemies, while
   FPS rose from 31 to 43 with no edge popping. Alpha.55 also rejects individual
-  world faces outside the frustum even when their parent BSP node intersects it
+  world faces outside the frustum even when their parent BSP node intersects
+  it. Alpha.61 propagates the remaining plane mask through the BSP tree, so
+  descendants do not retest planes already containing their parent
 - [~] Avoid lighting, transforming or batching surfaces rejected by visibility;
   alpha.55 performs a conservative per-face check before texture/alpha chaining
   and exposes the independent PROFILE `SurfCull` counter. PCSX2 validation
   reached 8-112 rejected faces in the supplied Base1 views without geometry
-  popping
+  popping. Alpha.61 also skips face-bounds reconstruction throughout BSP
+  branches already wholly inside the frustum and exposes `BoxPlane`/`SurfBBox`
 - [~] Cache adaptive BSP tessellation independently from animated lightstyle
   colours, updating cached vertex colours without rebuilding the topology
 - [~] Compact retained BSP-lighting vertices so heavy scenes fit more reusable
@@ -297,10 +303,11 @@ development tools.
 1. Keep alpha.54 PROFILE as the culling baseline: repeat the same camera pairs
    after each renderer optimization and compare FPS, `Ent us`, `MD2Vert`,
    `MD2Corner`, `BoxCull` and visual popping.
-2. Start P1 by inventorying every VIF1/GIF wait and aligning large referenced
-   vertex/DMA buffers to 128 bytes before changing synchronization behaviour.
-3. Combine compatible world submissions into larger VIF chains, then remove
-   per-draw waits only where texture and PATH ordering remain proven safe.
+2. Use alpha.61 `BoxPlane` and `SurfBBox` measurements to quantify the BSP
+   plane-mask saving at the standard Base1 camera positions.
+3. Continue the P1 alignment inventory, then combine compatible world
+   submissions into larger VIF chains only where texture and PATH ordering
+   remain proven safe.
 4. Revisit audio streaming after frame pacing is more stable; retain LOW
    11025 Hz as the nonblocking baseline until then.
 5. Recheck multi-level transitions after the next optimization pass, including

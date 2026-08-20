@@ -209,6 +209,35 @@ inline bool ShouldCullBBox(float * mins, float * maxs)
     return false;
 }
 
+// Tests only the frustum planes still intersecting this BSP branch. A child
+// cannot leave a plane that already contains its parent box, so clearing that
+// bit avoids repeating the same box test throughout the entire subtree.
+// Returns -1 when the box is outside, otherwise the reduced plane mask.
+int CullWorldNodeBBox(float * mins, float * maxs, int clipFlags)
+{
+    for (int planeIndex = 0; planeIndex < 4; ++planeIndex)
+    {
+        const int planeBit = 1 << planeIndex;
+        if ((clipFlags & planeBit) == 0)
+        {
+            continue;
+        }
+
+        PS2_STAT_INC(boxPlaneTests);
+        const int side = BOX_ON_PLANE_SIDE(mins, maxs, &s_frustum[planeIndex]);
+        if (side == 2)
+        {
+            PS2_STAT_INC(boxesCulled);
+            return -1;
+        }
+        if (side == 1)
+        {
+            clipFlags &= ~planeBit; // Entire box is inside this plane.
+        }
+    }
+    return clipFlags;
+}
+
 // A visible leaf can belong to a BSP node whose box intersects the frustum
 // while one of that node's individual faces is still completely off-screen.
 // Reject that face before it enters a texture/alpha chain; otherwise the later
@@ -220,12 +249,15 @@ inline bool ShouldCullBBox(float * mins, float * maxs)
 // the level-transition memory peak. Only four side planes are tested, matching
 // the conservative node/entity frustum path (near/far remain with the clipper).
 bool ShouldCullWorldSurface(const mod::ModelInstance & world,
-                            const mod::ModelSurface & surface)
+                            const mod::ModelSurface & surface,
+                            const int clipFlags)
 {
-    if (surface.numEdges <= 0)
+    if (clipFlags == 0 || surface.numEdges <= 0)
     {
         return false;
     }
+
+    PS2_STAT_INC(surfaceBoundsBuilds);
 
     float mins[3];
     float maxs[3];
@@ -253,9 +285,10 @@ bool ShouldCullWorldSurface(const mod::ModelInstance & world,
         }
     }
 
-    for (cplane_t & plane : s_frustum)
+    for (int planeIndex = 0; planeIndex < 4; ++planeIndex)
     {
-        if (BOX_ON_PLANE_SIDE(mins, maxs, &plane) == 2)
+        if ((clipFlags & (1 << planeIndex)) != 0 &&
+            BOX_ON_PLANE_SIDE(mins, maxs, &s_frustum[planeIndex]) == 2)
         {
             PS2_STAT_INC(surfacesCulled);
             return true;
@@ -563,7 +596,8 @@ void ChainOpaqueSurface(mod::ModelSurface & surface, int animationFrame)
 // front-to-back, culling nodes against the PVS marks and the view frustum,
 // and threads each drawable surface onto its texture's chain so the next
 // DrawTextureChains() call renders what was collected here.
-void RecursiveWorldNode(const refdef_t & viewDef, const mod::ModelInstance & world, mod::ModelNode * node)
+void RecursiveWorldNode(const refdef_t & viewDef, const mod::ModelInstance & world,
+                        mod::ModelNode * node, int clipFlags)
 {
     if (node->contents == CONTENTS_SOLID)
     {
@@ -573,7 +607,9 @@ void RecursiveWorldNode(const refdef_t & viewDef, const mod::ModelInstance & wor
     {
         return; // Not reachable from the current PVS cluster.
     }
-    if (ShouldCullBBox(node->minmaxs, node->minmaxs + 3))
+    clipFlags = CullWorldNodeBBox(node->minmaxs, node->minmaxs + 3,
+                                 clipFlags);
+    if (clipFlags < 0)
     {
         return; // Entirely outside the view frustum.
     }
@@ -625,7 +661,7 @@ void RecursiveWorldNode(const refdef_t & viewDef, const mod::ModelInstance & wor
     const bool cameraOnBack  = (side == 1);
 
     // Recurse down the camera side first (front-to-back order)...
-    RecursiveWorldNode(viewDef, world, node->children[side]);
+    RecursiveWorldNode(viewDef, world, node->children[side], clipFlags);
 
     // ...then chain this node's surfaces that face the camera...
     mod::ModelSurface * surf = world.surfaces + node->firstSurface;
@@ -639,7 +675,7 @@ void RecursiveWorldNode(const refdef_t & viewDef, const mod::ModelInstance & wor
         {
             continue; // Facing away from the camera.
         }
-        if (ShouldCullWorldSurface(world, *surf))
+        if (ShouldCullWorldSurface(world, *surf, clipFlags))
         {
             continue; // Face lies outside the view despite its node intersecting it.
         }
@@ -668,7 +704,7 @@ void RecursiveWorldNode(const refdef_t & viewDef, const mod::ModelInstance & wor
     }
 
     // ...and finally recurse down the far side.
-    RecursiveWorldNode(viewDef, world, node->children[side ^ 1]);
+    RecursiveWorldNode(viewDef, world, node->children[side ^ 1], clipFlags);
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -2630,7 +2666,7 @@ void RenderWorldModel(const refdef_t & viewDef)
 
     SetUpViewClusters(viewDef, *world);
     MarkLeaves(*world);
-    RecursiveWorldNode(viewDef, *world, world->nodes);
+    RecursiveWorldNode(viewDef, *world, world->nodes, 0x0F);
 
     // The BSP walk above discovers whether this view contains sky and builds
     // the opaque texture chains, but has not submitted them yet. Draw the
