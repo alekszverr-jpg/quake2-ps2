@@ -6,6 +6,15 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+### Documentation
+
+- Added a dedicated music implementation plan: user-supplied tracks, offline
+  PS2 ADPCM conversion, logical Quake II CD-track mapping and double-buffered
+  IOP/SPU2 streaming without bundling copyrighted soundtrack data.
+- Recorded the successful Alpha.61 PCSX2 BSP-culling validation and its
+  `BoxPlane`/`SurfBBox` measurements without claiming a frame-rate improvement
+  until matching Alpha.60 camera-position comparisons are available.
+
 ## 0.1.0-alpha.61 - 2026-08-20
 
 ### Performance

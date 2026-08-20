@@ -66,8 +66,35 @@ Target: gameplay sound effects and ambient audio work on real hardware.
 - [~] Select and initialise a PS2 audio backend (`audsrv` PCM stream)
 - [ ] Upload/cache Quake II sound samples in IOP/SPU2 memory
 - [~] Validate the corrected portable channel mixer, attenuation and looping through the PS2 backend
-- [ ] Add music playback or document the selected replacement strategy
+- [ ] Implement the streamed PS2 ADPCM music path described below
 - [ ] Validate audio during level transitions and sustained gameplay
+
+### Music playback plan
+
+The original CD-audio tracks will not be bundled with the port. Music support
+will use user-supplied files and preserve Quake II's logical CD track numbers,
+so maps and cinematics can request the same music without requiring a physical
+disc or CDDA emulation.
+
+- [ ] Define a documented user-data layout such as
+  `baseq2/music/track02.adp` and map Quake II CD track numbers to those files
+- [ ] Add an offline conversion workflow based on PS2SDK `ps2adpcm`; document
+  accepted source audio, target sample rate, stereo handling and loop metadata
+- [ ] Stream PS2 ADPCM from `host:`/USB through IOP/SPU2 double buffers instead
+  of loading a complete track into the 2 MB SPU2 sound RAM
+- [ ] Keep music decoding and playback off the EE gameplay/rendering path;
+  extend or add a small IOP-side streaming module if the static `audsrv` ADPCM
+  API cannot sustain refillable buffers
+- [ ] Add music volume, stop, pause/resume, track changes and level-transition
+  cleanup without disturbing the gameplay sound-effect stream
+- [ ] Measure I/O refill time, underruns, IOP RAM, SPU2 RAM and frame pacing on
+  PCSX2 and a retail PS2 before enabling music by default
+- [ ] Document that soundtrack files must be supplied by the user and are not
+  included in releases
+
+Initial target: reliable 22.05 kHz stereo (or an equivalent lower-bandwidth
+profile selected by measurement), with 44.1 kHz stereo treated as a later
+quality option rather than a requirement for the first implementation.
 
 ## Milestone 3 - Gameplay and persistence
 
@@ -174,13 +201,16 @@ not return under zero-free-VRAM stress.
   FPS rose from 31 to 43 with no edge popping. Alpha.55 also rejects individual
   world faces outside the frustum even when their parent BSP node intersects
   it. Alpha.61 propagates the remaining plane mask through the BSP tree, so
-  descendants do not retest planes already containing their parent
+  descendants do not retest planes already containing their parent. Supplied
+  Alpha.61 PCSX2 tests completed without missing geometry and reported
+  `BoxPlane` values of 572/1117/810 across the three Base1 scenes.
 - [~] Avoid lighting, transforming or batching surfaces rejected by visibility;
   alpha.55 performs a conservative per-face check before texture/alpha chaining
   and exposes the independent PROFILE `SurfCull` counter. PCSX2 validation
   reached 8-112 rejected faces in the supplied Base1 views without geometry
   popping. Alpha.61 also skips face-bounds reconstruction throughout BSP
-  branches already wholly inside the frustum and exposes `BoxPlane`/`SurfBBox`
+  branches already wholly inside the frustum and exposes `BoxPlane`/`SurfBBox`;
+  the same Alpha.61 scenes reported `SurfBBox` values of 238/306/366.
 - [~] Cache adaptive BSP tessellation independently from animated lightstyle
   colours, updating cached vertex colours without rebuilding the topology
 - [~] Compact retained BSP-lighting vertices so heavy scenes fit more reusable
@@ -309,7 +339,9 @@ development tools.
    submissions into larger VIF chains only where texture and PATH ordering
    remain proven safe.
 4. Revisit audio streaming after frame pacing is more stable; retain LOW
-   11025 Hz as the nonblocking baseline until then.
+   11025 Hz as the nonblocking sound-effect baseline until then. Implement
+   music separately as user-supplied, double-buffered PS2 ADPCM streamed by
+   IOP/SPU2 rather than mixed or decoded on the EE.
 5. Recheck multi-level transitions after the next optimization pass, including
    a longer Base 1 -> Base 2 -> Base 3 session on PCSX2 and real hardware.
 6. Continue P3 by rejecting invisible surfaces before lighting and batching;
