@@ -12,15 +12,15 @@ before changing renderer, audio or memory-management code.
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current version: `0.1.0-alpha.62`
-- Current code commit before this handoff: `f3afb66`
-  (`Optimize repeated VU1 batch state`)
+- Current version: `0.1.0-alpha.63`
+- Current code commit before this handoff: `c68fe23`
+  (`Batch deferred VU1 draw submissions`)
 - Current published release:
-  `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.62`
-- Alpha.62 PROFILE ELF SHA-256:
-  `7EAED5142189F9FEB341C3CC1195102EE4365FCE637EA5E6C6746865CA42CEFD`
+  `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.63`
+- Alpha.63 PROFILE ELF SHA-256:
+  `5980B3C35F5A477F45B1BE89BD0690F439E032F978F6FFCCE8A5A15B737475AE`
 
-The next code release should normally be `0.1.0-alpha.63`. This handoff-only
+The next code release should normally be `0.1.0-alpha.64`. This handoff-only
 checkpoint does not advance `VERSION`.
 
 ## Workspace safety
@@ -96,13 +96,16 @@ Renderer changes must be checked for regressions in all of the following:
 - Campaign-wide rendering, cinematics, long-session memory stability and all
   special effects are not yet fully validated.
 
-## Latest PROFILE result: Alpha.62
+## Latest PROFILE result: Alpha.63 awaiting validation
 
-Alpha.62 seeds invariant GIF/GS batch state into both VU1 XTOP halves. Later
-chunks in the same draw refresh only the header and changing draw tag. It also
-adds PROFILE `VIFqw`, `VUvert` and `VUstate` counters.
+Alpha.63 replaces the synchronous wait after every `DrawTriangles` call with
+deferred pass-level chains. Vertices are copied into a 128-byte-aligned static
+3072-vertex staging area and per-draw constants are stored inline. An in-chain
+VIF `FLUSH` protects the fixed constants addresses between draws, while public
+ordering flushes drain PATH1 before texture uploads, VRAM reuse, 2D overlays
+and frame boundaries.
 
-The supplied PCSX2 screenshots rendered correctly. Representative values:
+The latest validated comparison remains Alpha.62:
 
 | Scene | FPS | VIFchain | VUchunk | VIFqw | VUvert | VUstate |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -110,16 +113,15 @@ The supplied PCSX2 screenshots rendered correctly. Representative values:
 | Base1 outdoor | 20 | 74 | 249 | 2500 | 17493 | 112 |
 | Base1 heavy | 15 | 89 | 324 | 3107 | 23079 | 128 |
 
-The VIF source-chain payload fell roughly 25-34%, but FPS did not materially
-change. This confirms state payload was worth removing while the dominant cost
-is still EE world/entity preparation and many small submissions.
+Alpha.63 CI passed for `c68fe23`, but no PCSX2 or retail-PS2 screenshots have
+been supplied yet. Its immediate success criterion is `VIFchain < Batches`
+with comparable `VUvert` and triangle counts and no visual corruption.
 
-## Exact next task: P1 larger VIF submissions
+## Exact next task: validate P1 larger VIF submissions
 
-Continue the first unchecked P1 item: replace the synchronous wait at the end
-of every compatible `vu1::DrawTriangles` call with a deferred packet containing
-multiple 3D draws. The immediate goal is fewer `VIFchain` submissions, not an
-aggressive asynchronous MFIFO redesign.
+Test the published Alpha.63 PROFILE ELF in the three recorded Base1 positions.
+Record FPS, `Batches`, `VIFchain`, `VUchunk`, `VIFqw`, `VUvert` and `VUstate`,
+and inspect all renderer regression paths listed above.
 
 The relevant files are:
 
@@ -129,43 +131,17 @@ The relevant files are:
 - `src/ps2/renderer/gs.cpp`
 - `src/ps2/renderer/vif_packet.*`
 
-Current behaviour:
+Alpha.63 behaviour:
 
 1. `vu1::DrawTriangles` flushes pending 2D.
 2. It calls `gs::EnsureTextureResident`.
-3. It references caller-owned vertex scratch memory in one VIF chain.
-4. It appends `FLUSH`, submits and waits before returning.
+3. It copies caller vertices to stable aligned staging and appends constants
+   plus chunks to the pending chain.
+4. It submits/waits only when staging or packet space fills or an explicit
+   texture/PATH/frame ordering boundary calls `vu1::Flush()`.
+5. Each new draw/chain segment seeds both XTOP halves before compact chunks.
 
-A conservative implementation design already identified during inspection:
-
-1. Add a modest, 128-byte-aligned internal VU vertex staging area. Copy each
-   submitted chunk into it so deferred packets never reference world/MD2
-   scratch memory that the caller immediately overwrites.
-2. Put frame constants inline in the chain, or otherwise keep each referenced
-   constants block stable until completion. The current singleton
-   `s_constants` cannot safely be referenced by multiple deferred draws.
-3. Accumulate compatible chunks in `s_drawPacket` and add a public
-   `vu1::Flush()` that submits/waits only when the packet/staging area fills or
-   at an ordering boundary.
-4. If constants/MVP change inside a chain, insert the required VIF barrier
-   before overwriting fixed VU data-memory addresses.
-5. Flush deferred PATH1 geometry *before* any texture upload, dirty-texture
-   rewrite or VRAM eviction/reuse. A queued `XGKICK` must never sample a page
-   after PATH3 has replaced it.
-6. Keep `gs::EnsureTextureResident` synchronous for this first iteration.
-   Texture pre-upload scheduling belongs to P2.
-7. Flush all deferred 3D at the end of `view::RenderFrame`, before later HUD/2D
-   commands can change PATH ordering.
-8. Preserve Alpha.62's rule that each XTOP half receives a full state block
-   before later chunks use the compact header-only form.
-9. Assert that no deferred chain leaks across `BeginFrameStats`/frame boundaries.
-
-Do not merely remove `Wait()`: caller vertex buffers and constants are reused
-immediately, textures can be evicted between calls, and PATH1 has priority over
-PATH3. Violating any of those constraints previously produced severe geometry
-and texture corruption on both PCSX2 and real hardware.
-
-Expected Alpha.63 PROFILE result:
+Expected Alpha.63 validation result:
 
 - `VIFchain` should become lower than `Batches` in the three Base1 positions.
 - `VUvert` and rendered triangle counts should remain comparable to Alpha.62.
@@ -173,18 +149,20 @@ Expected Alpha.63 PROFILE result:
 - No texture, transparency, sky, particle, weapon or moving-brush regressions.
 - FPS may improve only slightly because the captures are primarily EE-bound.
 
-If safe multi-draw staging becomes too invasive, stop with an instrumented
-checkpoint rather than weakening PATH/VRAM synchronization.
+If Alpha.63 validates, the next unchecked P1 implementation item is two or
+three EE-side packet/staging buffers so EE preparation can overlap an in-flight
+VU1/GS chain. Do not begin that asynchronous lifetime expansion until the
+single-buffer ordering model is visually proven.
 
 ## Build and release procedure
 
-The GitHub Actions `build` workflow is the reproducible toolchain. It builds
-both variants and uploads one `quake2-ps2-build` artifact.
+The GitHub Actions `build` workflow is the reproducible toolchain. During this
+optimization cycle it builds only `quake2-profile.elf` and uploads it in the
+`quake2-ps2-build` artifact.
 
 Local commands when PS2DEV/PS2SDK are configured:
 
 ```sh
-make BUILD=release
 make BUILD=profile
 ```
 
@@ -206,9 +184,9 @@ game directories.
 ## Suggested prompt for the new task
 
 > Continue the Quake II PS2 port in this workspace. Read HANDOFF.md completely,
-> then ROADMAP.md and the top of CHANGELOG. Check git status and recent commits.
-> Continue the documented P1 larger-VIF-submission task conservatively, keeping
-> PATH1/PATH3 texture ordering and caller-buffer lifetimes correct. Build and
-> publish only the numbered PROFILE prerelease for testing, copy the successful
-> quake2-profile.elf to the project root, and do not touch untracked game data.
-
+> then ROADMAP.md and CHANGELOG. Check git status and recent commits. Review the
+> Alpha.63 Base1 PROFILE results and renderer screenshots. If pass-level VIF
+> batching validates, continue the next P1 packet-buffer overlap item without
+> weakening PATH1/PATH3 texture ordering. Build and publish only the numbered
+> PROFILE prerelease, copy the successful quake2-profile.elf to the project
+> root, and do not touch untracked game data.
