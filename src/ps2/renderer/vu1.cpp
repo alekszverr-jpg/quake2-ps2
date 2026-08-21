@@ -3,9 +3,9 @@
  * Brief: VU1-accelerated 3D drawing. See vu1.h.
  *
  *  Modelled on the ps2sdk "draw/vu1" sample. Compatible DrawTriangles calls accumulate
- *  into one VIF1 source chain. Caller vertices are copied into an aligned staging area,
- *  and frame constants are stored inline in the chain, so both remain stable until the
- *  deferred packet is submitted. Each draw is split into chunks of up to
+ *  into VIF1 source chains backed by two EE-side packet/staging buffers. Caller vertices
+ *  are copied into aligned staging, and frame constants are stored inline in the chain,
+ *  so both remain stable until that buffer's DMA completes. Each draw is split into chunks of up to
  *  kMaxVertsPerBatch vertices; a VIF FLUSH before each later draw's constants protects
  *  the fixed low VU addresses while retaining one DMA submission for many draws.
  *
@@ -75,11 +75,12 @@ constexpr int kBatchHeaderAddr = 0; // vertex count in .w
 constexpr int kGifTagsAddr     = 1; // 9 qwords: set tag, 7 A+D writes, draw tag
 constexpr int kVertexDataAddr  = kGifTagsAddr + 9;
 
-// The chain is tags plus small per-draw/per-chunk inline unpacks; staged
-// vertices are referenced in place. This remains deliberately modest: the
-// staging capacity, rather than packet space, normally chooses the flush
-// point and combines about one complete world scratch submission per chain.
+// Each chain is tags plus small per-draw/per-chunk inline unpacks; staged
+// vertices are referenced in place. Two modest EE-side buffers let the CPU
+// prepare the next chain while VIF1/VU1 consumes the previous one. The staging
+// capacity, rather than packet space, normally chooses the submission point.
 constexpr int kDrawPacketQwords = 768;
+constexpr int kDrawBufferCount = 2;
 
 constexpr int kStagedVertexCapacity = 3072;
 static_assert((kStagedVertexCapacity % 4) == 0,
@@ -119,8 +120,8 @@ constexpr u64 kVertexRegList = (u64(GIF_REG_ST)   << 0) |
 // crossing the near/far planes, z scale 1) are dropped whole via the ADC bit.
 constexpr float kGuardBandScale = 1.0f / kGuardBandNdcLimit;
 
-// Unpacked to kFrameConstantsAddr before every batch. Static so the DMA REF
-// source stays valid; rebuilt per draw.
+// Copied inline to kFrameConstantsAddr before every draw segment, so each
+// deferred EE packet owns the constants until its DMA completes.
 struct alignas(16) FrameConstants
 {
     math::Mat4 mvp;
@@ -130,11 +131,18 @@ struct alignas(16) FrameConstants
 };
 static_assert(sizeof(FrameConstants) == 7 * 16, "Must match the VU memory layout");
 
-alignas(128) static DrawVertex s_stagedVerts[kStagedVertexCapacity];
-static VifPacket s_drawPacket;
+struct alignas(128) DeferredDrawBuffer
+{
+    VifPacket packet;
+    alignas(128) DrawVertex stagedVerts[kStagedVertexCapacity];
+    int stagedVertCount;
+    bool hasDraws;
+};
+
+static DeferredDrawBuffer s_drawBuffers[kDrawBufferCount] = {};
 static bool s_initialized = false;
-static bool s_packetHasDraws = false;
-static int s_stagedVertCount = 0;
+static int s_buildBufferIndex = 0;
+static int s_inFlightBufferIndex = -1;
 
 // TEX0/TEX1 register qwords for the batch's texture bind, sent A+D over PATH1.
 // Built here rather than with the packet2_utils helpers because those hardcode
@@ -306,32 +314,59 @@ void AddFrameConstants(VifPacket & pkt, const FrameConstants & constants,
     pkt.CloseInlineUnpack();
 }
 
-// FLUSH so a DMA wait covers the VU runs and their XGKICKs, then terminate
-// and send the chain, blocking until it is fully consumed.
-void SendChainAndWait(VifPacket & pkt)
+void ResetDeferredBuffer(DeferredDrawBuffer & buffer)
 {
-    PS2_AssertMsg(s_packetHasDraws, "Submitting an empty VU1 draw chain!");
+    buffer.packet.Reset();
+    buffer.stagedVertCount = 0;
+    buffer.hasDraws = false;
+}
+
+void WaitForInFlightBuffer()
+{
+    if (s_inFlightBufferIndex < 0)
+    {
+        return;
+    }
+
+#if PS2_PROFILE
+    const timing::Stamp waitStart = timing::Now();
+#endif
+    VifPacket::Wait();
+#if PS2_PROFILE
+    s_timingStats.waitMicros += timing::ElapsedMicros(waitStart);
+#endif
+
+    ResetDeferredBuffer(s_drawBuffers[s_inFlightBufferIndex]);
+    s_inFlightBufferIndex = -1;
+}
+
+// Finalize and submit the current build buffer. If another chain is already
+// using VIF1, wait only now, after the EE has prepared this complete alternate
+// buffer. The new chain remains in flight while the EE fills the freed buffer.
+void SubmitBuildBuffer()
+{
+    DeferredDrawBuffer & buffer = s_drawBuffers[s_buildBufferIndex];
+    if (!buffer.hasDraws)
+    {
+        return;
+    }
+
+    VifPacket & pkt = buffer.packet;
     pkt.AddFlush();
     pkt.AddEndTag();
 #if PS2_PROFILE
     ++s_timingStats.chains;
     s_timingStats.qwords += pkt.QwordCount();
 #endif
-    pkt.Send();
-#if PS2_PROFILE
-    const timing::Stamp waitStart = timing::Now();
-#endif
-    pkt.Wait();
-#if PS2_PROFILE
-    s_timingStats.waitMicros += timing::ElapsedMicros(waitStart);
-#endif
-}
 
-void ResetDeferredPacket()
-{
-    s_drawPacket.Reset();
-    s_packetHasDraws = false;
-    s_stagedVertCount = 0;
+    WaitForInFlightBuffer();
+    pkt.Send();
+    s_inFlightBufferIndex = s_buildBufferIndex;
+    s_buildBufferIndex = (s_buildBufferIndex + 1) % kDrawBufferCount;
+
+    DeferredDrawBuffer & next = s_drawBuffers[s_buildBufferIndex];
+    PS2_AssertMsg(!next.hasDraws && next.packet.QwordCount() == 0,
+                  "Next VU1 draw buffer is still in use!");
 }
 
 } // namespace
@@ -351,17 +386,23 @@ void Init()
     const auto instructions = VU1Prog_TexturedTriangles_InstructionQwordCount();
     PS2_AssertMsg(instructions <= 2048, "Microprogram overflows VU1 micro memory!");
 
-    s_drawPacket.Init(kDrawPacketQwords);
+    for (int i = 0; i < kDrawBufferCount; ++i)
+    {
+        s_drawBuffers[i].packet.Init(kDrawPacketQwords);
+    }
 
     // Upload the microprogram to micro address 0 and set up the double buffer.
     // Synchronous; VU1 is ready once this returns.
-    VifPacket & pkt = s_drawPacket;
+    VifPacket & pkt = s_drawBuffers[0].packet;
     pkt.AddMicroProgram(0, VU1Prog_TexturedTriangles_Code());
     pkt.AddDoubleBufferSettings(kDoubleBufferBase, kDoubleBufferOffset);
     pkt.AddEndTag();
     pkt.Send();
     pkt.Wait();
-    ResetDeferredPacket();
+    for (int i = 0; i < kDrawBufferCount; ++i)
+    {
+        ResetDeferredBuffer(s_drawBuffers[i]);
+    }
 }
 
 void BeginFrameStats()
@@ -369,8 +410,13 @@ void BeginFrameStats()
 #if PS2_PROFILE
     s_timingStats = {};
 #endif
-    PS2_AssertMsg(!s_packetHasDraws,
-                  "Deferred VU1 draw chain leaked across a frame boundary!");
+    PS2_AssertMsg(s_inFlightBufferIndex < 0,
+                  "In-flight VU1 chain leaked across a frame boundary!");
+    for (int i = 0; i < kDrawBufferCount; ++i)
+    {
+        PS2_AssertMsg(!s_drawBuffers[i].hasDraws,
+                      "Deferred VU1 draw chain leaked across a frame boundary!");
+    }
 }
 
 const TimingStats & GetTimingStats()
@@ -380,13 +426,8 @@ const TimingStats & GetTimingStats()
 
 void Flush()
 {
-    if (!s_packetHasDraws)
-    {
-        return;
-    }
-
-    SendChainAndWait(s_drawPacket);
-    ResetDeferredPacket();
+    SubmitBuildBuffer();
+    WaitForInFlightBuffer();
 }
 
 void DrawTriangles(const math::Mat4 & mvp, const tex::Texture & texture,
@@ -416,10 +457,10 @@ void DrawTriangles(const math::Mat4 & mvp, const tex::Texture & texture,
                             kGsDepthScale, 0.0f };
     constants.clipScale = { kGuardBandScale, kGuardBandScale, 1.0f, 0.0f };
 
-    VifPacket & pkt = s_drawPacket;
-
     // One chunk per VU run; the double buffer overlaps each chunk's unpack
-    // with the previous chunk's transform.
+    // with the previous chunk's transform. A full EE staging/packet buffer is
+    // submitted without immediately waiting, so the alternate buffer can be
+    // filled while VIF1/VU1 consumes it.
     bool segmentStarted = false;
     int stateChunks = 0;
     for (int firstVert = 0; firstVert < vertCount; firstVert += kMaxVertsPerBatch)
@@ -427,34 +468,37 @@ void DrawTriangles(const math::Mat4 & mvp, const tex::Texture & texture,
         const int remaining  = vertCount - firstVert;
         const int chunkVerts = (remaining < kMaxVertsPerBatch) ? remaining : kMaxVertsPerBatch;
 
-        int stagedFirst = (s_stagedVertCount + 3) & ~3;
+        DeferredDrawBuffer * buffer = &s_drawBuffers[s_buildBufferIndex];
+        int stagedFirst = (buffer->stagedVertCount + 3) & ~3;
         const int boundaryQwords = segmentStarted ? 0 :
-            kConstantsChainQwords + (s_packetHasDraws ? kDrawBarrierQwords : 0);
+            kConstantsChainQwords + (buffer->hasDraws ? kDrawBarrierQwords : 0);
         if (stagedFirst + chunkVerts > kStagedVertexCapacity ||
-            pkt.QwordCount() + boundaryQwords + kChunkChainQwords +
+            buffer->packet.QwordCount() + boundaryQwords + kChunkChainQwords +
                 kChainTailQwords > kDrawPacketQwords)
         {
-            Flush();
+            SubmitBuildBuffer();
+            buffer = &s_drawBuffers[s_buildBufferIndex];
             stagedFirst = 0;
             segmentStarted = false;
             stateChunks = 0;
         }
 
+        VifPacket & pkt = buffer->packet;
         if (!segmentStarted)
         {
-            AddFrameConstants(pkt, constants, s_packetHasDraws);
+            AddFrameConstants(pkt, constants, buffer->hasDraws);
             segmentStarted = true;
         }
 
-        DrawVertex * staged = s_stagedVerts + stagedFirst;
+        DrawVertex * staged = buffer->stagedVerts + stagedFirst;
         std::memcpy(staged, verts + firstVert,
                     static_cast<size_t>(chunkVerts) * sizeof(DrawVertex));
-        s_stagedVertCount = stagedFirst + chunkVerts;
+        buffer->stagedVertCount = stagedFirst + chunkVerts;
 
         AddBatchChunk(pkt, texture, ctx, staged, chunkVerts,
                       alphaBlend, fixedAlpha, stateChunks < 2);
         ++stateChunks;
-        s_packetHasDraws = true;
+        buffer->hasDraws = true;
     }
 }
 

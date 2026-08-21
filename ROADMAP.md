@@ -164,9 +164,13 @@ diagnostic formatting or rendering.
   actually reused. Alpha.63 copies caller vertices into a 128-byte-aligned
   3072-vertex staging area, stores constants inline and combines compatible
   draws until staging/packet capacity or a PATH/texture ordering boundary;
-  PCSX2 and retail-PS2 validation are pending
-- [ ] Extend the existing VU1 double-buffered chunks to two or three EE-side
-  packet buffers so EE preparation overlaps VU1 work and GS rasterization
+  supplied PCSX2 captures rendered correctly with `VIFchain` reduced from the
+  Alpha.62 baseline 70/74/89 to 19/13/29; retail-PS2 validation is pending
+- [~] Extend the existing VU1 double-buffered chunks to two or three EE-side
+  packet buffers so EE preparation overlaps VU1 work and GS rasterization.
+  Alpha.64 uses two bounded 3072-vertex staging/packet buffers and waits before
+  reusing the in-flight one or at explicit ordering boundaries; PCSX2 and
+  retail-PS2 validation are pending
 - [~] Reduce DMA tag count and report chain count, QW transferred, average
   vertices per chain and wait time in the profiling build. Alpha.62 caches the
   invariant GIF/GS state in both VU1 double-buffer halves during a draw and
@@ -174,8 +178,8 @@ diagnostic formatting or rendering.
   batch header and changing draw tag. Supplied PCSX2 captures reported
   `VIFqw` values of 1911/2500/3107 for light/outdoor/heavy Base1 scenes, about
   25-34% below the previous payload, with correct rendering but no material
-  FPS change. `VIFchain` remained 70/74/89, confirming that compatible draws
-  still need to be combined at the next P1 step
+  FPS change. Alpha.63 then combined compatible draws: supplied PCSX2 captures
+  reported `VIFchain` 19/13/29 versus 69/65/82 `Batches`, with correct rendering
 
 Completion criterion: ordinary opaque passes no longer block after every draw,
 DMA reference buffers meet the documented alignment, and measured VIF/VU/GS
@@ -346,9 +350,9 @@ development tools.
 2. Use the recorded alpha.62 Base1 captures as the VIF baseline: light,
    outdoor and heavy scenes produced `VIFchain` 70/74/89, `VIFqw`
    1911/2500/3107 and `VUstate` 93/112/128 with correct rendering.
-3. Validate alpha.63's pass-level VIF chains in the three recorded Base1
-   positions. `VIFchain` should fall below `Batches` while `VUvert`, triangle
-   counts and every texture/transparency/sky/particle path remain comparable.
+3. Validate alpha.64's two EE-side packet/staging buffers in the same three
+   Base1 positions. Compare FPS and `VUWait` against Alpha.63 while requiring
+   comparable `VIFchain`, `VIFqw`, `VUvert`, triangle counts and rendering.
 4. Revisit audio streaming after frame pacing is more stable; retain LOW
    11025 Hz as the nonblocking sound-effect baseline until then. Implement
    music separately as user-supplied, double-buffered PS2 ADPCM streamed by

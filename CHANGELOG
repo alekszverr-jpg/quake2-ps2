@@ -6,6 +6,19 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.64 - 2026-08-21
+
+### Performance
+
+- Added a second EE-side VIF packet and 3072-vertex staging buffer. When the
+  active buffer fills, its complete chain is submitted without an immediate
+  wait and the EE prepares the alternate buffer while VIF1/VU1 consumes it.
+- Waits now occur only before the in-flight packet/staging range is reused or
+  at the existing texture, VRAM, 2D and frame ordering boundaries. The
+  conservative PATH1/PATH3 synchronization introduced in Alpha.63 is unchanged.
+- Kept the two buffers static and bounded, adding one 96 KB staging area and a
+  12 KB source-chain packet rather than heap churn or an open-ended MFIFO lifetime.
+
 ## 0.1.0-alpha.63 - 2026-08-21
 
 ### Performance
@@ -21,6 +34,16 @@ Development priorities and completion criteria are tracked in
   end of the 3D view and at every frame boundary.
 - Kept each VU1 XTOP half self-contained after draw or chain changes by loading
   the complete GIF/GS state into the first two chunks of each segment.
+
+### Validation
+
+- Supplied PCSX2 Base1 captures rendered correctly and reduced `VIFchain` from
+  the Alpha.62 baseline of 70/74/89 to 19/13/29 in the light, outdoor and heavy
+  positions. The corresponding Alpha.63 frames reported 69/65/82 `Batches`,
+  2327/2708/3328 `VIFqw`, 10569/16335/19659 `VUvert`, 94/100/119 `VUstate` and
+  30/20/17 FPS.
+- No missing geometry, stale/foreign textures, sky leakage, weapon corruption
+  or other visible ordering regression appeared in the supplied screenshots.
 
 ### Build
 
