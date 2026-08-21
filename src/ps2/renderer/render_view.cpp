@@ -2517,6 +2517,109 @@ void DrawSpriteModel(const entity_t & entity, const mod::ModelInstance & model)
     s_scratchVertCount = 0;
 }
 
+const tex::Texture * SpriteTexture(const entity_t & entity,
+                                   const mod::ModelInstance & model)
+{
+    PS2_Assert(model.type == mod::ModelType::Sprite);
+    PS2_Assert(model.hunkBase != nullptr);
+
+    const auto * sprite = static_cast<const dsprite_t *>(model.hunkBase);
+    if (sprite->numframes <= 0)
+    {
+        return nullptr;
+    }
+
+    int frameIndex = entity.frame % sprite->numframes;
+    if (frameIndex < 0)
+    {
+        frameIndex += sprite->numframes;
+    }
+    return (model.skins[frameIndex] != nullptr) ? model.skins[frameIndex]
+                                                : &tex::DebugTexture();
+}
+
+struct OpaqueEntityDraw
+{
+    const entity_t * entity;
+    const mod::ModelInstance * model;
+    const tex::Texture * texture;
+    int originalOrder;
+};
+
+static OpaqueEntityDraw s_opaqueEntityDraws[MAX_ENTITIES];
+
+void DrawEntity(const entity_t & entity, const mod::ModelInstance & model,
+                const refdef_t & viewDef)
+{
+    if (model.type == mod::ModelType::Brush)
+    {
+        DrawBrushModel(entity, model, viewDef);
+    }
+    else if (model.type == mod::ModelType::AliasMD2)
+    {
+        DrawAliasModel(entity, model, viewDef);
+    }
+    else if (model.type == mod::ModelType::Sprite)
+    {
+        DrawSpriteModel(entity, model);
+    }
+}
+
+void DrawSortedOpaqueEntities(int & drawCount, const refdef_t & viewDef)
+{
+    if (drawCount == 0)
+    {
+        return;
+    }
+
+#if PS2_PROFILE
+    const tex::Texture * previousTexture = nullptr;
+    for (int i = 0; i < drawCount; ++i)
+    {
+        if (s_opaqueEntityDraws[i].texture != previousTexture)
+        {
+            ++s_drawStats.entityTextureSwitchesOriginal;
+            previousTexture = s_opaqueEntityDraws[i].texture;
+        }
+    }
+#endif
+
+    std::sort(s_opaqueEntityDraws, s_opaqueEntityDraws + drawCount,
+              [](const OpaqueEntityDraw & a, const OpaqueEntityDraw & b) {
+        const std::uintptr_t aTexture = reinterpret_cast<std::uintptr_t>(a.texture);
+        const std::uintptr_t bTexture = reinterpret_cast<std::uintptr_t>(b.texture);
+        if (aTexture != bTexture)
+        {
+            return aTexture < bTexture;
+        }
+
+        const std::uintptr_t aModel = reinterpret_cast<std::uintptr_t>(a.model);
+        const std::uintptr_t bModel = reinterpret_cast<std::uintptr_t>(b.model);
+        if (aModel != bModel)
+        {
+            return aModel < bModel;
+        }
+        return a.originalOrder < b.originalOrder;
+    });
+
+#if PS2_PROFILE
+    previousTexture = nullptr;
+#endif
+    for (int i = 0; i < drawCount; ++i)
+    {
+        const OpaqueEntityDraw & draw = s_opaqueEntityDraws[i];
+#if PS2_PROFILE
+        if (draw.texture != previousTexture)
+        {
+            ++s_drawStats.entityTextureSwitchesSorted;
+            previousTexture = draw.texture;
+        }
+#endif
+        DrawEntity(*draw.entity, *draw.model, viewDef);
+    }
+    drawCount = 0;
+}
+
 void RenderEntities(const refdef_t & viewDef)
 {
     static const cvar_t * s_skipEntities = Cvar_Get("ps2_skip_entities", "0", 0);
@@ -2525,36 +2628,70 @@ void RenderEntities(const refdef_t & viewDef)
         return;
     }
 
-    // Match ref_gl: opaque entities establish colour/depth first, then
-    // RF_TRANSLUCENT entities blend over that result. The original does not
-    // distance-sort the second pass either.
-    for (int pass = 0; pass < 2; ++pass)
-    {
-        const bool translucentPass = (pass == 1);
-        for (int i = 0; i < viewDef.num_entities; ++i)
-        {
-            const entity_t & entity = viewDef.entities[i];
-            const bool translucent = (entity.flags & RF_TRANSLUCENT) != 0;
-            if (translucent != translucentPass || entity.model == nullptr ||
-                (entity.flags & (RF_BEAM | RF_VIEWERMODEL)) != 0)
-            {
-                continue;
-            }
+    PS2_Assert(viewDef.num_entities <= MAX_ENTITIES);
 
-            const auto * model = reinterpret_cast<const mod::ModelInstance *>(entity.model);
-            if (model->type == mod::ModelType::Brush)
-            {
-                DrawBrushModel(entity, *model, viewDef);
-            }
-            else if (model->type == mod::ModelType::AliasMD2)
-            {
-                DrawAliasModel(entity, *model, viewDef);
-            }
-            else if (model->type == mod::ModelType::Sprite)
-            {
-                DrawSpriteModel(entity, *model);
-            }
+    // Opaque MD2/sprite runs are safe to reorder by their actual resolved GS
+    // texture. Brush models are barriers because they contain several textures
+    // and currently emit their own per-surface translucent pass. View weapons
+    // remain at their original position to avoid changing depth-hack ordering.
+    int opaqueDrawCount = 0;
+    for (int i = 0; i < viewDef.num_entities; ++i)
+    {
+        const entity_t & entity = viewDef.entities[i];
+        if ((entity.flags & RF_TRANSLUCENT) != 0 || entity.model == nullptr ||
+            (entity.flags & (RF_BEAM | RF_VIEWERMODEL)) != 0)
+        {
+            continue;
         }
+
+        const auto * model = reinterpret_cast<const mod::ModelInstance *>(entity.model);
+        const bool orderingBarrier = model->type == mod::ModelType::Brush ||
+                                     (entity.flags & RF_DEPTHHACK) != 0;
+        if (orderingBarrier)
+        {
+            DrawSortedOpaqueEntities(opaqueDrawCount, viewDef);
+            DrawEntity(entity, *model, viewDef);
+            continue;
+        }
+
+        const tex::Texture * texture = nullptr;
+        if (model->type == mod::ModelType::AliasMD2)
+        {
+            texture = &AliasSkin(entity, *model);
+        }
+        else if (model->type == mod::ModelType::Sprite)
+        {
+            texture = SpriteTexture(entity, *model);
+        }
+        else
+        {
+            continue;
+        }
+        if (texture == nullptr)
+        {
+            continue;
+        }
+
+        PS2_Assert(opaqueDrawCount < MAX_ENTITIES);
+        s_opaqueEntityDraws[opaqueDrawCount++] = {
+            &entity, model, texture, i
+        };
+    }
+    DrawSortedOpaqueEntities(opaqueDrawCount, viewDef);
+
+    // Preserve ref_gl's original order for translucent entities. They cannot
+    // be texture-sorted without changing blend results.
+    for (int i = 0; i < viewDef.num_entities; ++i)
+    {
+        const entity_t & entity = viewDef.entities[i];
+        if ((entity.flags & RF_TRANSLUCENT) == 0 || entity.model == nullptr ||
+            (entity.flags & (RF_BEAM | RF_VIEWERMODEL)) != 0)
+        {
+            continue;
+        }
+
+        const auto * model = reinterpret_cast<const mod::ModelInstance *>(entity.model);
+        DrawEntity(entity, *model, viewDef);
     }
 }
 

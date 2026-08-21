@@ -6,6 +6,20 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.65 - 2026-08-21
+
+### Performance
+
+- Sorted opaque MD2 and sprite runs by the actual resolved GS texture instead
+  of relying only on Quake II's existing model/raw-skin pointer order. This
+  also accounts for `skinnum` and the current sprite animation frame.
+- Kept opaque brush models and first-person `RF_DEPTHHACK` weapons as ordering
+  barriers, and left the complete translucent entity pass unchanged so texture
+  grouping cannot alter brush alpha, weapon depth or blend order.
+- Added PROFILE `EntTex0` and `EntTex` counters for the eligible opaque entity
+  texture runs before and after PS2 sorting. Compare them together with `TexUp`,
+  `TexDMA`, `VRAMwait` and entity time.
+
 ## 0.1.0-alpha.64 - 2026-08-21
 
 ### Performance
@@ -18,6 +32,17 @@ Development priorities and completion criteria are tracked in
   conservative PATH1/PATH3 synchronization introduced in Alpha.63 is unchanged.
 - Kept the two buffers static and bounded, adding one 96 KB staging area and a
   12 KB source-chain packet rather than heap churn or an open-ended MFIFO lifetime.
+
+### Validation
+
+- Supplied PCSX2 captures retained correct geometry, textures, sky and weapons.
+  The light/outdoor/heavy frames reported `VUWait` 101/148/265 us,
+  `VIFchain` 22/13/33, `VIFqw` 2520/2639/3665 and `VUvert`
+  12078/16047/23340.
+- The closest outdoor comparison kept `VIFchain` at 13 while reducing `VUWait`
+  from Alpha.63's 232 us to 148 us with nearly identical submitted vertices
+  (16335 versus 16047). A third staging buffer is not justified by the small
+  remaining wait budget.
 
 ## 0.1.0-alpha.63 - 2026-08-21
 

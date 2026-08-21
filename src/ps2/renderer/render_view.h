@@ -39,6 +39,8 @@ struct DrawStats
     int lightFineSplits;   // Extra high-contrast splits retained in the cache.
     int aliasUniqueVerts;  // MD2 vertices interpolated/lit once this frame.
     int aliasCorners;      // Indexed MD2 triangle corners submitted this frame.
+    int entityTextureSwitchesOriginal; // Opaque MD2/sprite texture runs before PS2 sorting.
+    int entityTextureSwitchesSorted;   // Opaque MD2/sprite texture runs after PS2 sorting.
     int playerLightLevel;  // r_lightlevel byte sent to server-side monster AI.
 };
 

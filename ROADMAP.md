@@ -169,8 +169,9 @@ diagnostic formatting or rendering.
 - [~] Extend the existing VU1 double-buffered chunks to two or three EE-side
   packet buffers so EE preparation overlaps VU1 work and GS rasterization.
   Alpha.64 uses two bounded 3072-vertex staging/packet buffers and waits before
-  reusing the in-flight one or at explicit ordering boundaries; PCSX2 and
-  retail-PS2 validation are pending
+  reusing the in-flight one or at explicit ordering boundaries. Supplied PCSX2
+  captures rendered correctly; the closest outdoor comparison reduced `VUWait`
+  from 232 to 148 us at the same 13 chains. Retail-PS2 validation is pending
 - [~] Reduce DMA tag count and report chain count, QW transferred, average
   vertices per chain and wait time in the profiling build. Alpha.62 caches the
   invariant GIF/GS state in both VU1 double-buffer halves during a draw and
@@ -188,15 +189,19 @@ wait time falls without rendering corruption on PCSX2 or real hardware.
 ### P2 - Draw sorting and texture transfer scheduling
 
 - [x] Chain opaque BSP surfaces by texture before drawing
-- [ ] Sort all opaque world/entity draws by texture, lightmap and render state
-  to reduce GS register changes and uploads
+- [~] Sort all opaque world/entity draws by texture, lightmap and render state
+  to reduce GS register changes and uploads. World BSP surfaces are already
+  texture-chained; Alpha.65 additionally sorts eligible opaque MD2/sprite runs
+  by their resolved texture while preserving brush, depth-hack and translucent
+  ordering boundaries. PCSX2 and retail-PS2 validation are pending
 - [ ] Submit transparent surfaces in a separate order-correct pass
 - [ ] Build a visible-frame texture working set before geometry submission;
   upload missing textures in batches before any dependent VU1 `XGKICK`
 - [ ] Keep texture transfers and PATH1 geometry correctly ordered without a GS
   `FINISH` after every individual texture
-- [ ] Track uploads, evictions, texture switches, GS waits and state changes in
-  the profiling build
+- [~] Track uploads, evictions, texture switches, GS waits and state changes in
+  the profiling build. Existing `TexUp`, `TexDMA`, `VRAMwait` and `VRAMsync`
+  now pair with Alpha.65 `EntTex0`/`EntTex` counters for eligible opaque entities
 
 Completion criterion: texture and state-change counts drop, texture transfer
 waits are amortized across a pass, and the former black-strip/stale-page bugs do
@@ -350,9 +355,9 @@ development tools.
 2. Use the recorded alpha.62 Base1 captures as the VIF baseline: light,
    outdoor and heavy scenes produced `VIFchain` 70/74/89, `VIFqw`
    1911/2500/3107 and `VUstate` 93/112/128 with correct rendering.
-3. Validate alpha.64's two EE-side packet/staging buffers in the same three
-   Base1 positions. Compare FPS and `VUWait` against Alpha.63 while requiring
-   comparable `VIFchain`, `VIFqw`, `VUvert`, triangle counts and rendering.
+3. Validate alpha.65's opaque entity texture sorting in the same Base1 scenes.
+   Compare `EntTex0` with `EntTex`, then check whether `TexUp`, `TexDMA`,
+   `VRAMwait` and `Ent us` fall without changing entities, weapons or sprites.
 4. Revisit audio streaming after frame pacing is more stable; retain LOW
    11025 Hz as the nonblocking sound-effect baseline until then. Implement
    music separately as user-supplied, double-buffered PS2 ADPCM streamed by
