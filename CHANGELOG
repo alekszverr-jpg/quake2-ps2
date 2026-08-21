@@ -6,6 +6,12 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+### Documentation
+
+- Added a durable development handoff covering the validated Alpha.62 state,
+  workspace safety, the release/test workflow and the exact PATH1/PATH3 and
+  buffer-lifetime constraints for the next pass-level VIF batching step.
+
 ## 0.1.0-alpha.62 - 2026-08-20
 
 ### Performance

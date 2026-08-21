@@ -178,6 +178,7 @@ The GitHub Actions workflow is the reference reproducible build environment.
 
 ## Development
 
+- [Development handoff](HANDOFF.md)
 - [Roadmap](ROADMAP.md)
 - [Changelog](CHANGELOG)
 - [Builds](https://github.com/alekszverr-jpg/quake2-ps2/actions)

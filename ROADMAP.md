@@ -168,7 +168,11 @@ diagnostic formatting or rendering.
   vertices per chain and wait time in the profiling build. Alpha.62 caches the
   invariant GIF/GS state in both VU1 double-buffer halves during a draw and
   adds `VIFqw`, `VUvert` and `VUstate` counters; later chunks refresh only the
-  batch header and changing draw tag
+  batch header and changing draw tag. Supplied PCSX2 captures reported
+  `VIFqw` values of 1911/2500/3107 for light/outdoor/heavy Base1 scenes, about
+  25-34% below the previous payload, with correct rendering but no material
+  FPS change. `VIFchain` remained 70/74/89, confirming that compatible draws
+  still need to be combined at the next P1 step
 
 Completion criterion: ordinary opaque passes no longer block after every draw,
 DMA reference buffers meet the documented alignment, and measured VIF/VU/GS
@@ -336,10 +340,10 @@ development tools.
 1. Keep alpha.54 PROFILE as the culling baseline: repeat the same camera pairs
    after each renderer optimization and compare FPS, `Ent us`, `MD2Vert`,
    `MD2Corner`, `BoxCull` and visual popping.
-2. Compare alpha.62 at the same Base1 camera positions and record `VIFqw`,
-   `VUvert`, `VUstate` and `VIFchain`. Verify that long draws use no more than
-   two full state loads while rendering remains unchanged.
-3. Continue P1 by combining compatible world submissions into larger VIF
+2. Use the recorded alpha.62 Base1 captures as the VIF baseline: light,
+   outdoor and heavy scenes produced `VIFchain` 70/74/89, `VIFqw`
+   1911/2500/3107 and `VUstate` 93/112/128 with correct rendering.
+3. Continue P1 for alpha.63 by combining compatible world submissions into larger VIF
    chains only where texture and PATH ordering remain proven safe.
 4. Revisit audio streaming after frame pacing is more stable; retain LOW
    11025 Hz as the nonblocking sound-effect baseline until then. Implement
