@@ -7,8 +7,9 @@
  *  tree front-to-back culling against the view frustum and threads every visible
  *  opaque surface onto its texture's draw chain, and DrawTextureChains then
  *  gathers each chain's triangles into a scratch buffer and submits them through
- *  vu1::DrawTriangles - one synchronous batch per texture. Sky and translucent
- *  surfaces are routed aside for later passes (skybox / alpha-blend milestones).
+ *  vu1::DrawTriangles - staged draws combined into pass-level VIF chains. Sky and
+ *  translucent surfaces are routed aside for later passes (skybox / alpha-blend
+ *  milestones).
  *
  *  Camera mapping: Quake is Z-up with AngleVectors giving forward/right/up; those
  *  feed math::LookAt directly (its right = cross(up, -forward) lands on Quake's
@@ -130,8 +131,8 @@ static bool s_skyTexturesResolved = false;
 static bool s_skyVisible = false;
 
 // Triangle gather buffer: texture chains append here and flush through
-// vu1::DrawTriangles when full. DrawTriangles is synchronous, so one buffer
-// serves every batch in turn, referenced in place by the DMA chain.
+// vu1::DrawTriangles when full. DrawTriangles copies into internal deferred
+// staging, so one caller scratch buffer remains enough for every path.
 constexpr int kScratchMaxVerts = 3072; // whole triangles (3 * 1024); 96 KB
 alignas(128) static vu1::DrawVertex s_scratchVerts[kScratchMaxVerts];
 static int s_scratchVertCount = 0;
@@ -2759,6 +2760,11 @@ void RenderFrame(const refdef_t & viewDef)
     s_drawStats.lightFineSplits = s_litCacheFineSplits;
 #endif
     UpdatePlayerLightLevel(viewDef);
+
+    // Finish the complete 3D pass before the client can append HUD/console 2D
+    // commands. DrawTriangles stages caller memory, so this is the ordinary
+    // pass-level submission point rather than a per-batch wait.
+    vu1::Flush();
 
     // Later milestones continue here: remaining translucent entity variants.
 }

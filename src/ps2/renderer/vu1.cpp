@@ -2,16 +2,18 @@
  * File: vu1.cpp
  * Brief: VU1-accelerated 3D drawing. See vu1.h.
  *
- *  Modelled on the ps2sdk "draw/vu1" sample. Each DrawTriangles call builds one VIF1
- *  source chain: frame constants (MVP + GS screen mapping) unpacked to fixed low VU
- *  addresses, then, per chunk of up to kMaxVertsPerBatch vertices, the batch (header,
- *  GIF tags, vertices) unpacked at the current double buffer plus FLUSH + MSCAL to
- *  run the microprogram, which transforms, clips and XGKICKs the triangles to the GS
- *  over PATH1. XTOP flips on every MSCAL, so the VIF unpacks one chunk into a buffer
- *  half while the VU still transforms the previous one. No extra syncs are needed
- *  between chunks: MSCAL stalls the VIF while a program runs, and each program's
- *  XGKICK stalls until the previous kick drained, which keeps a half's output area
- *  safe from the next-but-one program until the GS is done reading it.
+ *  Modelled on the ps2sdk "draw/vu1" sample. Compatible DrawTriangles calls accumulate
+ *  into one VIF1 source chain. Caller vertices are copied into an aligned staging area,
+ *  and frame constants are stored inline in the chain, so both remain stable until the
+ *  deferred packet is submitted. Each draw is split into chunks of up to
+ *  kMaxVertsPerBatch vertices; a VIF FLUSH before each later draw's constants protects
+ *  the fixed low VU addresses while retaining one DMA submission for many draws.
+ *
+ *  XTOP flips on every MSCAL, so the VIF unpacks one chunk into a buffer half while the
+ *  VU still transforms the previous one. No extra syncs are needed between chunks:
+ *  MSCAL stalls the VIF while a program runs, and each program's XGKICK stalls until
+ *  the previous kick drained, which keeps a half's output area safe from the
+ *  next-but-one program until the GS is done reading it.
  *
  *  VU1 data memory layout (1024 qwords; addresses in qwords):
  *      0-3    MVP matrix rows
@@ -42,6 +44,7 @@
 #include <gif_tags.h>
 #include <gs_gp.h>
 #include <gs_psm.h>
+#include <cstring>
 
 namespace ps2::vu1 {
 
@@ -72,11 +75,15 @@ constexpr int kBatchHeaderAddr = 0; // vertex count in .w
 constexpr int kGifTagsAddr     = 1; // 9 qwords: set tag, 7 A+D writes, draw tag
 constexpr int kVertexDataAddr  = kGifTagsAddr + 9;
 
-// The chain is tags plus small per-chunk inline unpacks; constants and
-// vertices are referenced in place. Sized so a DrawTriangles call fits ~30
-// chunks (~4000 verts) before it must flush the chain mid-call. This covers
-// the complete 3072-vertex world scratch buffer in one VIF1 chain.
+// The chain is tags plus small per-draw/per-chunk inline unpacks; staged
+// vertices are referenced in place. This remains deliberately modest: the
+// staging capacity, rather than packet space, normally chooses the flush
+// point and combines about one complete world scratch submission per chain.
 constexpr int kDrawPacketQwords = 768;
+
+constexpr int kStagedVertexCapacity = 3072;
+static_assert((kStagedVertexCapacity % 4) == 0,
+              "VU staging capacity must preserve 128-byte vertex alignment");
 
 // Conservative chain footprint of one chunk segment (header/tags inline
 // unpack, vertex REF unpack, FLUSH + MSCAL; ~11 qwords in practice) and of
@@ -84,6 +91,8 @@ constexpr int kDrawPacketQwords = 768;
 // when the next chunk plus the tail might not fit.
 constexpr int kChunkChainQwords = 16;
 constexpr int kChainTailQwords  = 4;
+constexpr int kConstantsChainQwords = 10;
+constexpr int kDrawBarrierQwords = 2;
 
 // Depth scale: the microprogram's ftoi4 multiplies by 16, so scale + offset of
 // 0xFFFF/32 maps z/w [-1 (far), +1 (near)] onto [0, 0xFFFF] in the 16-bit z-buffer.
@@ -121,9 +130,11 @@ struct alignas(16) FrameConstants
 };
 static_assert(sizeof(FrameConstants) == 7 * 16, "Must match the VU memory layout");
 
-alignas(128) static FrameConstants s_constants;
+alignas(128) static DrawVertex s_stagedVerts[kStagedVertexCapacity];
 static VifPacket s_drawPacket;
 static bool s_initialized = false;
+static bool s_packetHasDraws = false;
+static int s_stagedVertCount = 0;
 
 // TEX0/TEX1 register qwords for the batch's texture bind, sent A+D over PATH1.
 // Built here rather than with the packet2_utils helpers because those hardcode
@@ -271,10 +282,35 @@ void AddBatchChunk(VifPacket & pkt, const tex::Texture & texture, int ctx,
     pkt.AddStartProgram(0);
 }
 
+void AddFrameConstants(VifPacket & pkt, const FrameConstants & constants,
+                       bool waitForPreviousDraw)
+{
+    pkt.EnsureSpace(kConstantsChainQwords +
+                    (waitForPreviousDraw ? kDrawBarrierQwords : 0));
+
+    // Constants occupy fixed low VU addresses. A prior MSCAL may still read
+    // them while VIF is otherwise free to continue, so explicitly drain that
+    // draw before overwriting the block inside a combined chain.
+    if (waitForPreviousDraw)
+    {
+        pkt.AddFlush();
+    }
+
+    pkt.OpenInlineUnpack(kFrameConstantsAddr, false);
+    float values[sizeof(FrameConstants) / sizeof(float)];
+    std::memcpy(values, &constants, sizeof(constants));
+    for (int i = 0; i < static_cast<int>(sizeof(FrameConstants) / sizeof(float)); ++i)
+    {
+        pkt.AddFloat(values[i]);
+    }
+    pkt.CloseInlineUnpack();
+}
+
 // FLUSH so a DMA wait covers the VU runs and their XGKICKs, then terminate
 // and send the chain, blocking until it is fully consumed.
 void SendChainAndWait(VifPacket & pkt)
 {
+    PS2_AssertMsg(s_packetHasDraws, "Submitting an empty VU1 draw chain!");
     pkt.AddFlush();
     pkt.AddEndTag();
 #if PS2_PROFILE
@@ -289,6 +325,13 @@ void SendChainAndWait(VifPacket & pkt)
 #if PS2_PROFILE
     s_timingStats.waitMicros += timing::ElapsedMicros(waitStart);
 #endif
+}
+
+void ResetDeferredPacket()
+{
+    s_drawPacket.Reset();
+    s_packetHasDraws = false;
+    s_stagedVertCount = 0;
 }
 
 } // namespace
@@ -318,16 +361,32 @@ void Init()
     pkt.AddEndTag();
     pkt.Send();
     pkt.Wait();
+    ResetDeferredPacket();
 }
 
 void BeginFrameStats()
 {
+#if PS2_PROFILE
     s_timingStats = {};
+#endif
+    PS2_AssertMsg(!s_packetHasDraws,
+                  "Deferred VU1 draw chain leaked across a frame boundary!");
 }
 
 const TimingStats & GetTimingStats()
 {
     return s_timingStats;
+}
+
+void Flush()
+{
+    if (!s_packetHasDraws)
+    {
+        return;
+    }
+
+    SendChainAndWait(s_drawPacket);
+    ResetDeferredPacket();
 }
 
 void DrawTriangles(const math::Mat4 & mvp, const tex::Texture & texture,
@@ -336,8 +395,8 @@ void DrawTriangles(const math::Mat4 & mvp, const tex::Texture & texture,
 {
     PS2_AssertMsg(s_initialized, "vu1::Init not called!");
     PS2_AssertMsg(vertCount > 0 && (vertCount % 3) == 0, "DrawTriangles wants whole triangles!");
-    PS2_AssertMsg((reinterpret_cast<std::uintptr_t>(verts) & 127u) == 0,
-                  "Vertex DMA data must be 128-byte aligned!");
+    PS2_AssertMsg((reinterpret_cast<std::uintptr_t>(verts) & 15u) == 0,
+                  "DrawVertex input must be 16-byte aligned!");
 
     // Send any 2D accumulated before this 3D burst so it draws underneath (and
     // its textures are consumed before our uploads can evict them). A no-op once
@@ -349,41 +408,54 @@ void DrawTriangles(const math::Mat4 & mvp, const tex::Texture & texture,
 
     const int ctx = gs::CurrentContext();
 
-    s_constants.mvp       = mvp;
-    s_constants.gsScale   = { 2048.0f, 2048.0f, kGsDepthScale, 0.0f };
-    s_constants.gsOffset  = { 2048.0f + static_cast<float>(gs::Width())  * 0.5f,
-                              2048.0f + static_cast<float>(gs::Height()) * 0.5f,
-                              kGsDepthScale, 0.0f };
-    s_constants.clipScale = { kGuardBandScale, kGuardBandScale, 1.0f, 0.0f };
+    FrameConstants constants;
+    constants.mvp       = mvp;
+    constants.gsScale   = { 2048.0f, 2048.0f, kGsDepthScale, 0.0f };
+    constants.gsOffset  = { 2048.0f + static_cast<float>(gs::Width())  * 0.5f,
+                            2048.0f + static_cast<float>(gs::Height()) * 0.5f,
+                            kGsDepthScale, 0.0f };
+    constants.clipScale = { kGuardBandScale, kGuardBandScale, 1.0f, 0.0f };
 
     VifPacket & pkt = s_drawPacket;
-    pkt.Reset();
-
-    pkt.AddUnpackData(kFrameConstantsAddr, &s_constants, sizeof(FrameConstants) / 16, false);
 
     // One chunk per VU run; the double buffer overlaps each chunk's unpack
     // with the previous chunk's transform.
-    int chunkIndex = 0;
-    for (int firstVert = 0; firstVert < vertCount;
-         firstVert += kMaxVertsPerBatch, ++chunkIndex)
+    bool segmentStarted = false;
+    int stateChunks = 0;
+    for (int firstVert = 0; firstVert < vertCount; firstVert += kMaxVertsPerBatch)
     {
-        // If the next chunk plus the chain tail might not fit the packet,
-        // send what we have and open a fresh, self-contained chain. The
-        // Wait() makes this safe: everything referenced so far was consumed.
-        if (pkt.QwordCount() + kChunkChainQwords + kChainTailQwords > kDrawPacketQwords)
-        {
-            SendChainAndWait(pkt);
-            pkt.Reset();
-            pkt.AddUnpackData(kFrameConstantsAddr, &s_constants, sizeof(FrameConstants) / 16, false);
-        }
-
         const int remaining  = vertCount - firstVert;
         const int chunkVerts = (remaining < kMaxVertsPerBatch) ? remaining : kMaxVertsPerBatch;
-        AddBatchChunk(pkt, texture, ctx, verts + firstVert, chunkVerts,
-                      alphaBlend, fixedAlpha, chunkIndex < 2);
-    }
 
-    SendChainAndWait(pkt);
+        int stagedFirst = (s_stagedVertCount + 3) & ~3;
+        const int boundaryQwords = segmentStarted ? 0 :
+            kConstantsChainQwords + (s_packetHasDraws ? kDrawBarrierQwords : 0);
+        if (stagedFirst + chunkVerts > kStagedVertexCapacity ||
+            pkt.QwordCount() + boundaryQwords + kChunkChainQwords +
+                kChainTailQwords > kDrawPacketQwords)
+        {
+            Flush();
+            stagedFirst = 0;
+            segmentStarted = false;
+            stateChunks = 0;
+        }
+
+        if (!segmentStarted)
+        {
+            AddFrameConstants(pkt, constants, s_packetHasDraws);
+            segmentStarted = true;
+        }
+
+        DrawVertex * staged = s_stagedVerts + stagedFirst;
+        std::memcpy(staged, verts + firstVert,
+                    static_cast<size_t>(chunkVerts) * sizeof(DrawVertex));
+        s_stagedVertCount = stagedFirst + chunkVerts;
+
+        AddBatchChunk(pkt, texture, ctx, staged, chunkVerts,
+                      alphaBlend, fixedAlpha, stateChunks < 2);
+        ++stateChunks;
+        s_packetHasDraws = true;
+    }
 }
 
 } // namespace ps2::vu1

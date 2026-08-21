@@ -59,23 +59,10 @@ jobs:
           ls -la
           find . -maxdepth 2 -type f | sed 's#^./##' | sort | head -200
 
-      - name: Build host tools
-        run: |
-          make tools
-
-      - name: Build PS2 release and profile ELFs
+      - name: Build PS2 profile ELF
         run: |
           export PATH="$PS2DEV/bin:$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin:$PATH"
           set +e
-          make BUILD=release 2>&1 | tee build-release.log
-          build_status=${PIPESTATUS[0]}
-          if [ "$build_status" -ne 0 ]; then
-            grep -E '(^|: )(fatal )?error:' build-release.log | head -20 | while IFS= read -r line; do
-              echo "::error::$line"
-            done
-            exit "$build_status"
-          fi
-
           make BUILD=profile 2>&1 | tee build-profile.log
           build_status=${PIPESTATUS[0]}
           if [ "$build_status" -ne 0 ]; then
@@ -89,7 +76,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: quake2-ps2-build
-          path: |
-            build/quake2.elf
-            build/quake2-profile.elf
-            build/tools/
+          path: build/quake2-profile.elf

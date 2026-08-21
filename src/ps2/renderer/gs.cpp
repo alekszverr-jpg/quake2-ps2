@@ -32,6 +32,7 @@
 #include "ps2/renderer/render_packet.h"
 #include "ps2/renderer/timing.h"
 #include "ps2/renderer/texture.h"
+#include "ps2/renderer/vu1.h"
 #include "ps2/renderer/vram.h"
 #include "ps2/builtin/builtin.h" // global_palette
 
@@ -381,6 +382,10 @@ void FlushPending2D()
     {
         return; // nothing accumulated since the last flush
     }
+
+    // Deferred PATH1 geometry was issued before this overlay was accumulated.
+    // Submit it first so the later PATH3 2D packet remains visually on top.
+    vu1::Flush();
     s_in2D = false;
 
     RenderPacket & pkt = FramePacket();
@@ -448,14 +453,15 @@ void FillRect(int x, int y, int w, int h, u8 r, u8 g, u8 b, u8 a)
 // about to be overwritten by an upload into evicted space: flush anything
 // queued and wait for the GS to go idle first. Inside the 2D section the frame
 // packet itself carries the FINISH; otherwise a bare FINISH rides the scratch
-// packet (VU1 batches are synchronous, but their DMA completing does not mean
-// the GS has finished rasterizing them).
+// packet. A submitted VU1 chain completing still does not mean the GS has
+// finished rasterizing its PATH1 output.
 static void SyncGsBeforeVramReuse()
 {
 #if PS2_PROFILE
     ++s_timingStats.vramStalls;
     const timing::Stamp waitStart = timing::Now();
 #endif
+    vu1::Flush();
     if (s_in2D)
     {
         RenderPacket & pkt = FramePacket();
@@ -563,6 +569,11 @@ void EnsureTextureResident(const tex::Texture & texture)
                     texture.width, texture.height, texture.storageWidth,
                     texture.storageHeight, sizeWords * 4 / 1024);
     }
+
+    // Any path reaching here will upload pixels through PATH3. Drain deferred
+    // PATH1 geometry first: it may sample this texture's old contents, or an
+    // allocation that the upload/eviction is about to replace.
+    vu1::Flush();
 
     if (texture.dirtyPixels)
     {
@@ -746,6 +757,10 @@ void EndFrame()
 {
     PS2_AssertMsg(s_frameStarted, "EndFrame without BeginFrame!");
     s_frameStarted = false;
+
+    // No deferred PATH1 chain may survive the frame even when there is no 2D
+    // overlay to make FlushPending2D perform the ordering boundary for us.
+    vu1::Flush();
 
     // Send whatever 2D accumulated since the last flush (the HUD/console overlay
     // in the common case) so it lands on top before the buffer is displayed.

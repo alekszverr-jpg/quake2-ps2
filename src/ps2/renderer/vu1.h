@@ -66,17 +66,23 @@ constexpr float kGuardBandNdcLimit = 0.8f;
 // and programs the double-buffer registers. Call once, after gs::Init().
 void Init();
 
-// Per-frame profiling. Reset from PS2_BeginFrame before any 3D submission.
+// Per-frame profiling and deferred-chain lifetime check. Call from
+// PS2_BeginFrame before any 3D submission in every build.
 void BeginFrameStats();
 const TimingStats & GetTimingStats();
+
+// Submits and waits for all deferred PATH1 geometry. Required before any PATH3
+// operation that can change texture contents/order, before later 2D overlays,
+// and at the end of the frame. A no-op when no geometry is pending.
+void Flush();
 
 // Draws a batch of triangles (3 verts each, triangle list) through VU1 with
 // the given transform and texture (uploaded to GS VRAM on demand). Any whole-
 // triangle count works: draws beyond kMaxVertsPerBatch are split into chunks
-// submitted back to back in the same DMA chain, overlapping each chunk's
-// upload with the previous one's transform. Synchronous for now: returns once
-// the GS has consumed the batch, so the vertex data only needs to stay valid
-// for the duration of the call. Call between gs::Begin/EndFrame.
+// submitted back to back in a deferred DMA chain, overlapping each chunk's
+// upload with the previous one's transform. Vertices are copied into internal
+// aligned staging, so caller data may be reused immediately. Call between
+// gs::Begin/EndFrame; ordering boundaries invoke Flush explicitly.
 void DrawTriangles(const math::Mat4 & mvp, const tex::Texture & texture,
                    const DrawVertex * verts, int vertCount,
                    bool alphaBlend = false, int fixedAlpha = -1);

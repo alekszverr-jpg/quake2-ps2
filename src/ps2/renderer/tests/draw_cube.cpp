@@ -49,9 +49,8 @@ constexpr int kFaces[6][4] = {
 // Largest ps2_testcube_tess value: per-axis quads per face; caps s_faceVerts.
 constexpr int kMaxTess = 8;
 
-// One face's worth of vertices, refilled before each face draw - since
-// DrawTriangles is synchronous a single buffer can serve all six faces in
-// turn, referenced in place by the DMA chain.
+// One face's worth of vertices, refilled before each face draw. DrawTriangles
+// stages the input, so one caller buffer can serve all six faces in turn.
 alignas(128) static vu1::DrawVertex s_faceVerts[kMaxTess * kMaxTess * 6];
 
 // Emits the vertex at (u, v) in [0,1]^2 of a face: position and color are the

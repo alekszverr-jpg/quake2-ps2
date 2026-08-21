@@ -507,9 +507,7 @@ void PS2_CinematicSetPalette(const unsigned char * palette)
 void PS2_BeginFrame(float cameraSeparation)
 {
     (void)cameraSeparation;
-#if PS2_PROFILE
     ps2::vu1::BeginFrameStats();
-#endif
     ps2::gs::BeginFrame();
     // 2D and 3D now draw freely between here and PS2_EndFrame: 2D primitives
     // open the deferred overlay batch lazily and it flushes automatically at

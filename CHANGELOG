@@ -6,6 +6,27 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.63 - 2026-08-21
+
+### Performance
+
+- Combined compatible `DrawTriangles` calls into larger pass-level VIF source
+  chains instead of submitting and waiting after every texture batch.
+- Added a 128-byte-aligned 3072-vertex staging area so world, MD2 and effect
+  scratch buffers can be reused immediately while their deferred chain remains
+  pending. Frame constants are copied inline and protected by an in-chain VIF
+  barrier before their fixed VU addresses are overwritten.
+- Preserved texture and draw ordering by draining deferred PATH1 geometry before
+  texture uploads or VRAM reuse, before accumulated PATH3 2D overlays, at the
+  end of the 3D view and at every frame boundary.
+- Kept each VU1 XTOP half self-contained after draw or chain changes by loading
+  the complete GIF/GS state into the first two chunks of each segment.
+
+### Build
+
+- Restricted the reproducible test workflow and published artifact to
+  `quake2-profile.elf` for the current optimization cycle.
+
 ### Documentation
 
 - Added a durable development handoff covering the validated Alpha.62 state,

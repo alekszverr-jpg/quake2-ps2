@@ -159,9 +159,12 @@ diagnostic formatting or rendering.
   The current PROFILE samples put total `VUWait` near 0.2-0.45 ms, so the
   riskier pass-level asynchronous packet staging is deferred until the larger
   EE-side world/entity costs have been reduced
-- [ ] Replace per-`DrawTriangles` `FLUSH + Wait` submission with larger
+- [~] Replace per-`DrawTriangles` `FLUSH + Wait` submission with larger
   pass-level VIF chains and wait only before a buffer or referenced range is
-  actually reused
+  actually reused. Alpha.63 copies caller vertices into a 128-byte-aligned
+  3072-vertex staging area, stores constants inline and combines compatible
+  draws until staging/packet capacity or a PATH/texture ordering boundary;
+  PCSX2 and retail-PS2 validation are pending
 - [ ] Extend the existing VU1 double-buffered chunks to two or three EE-side
   packet buffers so EE preparation overlaps VU1 work and GS rasterization
 - [~] Reduce DMA tag count and report chain count, QW transferred, average
@@ -343,8 +346,9 @@ development tools.
 2. Use the recorded alpha.62 Base1 captures as the VIF baseline: light,
    outdoor and heavy scenes produced `VIFchain` 70/74/89, `VIFqw`
    1911/2500/3107 and `VUstate` 93/112/128 with correct rendering.
-3. Continue P1 for alpha.63 by combining compatible world submissions into larger VIF
-   chains only where texture and PATH ordering remain proven safe.
+3. Validate alpha.63's pass-level VIF chains in the three recorded Base1
+   positions. `VIFchain` should fall below `Batches` while `VUvert`, triangle
+   counts and every texture/transparency/sky/particle path remain comparable.
 4. Revisit audio streaming after frame pacing is more stable; retain LOW
    11025 Hz as the nonblocking sound-effect baseline until then. Implement
    music separately as user-supplied, double-buffered PS2 ADPCM streamed by
