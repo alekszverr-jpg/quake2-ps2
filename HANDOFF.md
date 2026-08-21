@@ -12,15 +12,15 @@ before changing renderer, audio or memory-management code.
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current version: `0.1.0-alpha.63`
-- Current code commit before this handoff: `c68fe23`
-  (`Batch deferred VU1 draw submissions`)
+- Current version: `0.1.0-alpha.64`
+- Current code commit before this handoff: `0fb0f2b`
+  (`Overlap VU1 chains with EE staging`)
 - Current published release:
-  `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.63`
-- Alpha.63 PROFILE ELF SHA-256:
-  `5980B3C35F5A477F45B1BE89BD0690F439E032F978F6FFCCE8A5A15B737475AE`
+  `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.64`
+- Alpha.64 PROFILE ELF SHA-256:
+  `87DA5735CEDBF977EF0EC6236AEC27B31965EB1426BB54584DFCC64FEC400821`
 
-The next code release should normally be `0.1.0-alpha.64`. This handoff-only
+The next code release should normally be `0.1.0-alpha.65`. This handoff-only
 checkpoint does not advance `VERSION`.
 
 ## Workspace safety
@@ -96,32 +96,32 @@ Renderer changes must be checked for regressions in all of the following:
 - Campaign-wide rendering, cinematics, long-session memory stability and all
   special effects are not yet fully validated.
 
-## Latest PROFILE result: Alpha.63 awaiting validation
+## Latest PROFILE result: Alpha.64 awaiting validation
 
-Alpha.63 replaces the synchronous wait after every `DrawTriangles` call with
-deferred pass-level chains. Vertices are copied into a 128-byte-aligned static
-3072-vertex staging area and per-draw constants are stored inline. An in-chain
-VIF `FLUSH` protects the fixed constants addresses between draws, while public
-ordering flushes drain PATH1 before texture uploads, VRAM reuse, 2D overlays
-and frame boundaries.
+Alpha.64 adds a second bounded EE-side VIF packet and 3072-vertex staging area.
+When one buffer fills, its chain is submitted without an immediate wait and
+the EE prepares the alternate buffer while VIF1/VU1 consumes the first. It
+waits only before the in-flight buffer is reused or at Alpha.63's established
+texture, VRAM, 2D and frame ordering boundaries.
 
-The latest validated comparison remains Alpha.62:
+Alpha.63's supplied PCSX2 results validated the single-buffer ordering model:
 
-| Scene | FPS | VIFchain | VUchunk | VIFqw | VUvert | VUstate |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Base1 light | 26 | 70 | 175 | 1911 | 10938 | 93 |
-| Base1 outdoor | 20 | 74 | 249 | 2500 | 17493 | 112 |
-| Base1 heavy | 15 | 89 | 324 | 3107 | 23079 | 128 |
+| Scene | FPS | Batches | VIFchain | VUWait us | VUchunk | VIFqw | VUvert | VUstate |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Base1 light | 30 | 69 | 19 | 166 | 170 | 2327 | 10569 | 94 |
+| Base1 outdoor | 20 | 65 | 13 | 232 | 232 | 2708 | 16335 | 100 |
+| Base1 heavy | 17 | 82 | 29 | 292 | 285 | 3328 | 19659 | 119 |
 
-Alpha.63 CI passed for `c68fe23`, but no PCSX2 or retail-PS2 screenshots have
-been supplied yet. Its immediate success criterion is `VIFchain < Batches`
-with comparable `VUvert` and triangle counts and no visual corruption.
+The screenshots showed correct geometry, textures, sky and weapons. Compared
+with Alpha.62, `VIFchain` fell from 70/74/89 to 19/13/29. Alpha.64 CI passed
+for `0fb0f2b`, but its two-buffer overlap still needs PCSX2 and retail-PS2
+validation.
 
-## Exact next task: validate P1 larger VIF submissions
+## Exact next task: validate two EE-side VIF buffers
 
-Test the published Alpha.63 PROFILE ELF in the three recorded Base1 positions.
-Record FPS, `Batches`, `VIFchain`, `VUchunk`, `VIFqw`, `VUvert` and `VUstate`,
-and inspect all renderer regression paths listed above.
+Test the published Alpha.64 PROFILE ELF in the same three Base1 positions.
+Record FPS, `VUWait`, `Batches`, `VIFchain`, `VUchunk`, `VIFqw`, `VUvert` and
+`VUstate`, and inspect all renderer regression paths listed above.
 
 The relevant files are:
 
@@ -131,28 +131,29 @@ The relevant files are:
 - `src/ps2/renderer/gs.cpp`
 - `src/ps2/renderer/vif_packet.*`
 
-Alpha.63 behaviour:
+Alpha.64 behaviour:
 
 1. `vu1::DrawTriangles` flushes pending 2D.
 2. It calls `gs::EnsureTextureResident`.
-3. It copies caller vertices to stable aligned staging and appends constants
-   plus chunks to the pending chain.
-4. It submits/waits only when staging or packet space fills or an explicit
-   texture/PATH/frame ordering boundary calls `vu1::Flush()`.
-5. Each new draw/chain segment seeds both XTOP halves before compact chunks.
+3. It copies caller vertices and inline constants into the active EE buffer.
+4. A full buffer is submitted, then the EE immediately fills the alternate
+   packet/staging buffer.
+5. Submitting that alternate waits for the previous VIF1 chain only after the
+   EE preparation overlap; explicit ordering boundaries submit and drain both.
+6. Each new draw/chain segment seeds both XTOP halves before compact chunks.
 
-Expected Alpha.63 validation result:
+Expected Alpha.64 validation result:
 
-- `VIFchain` should become lower than `Batches` in the three Base1 positions.
-- `VUvert` and rendered triangle counts should remain comparable to Alpha.62.
-- `VUstate` may remain similar; the first goal is chain merging.
+- `VIFchain`, `VIFqw`, `VUvert`, `VUstate` and rendered triangle counts should
+  remain comparable to Alpha.63.
+- `VUWait` may fall modestly where a pass fills at least one staging buffer;
+  FPS may remain similar because Alpha.63 waits were already only 0.17-0.29 ms.
 - No texture, transparency, sky, particle, weapon or moving-brush regressions.
-- FPS may improve only slightly because the captures are primarily EE-bound.
 
-If Alpha.63 validates, the next unchecked P1 implementation item is two or
-three EE-side packet/staging buffers so EE preparation can overlap an in-flight
-VU1/GS chain. Do not begin that asynchronous lifetime expansion until the
-single-buffer ordering model is visually proven.
+If Alpha.64 validates, keep the bounded two-buffer model; a third buffer is not
+justified by the small measured VU waits. Reassess the remaining P1 alignment
+and synchronization status, then choose between P2 texture pre-upload/sorting
+and the next measured EE-side P3 culling improvement.
 
 ## Build and release procedure
 
@@ -185,8 +186,8 @@ game directories.
 
 > Continue the Quake II PS2 port in this workspace. Read HANDOFF.md completely,
 > then ROADMAP.md and CHANGELOG. Check git status and recent commits. Review the
-> Alpha.63 Base1 PROFILE results and renderer screenshots. If pass-level VIF
-> batching validates, continue the next P1 packet-buffer overlap item without
-> weakening PATH1/PATH3 texture ordering. Build and publish only the numbered
-> PROFILE prerelease, copy the successful quake2-profile.elf to the project
-> root, and do not touch untracked game data.
+> Alpha.64 Base1 PROFILE results and renderer screenshots. If two-buffer overlap
+> validates, record the P1 result and continue the next measured optimization
+> without weakening PATH1/PATH3 texture ordering. Build and publish only the
+> numbered PROFILE prerelease, copy the successful quake2-profile.elf to the
+> project root, and do not touch untracked game data.
