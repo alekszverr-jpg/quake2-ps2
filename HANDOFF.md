@@ -12,15 +12,15 @@ before changing renderer, audio or memory-management code.
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current version: `0.1.0-alpha.64`
-- Current code commit before this handoff: `0fb0f2b`
-  (`Overlap VU1 chains with EE staging`)
+- Current version: `0.1.0-alpha.65`
+- Current code commit before this handoff: `fb20b62`
+  (`Sort opaque entities by texture`)
 - Current published release:
-  `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.64`
-- Alpha.64 PROFILE ELF SHA-256:
-  `87DA5735CEDBF977EF0EC6236AEC27B31965EB1426BB54584DFCC64FEC400821`
+  `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.65`
+- Alpha.65 PROFILE ELF SHA-256:
+  `110F3491F9B5C200EEC88F130B0B88CAB158FA1AE784856A59338D917CF4014E`
 
-The next code release should normally be `0.1.0-alpha.65`. This handoff-only
+The next code release should normally be `0.1.0-alpha.66`. This handoff-only
 checkpoint does not advance `VERSION`.
 
 ## Workspace safety
@@ -96,64 +96,64 @@ Renderer changes must be checked for regressions in all of the following:
 - Campaign-wide rendering, cinematics, long-session memory stability and all
   special effects are not yet fully validated.
 
-## Latest PROFILE result: Alpha.64 awaiting validation
+## Latest PROFILE result: Alpha.65 awaiting validation
 
-Alpha.64 adds a second bounded EE-side VIF packet and 3072-vertex staging area.
-When one buffer fills, its chain is submitted without an immediate wait and
-the EE prepares the alternate buffer while VIF1/VU1 consumes the first. It
-waits only before the in-flight buffer is reused or at Alpha.63's established
-texture, VRAM, 2D and frame ordering boundaries.
+Alpha.65 begins P2 by sorting safe opaque MD2/sprite runs by the actual resolved
+GS texture rather than only Quake II's existing model/raw-skin pointer order.
+This accounts for `skinnum` and animated sprite frames. Brush models and
+`RF_DEPTHHACK` weapons remain ordering barriers, and translucent entities keep
+their original order. PROFILE `EntTex0`/`EntTex` expose eligible texture runs
+before and after sorting.
 
-Alpha.63's supplied PCSX2 results validated the single-buffer ordering model:
+Alpha.64's supplied PCSX2 results validated two-buffer overlap:
 
 | Scene | FPS | Batches | VIFchain | VUWait us | VUchunk | VIFqw | VUvert | VUstate |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Base1 light | 30 | 69 | 19 | 166 | 170 | 2327 | 10569 | 94 |
-| Base1 outdoor | 20 | 65 | 13 | 232 | 232 | 2708 | 16335 | 100 |
-| Base1 heavy | 17 | 82 | 29 | 292 | 285 | 3328 | 19659 | 119 |
+| Base1 light | 20 | 73 | 22 | 101 | 191 | 2520 | 12078 | 98 |
+| Base1 outdoor | 20 | 63 | 13 | 148 | 227 | 2639 | 16047 | 97 |
+| Base1 heavy | 15 | 86 | 33 | 265 | 329 | 3665 | 23340 | 125 |
 
-The screenshots showed correct geometry, textures, sky and weapons. Compared
-with Alpha.62, `VIFchain` fell from 70/74/89 to 19/13/29. Alpha.64 CI passed
-for `0fb0f2b`, but its two-buffer overlap still needs PCSX2 and retail-PS2
-validation.
+The screenshots showed correct geometry, textures, sky and weapons. The closest
+outdoor comparison retained 13 chains and reduced `VUWait` from 232 to 148 us.
+Alpha.65 CI passed for `fb20b62`, but entity texture sorting still needs PCSX2
+and retail-PS2 validation.
 
-## Exact next task: validate two EE-side VIF buffers
+## Exact next task: validate opaque entity texture sorting
 
-Test the published Alpha.64 PROFILE ELF in the same three Base1 positions.
-Record FPS, `VUWait`, `Batches`, `VIFchain`, `VUchunk`, `VIFqw`, `VUvert` and
-`VUstate`, and inspect all renderer regression paths listed above.
+Test the published Alpha.65 PROFILE ELF in the same Base1 positions. Record
+`EntTex0`, `EntTex`, `TexUp`, `TexDMA`, `VRAMwait`, `VRAMsync`, `Ent us`, FPS
+and the established VIF/geometry counters. Inspect weapons, enemies, sprites,
+brush alpha and all renderer regression paths listed above.
 
 The relevant files are:
 
-- `src/ps2/renderer/vu1.cpp`
-- `src/ps2/renderer/vu1.h`
 - `src/ps2/renderer/render_view.cpp`
+- `src/ps2/renderer/render_view.h`
+- `src/ps2/renderer/ref.cpp`
 - `src/ps2/renderer/gs.cpp`
-- `src/ps2/renderer/vif_packet.*`
+- `src/ps2/renderer/vram.cpp`
 
-Alpha.64 behaviour:
+Alpha.65 behaviour:
 
-1. `vu1::DrawTriangles` flushes pending 2D.
-2. It calls `gs::EnsureTextureResident`.
-3. It copies caller vertices and inline constants into the active EE buffer.
-4. A full buffer is submitted, then the EE immediately fills the alternate
-   packet/staging buffer.
-5. Submitting that alternate waits for the previous VIF1 chain only after the
-   EE preparation overlap; explicit ordering boundaries submit and drain both.
-6. Each new draw/chain segment seeds both XTOP halves before compact chunks.
+1. Collect eligible opaque MD2/sprite entity draws between ordering barriers.
+2. Resolve the actual texture used by `AliasSkin` or the sprite's current frame.
+3. Count original texture runs as `EntTex0`, sort by `Texture*`, then count
+   submitted runs as `EntTex`.
+4. Flush each sorted run before a brush model or depth-hack view weapon.
+5. Draw translucent entities afterward in their unchanged input order.
 
-Expected Alpha.64 validation result:
+Expected Alpha.65 validation result:
 
-- `VIFchain`, `VIFqw`, `VUvert`, `VUstate` and rendered triangle counts should
-  remain comparable to Alpha.63.
-- `VUWait` may fall modestly where a pass fills at least one staging buffer;
-  FPS may remain similar because Alpha.63 waits were already only 0.17-0.29 ms.
-- No texture, transparency, sky, particle, weapon or moving-brush regressions.
+- `EntTex` should be no greater than `EntTex0`; entity-heavy scenes should show
+  whether actual grouping reduces `TexUp`, DMA or VRAM reuse waits.
+- Entity/triangle/VIF counts should remain comparable to Alpha.64.
+- No missing entities, changed weapon depth, sprite errors, brush-alpha changes
+  or texture/transparency/sky/particle regressions.
 
-If Alpha.64 validates, keep the bounded two-buffer model; a third buffer is not
-justified by the small measured VU waits. Reassess the remaining P1 alignment
-and synchronization status, then choose between P2 texture pre-upload/sorting
-and the next measured EE-side P3 culling improvement.
+If `EntTex0 == EntTex` in representative entity-heavy scenes, Quake II's existing
+model sort is already sufficient and this extra sort should be reconsidered.
+If it reduces runs but upload churn remains high, continue P2 with a bounded
+visible-frame texture working set/pre-upload plan rather than more VIF changes.
 
 ## Build and release procedure
 
@@ -186,8 +186,8 @@ game directories.
 
 > Continue the Quake II PS2 port in this workspace. Read HANDOFF.md completely,
 > then ROADMAP.md and CHANGELOG. Check git status and recent commits. Review the
-> Alpha.64 Base1 PROFILE results and renderer screenshots. If two-buffer overlap
-> validates, record the P1 result and continue the next measured optimization
-> without weakening PATH1/PATH3 texture ordering. Build and publish only the
-> numbered PROFILE prerelease, copy the successful quake2-profile.elf to the
-> project root, and do not touch untracked game data.
+> Alpha.65 Base1 PROFILE results and renderer screenshots. Evaluate
+> EntTex0/EntTex and the upload/VRAM counters, then continue or revert the P2
+> sort according to measured benefit without weakening PATH1/PATH3 ordering.
+> Build and publish only the numbered PROFILE prerelease, copy the successful
+> quake2-profile.elf to the project root, and do not touch untracked game data.
