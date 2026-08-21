@@ -87,6 +87,12 @@ void FillRect(int x, int y, int w, int h, u8 r, u8 g, u8 b, u8 a);
 // pixels must stay valid in EE RAM for re-uploads after eviction.
 void EnsureTextureResident(const tex::Texture & texture);
 
+// Prepares a bounded visible-texture working set before dependent geometry is
+// submitted. Clean resident textures in draw order are pinned for the frame;
+// up to a fixed number of misses are allocated without evicting that prepared
+// prefix, then uploaded through one PATH3 chain and one GS FINISH.
+void PrefetchTextures(const tex::Texture * const * textures, int count);
+
 // Returns the texture's VRAM to the heap (no-op when not resident). For
 // dynamic textures whose useful life has ended (e.g. the cinematic frame when
 // playback stops); it self-heals via re-upload if bound again later.

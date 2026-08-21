@@ -225,6 +225,86 @@ Address Allocate(const tex::Texture & texture, int sizeWords, bool * outEvicted)
     }
 }
 
+Address TryAllocateForPrefetch(const tex::Texture & texture, int sizeWords,
+                               bool * outEvicted)
+{
+    PS2_AssertMsg(s_blockCount > 0, "vram::Init not called!");
+    PS2_AssertMsg(texture.vramAddr == tex::Texture::kNotResident, "Texture already resident!");
+    PS2_Assert(sizeWords > 0 && outEvicted != nullptr);
+
+    *outEvicted = false;
+
+    // First prove that some address-contiguous span can satisfy the request
+    // without crossing a texture already used this frame. Do this before
+    // evicting anything so a failed prefetch leaves residency unchanged.
+    int reusableSpanWords = 0;
+    bool canFit = false;
+    for (int i = 0; i < s_blockCount; ++i)
+    {
+        const bool pinned = s_blocks[i].owner != nullptr &&
+                            s_blocks[i].lastBoundFrame == s_frame;
+        reusableSpanWords = pinned ? 0 : reusableSpanWords + s_blocks[i].sizeWords;
+        if (reusableSpanWords >= sizeWords)
+        {
+            canFit = true;
+            break;
+        }
+    }
+    if (!canFit)
+    {
+        return Address::Invalid;
+    }
+
+    for (;;)
+    {
+        for (int i = 0; i < s_blockCount; ++i)
+        {
+            if (s_blocks[i].owner != nullptr || s_blocks[i].sizeWords < sizeWords)
+            {
+                continue;
+            }
+
+            if (s_blocks[i].sizeWords > sizeWords)
+            {
+                InsertBlockAt(i + 1);
+                s_blocks[i + 1] = {
+                    Address(static_cast<int>(s_blocks[i].addrWords) + sizeWords),
+                    s_blocks[i].sizeWords - sizeWords,
+                    nullptr,
+                    0
+                };
+                s_blocks[i].sizeWords = sizeWords;
+            }
+
+            s_blocks[i].owner = &texture;
+            s_blocks[i].lastBoundFrame = s_frame;
+            return s_blocks[i].addrWords;
+        }
+
+        int victim = -1;
+        for (int i = 0; i < s_blockCount; ++i)
+        {
+            if (s_blocks[i].owner == nullptr ||
+                s_blocks[i].lastBoundFrame == s_frame)
+            {
+                continue;
+            }
+            if (victim < 0 || s_blocks[i].lastBoundFrame < s_blocks[victim].lastBoundFrame)
+            {
+                victim = i;
+            }
+        }
+        PS2_AssertMsg(victim >= 0, "Prefetch fit proof lost its evictable span!");
+
+        Com_DPrintf("VRAM prefetch: evicting '%s' (%d KB)\n",
+                    s_blocks[victim].owner->name, s_blocks[victim].sizeWords * 4 / 1024);
+        s_blocks[victim].owner->vramAddr = tex::Texture::kNotResident;
+        s_blocks[victim].owner = nullptr;
+        *outEvicted = true;
+        CoalesceFreeAt(victim);
+    }
+}
+
 void Touch(const tex::Texture & texture)
 {
     PS2_AssertMsg(texture.vramAddr != tex::Texture::kNotResident, "Touch on a non-resident texture!");

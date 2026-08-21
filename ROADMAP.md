@@ -191,17 +191,23 @@ wait time falls without rendering corruption on PCSX2 or real hardware.
 - [x] Chain opaque BSP surfaces by texture before drawing
 - [~] Sort all opaque world/entity draws by texture, lightmap and render state
   to reduce GS register changes and uploads. World BSP surfaces are already
-  texture-chained; Alpha.65 additionally sorts eligible opaque MD2/sprite runs
-  by their resolved texture while preserving brush, depth-hack and translucent
-  ordering boundaries. PCSX2 and retail-PS2 validation are pending
+  texture-chained. Alpha.65's additional resolved-texture entity sort was
+  rejected after PCSX2 measured identical original/sorted runs (`3/3`, `11/11`,
+  `12/12`), so the existing client order is retained without a second sort
 - [ ] Submit transparent surfaces in a separate order-correct pass
-- [ ] Build a visible-frame texture working set before geometry submission;
-  upload missing textures in batches before any dependent VU1 `XGKICK`
-- [ ] Keep texture transfers and PATH1 geometry correctly ordered without a GS
-  `FINISH` after every individual texture
+- [~] Build a visible-frame texture working set before geometry submission;
+  upload missing textures in batches before any dependent VU1 `XGKICK`.
+  Alpha.66 prepares a bounded draw-order prefix of opaque BSP textures, up to
+  32 misses and only while no current-frame allocation would be evicted
+- [~] Keep texture transfers and PATH1 geometry correctly ordered without a GS
+  `FINISH` after every individual texture. Alpha.66 drains preceding PATH1,
+  emits the prepared PATH3 transfers in one chain and waits for one final
+  `FINISH`; overflow and dynamic textures retain the proven synchronous path
 - [~] Track uploads, evictions, texture switches, GS waits and state changes in
   the profiling build. Existing `TexUp`, `TexDMA`, `VRAMwait` and `VRAMsync`
-  now pair with Alpha.65 `EntTex0`/`EntTex` counters for eligible opaque entities
+  pair with the VRAM panel's per-image `Uploads` count. In Alpha.66, `TexUp`
+  counts DMA upload batches, so it should fall below `Uploads` when prefetching
+  combines multiple images
 
 Completion criterion: texture and state-change counts drop, texture transfer
 waits are amortized across a pass, and the former black-strip/stale-page bugs do
@@ -355,9 +361,9 @@ development tools.
 2. Use the recorded alpha.62 Base1 captures as the VIF baseline: light,
    outdoor and heavy scenes produced `VIFchain` 70/74/89, `VIFqw`
    1911/2500/3107 and `VUstate` 93/112/128 with correct rendering.
-3. Validate alpha.65's opaque entity texture sorting in the same Base1 scenes.
-   Compare `EntTex0` with `EntTex`, then check whether `TexUp`, `TexDMA`,
-   `VRAMwait` and `Ent us` fall without changing entities, weapons or sprites.
+3. Validate alpha.66's bounded opaque-world prefetch in the same Base1 scenes.
+   Compare lower-left `Uploads` with `TexUp`, then check `TexDMA`, `VRAMwait`,
+   `VRAMsync`, FPS and all texture/sky/transparency regression paths.
 4. Revisit audio streaming after frame pacing is more stable; retain LOW
    11025 Hz as the nonblocking sound-effect baseline until then. Implement
    music separately as user-supplied, double-buffered PS2 ADPCM streamed by

@@ -6,6 +6,31 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.66 - 2026-08-21
+
+### Performance
+
+- Added a bounded opaque-world texture prefetch pass. The BSP walk's known
+  draw-order prefix now allocates up to 32 missing textures without evicting
+  anything already prepared in the current frame, then transfers all selected
+  mip levels through one PATH3 source chain and one GS `FINISH`.
+- Kept overflow, dirty dynamic images and working sets larger than available
+  VRAM on the established synchronous per-bind path. Deferred PATH1 geometry is
+  drained before the batched PATH3 transfer, preserving the ordering that
+  prevents stale or black GS pages.
+- Reverted Alpha.65's second opaque-entity sort and its two diagnostic rows.
+  Supplied PCSX2 captures reported identical original/sorted runs in all three
+  scenes, so Quake II's existing client sort already provided the same order.
+
+### Validation
+
+- Alpha.65 rendered the three supplied Base1 scenes correctly. `EntTex0/EntTex`
+  were `3/3`, `11/11` and `12/12`; FPS was 24/20/15, `TexDMA`
+  721/335/529 us, `TexUp` 21/21/37 and `VRAMsync` 14/7/20.
+- For Alpha.66, compare the lower-left `Uploads` image count with draw-stats
+  `TexUp` DMA-batch count. Successful batching should make `TexUp` smaller
+  without increasing image uploads or reintroducing texture corruption.
+
 ## 0.1.0-alpha.65 - 2026-08-21
 
 ### Performance

@@ -290,8 +290,6 @@ void DrawDrawStatsOverlay()
         { "LitFine",  stats.lightFineSplits },
         { "MD2Vert",  stats.aliasUniqueVerts },
         { "MD2Corner",stats.aliasCorners },
-        { "EntTex0",  stats.entityTextureSwitchesOriginal },
-        { "EntTex",   stats.entityTextureSwitchesSorted },
         { "PlayerLit",stats.playerLightLevel },
     };
 

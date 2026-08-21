@@ -39,6 +39,14 @@ int TextureFootprintWords(int width, int height, int psm);
 // (especially when the victim was already bound during the current frame).
 Address Allocate(const tex::Texture & texture, int sizeWords, bool * outEvicted);
 
+// Bounded prefetch allocation: may evict only textures not touched during the
+// current frame. Returns Invalid without changing the heap when no contiguous
+// span can be made large enough without recycling a current-frame texture.
+// This lets a visible working-set prefix be uploaded ahead of its draws without
+// the prefetch pass evicting textures that it has just prepared.
+Address TryAllocateForPrefetch(const tex::Texture & texture, int sizeWords,
+                               bool * outEvicted);
+
 // Marks the resident texture as recently bound for LRU victim selection.
 void Touch(const tex::Texture & texture);
 

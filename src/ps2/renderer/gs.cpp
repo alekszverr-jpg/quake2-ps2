@@ -70,7 +70,8 @@ constexpr int kPacketQwords = 32768;
 
 // Scratch packet for synchronous texture uploads (DMA chain tags only; the
 // pixel data is referenced in place).
-constexpr int kTexUploadQwords = 128;
+constexpr int kTexUploadQwords = 1024;
+constexpr int kMaxPrefetchTextures = 32;
 
 // The color+depth clear, sent as its own transfer at the top of each frame.
 constexpr int kClearQwords = 128;
@@ -635,6 +636,144 @@ void EnsureTextureResident(const tex::Texture & texture)
 #endif
 
     vram::NoteTextureUpload(); // for the debug overlay's per-frame upload count
+}
+
+void PrefetchTextures(const tex::Texture * const * textures, int count)
+{
+    PS2_Assert(textures != nullptr || count == 0);
+    if (count <= 0)
+    {
+        return;
+    }
+
+    const tex::Texture * uploads[kMaxPrefetchTextures] = {};
+    int uploadCount = 0;
+    int plannedQwords = 16; // final TEXFLUSH headroom
+    bool reusedVram = false;
+    for (int i = 0; i < count && uploadCount < kMaxPrefetchTextures; ++i)
+    {
+        const tex::Texture & texture = *textures[i];
+        if (texture.dirtyPixels)
+        {
+            break; // Preserve the established dynamic re-upload ordering.
+        }
+        if (texture.vramAddr != tex::Texture::kNotResident)
+        {
+            vram::Touch(texture); // Pin only the prepared draw-order prefix.
+            continue;
+        }
+
+        // Sixteen qwords per mip is deliberately conservative for libdraw's
+        // source-chain tags. Leave another sixteen for the final TEXFLUSH.
+        const int headroom = texture.mipLevels * 16;
+        if (plannedQwords + headroom > kTexUploadQwords)
+        {
+            break;
+        }
+
+        const int psm = tex::GsPsm(texture.format);
+        const int sizeWords = TextureVramWords(texture, psm);
+        bool evicted = false;
+        const vram::Address addr =
+            vram::TryAllocateForPrefetch(texture, sizeWords, &evicted);
+        if (addr == vram::Address::Invalid)
+        {
+            break; // The remaining draws keep the proven on-demand path.
+        }
+
+        reusedVram |= evicted;
+        texture.vramAddr = addr;
+
+        const int stride = TextureStridePixels(texture.storageWidth, psm);
+        texture.texbuf.address         = static_cast<unsigned int>(addr);
+        texture.texbuf.width           = static_cast<unsigned int>(stride);
+        texture.texbuf.psm             = static_cast<unsigned int>(psm);
+        texture.texbuf.info.width      = draw_log2(static_cast<unsigned int>(texture.storageWidth));
+        texture.texbuf.info.height     = draw_log2(static_cast<unsigned int>(texture.storageHeight));
+        texture.texbuf.info.components = static_cast<unsigned char>(tex::GsComponents(texture.components));
+        texture.texbuf.info.function   = static_cast<unsigned char>(tex::GsFunction(texture.function));
+
+        vram::Address mipAddr = vram::Address(
+            static_cast<int>(addr) + vram::TextureFootprintWords(
+                texture.storageWidth, texture.storageHeight, psm));
+        int mipAddresses[3] = {};
+        char mipWidths[3] = {};
+        for (int level = 1; level < texture.mipLevels; ++level)
+        {
+            const int mipWidth = MipDimension(texture.storageWidth, level);
+            const int mipHeight = MipDimension(texture.storageHeight, level);
+            mipAddresses[level - 1] = static_cast<int>(mipAddr) >> 6;
+            mipWidths[level - 1] = static_cast<char>(TextureStridePixels(mipWidth, psm) >> 6);
+            mipAddr = vram::Address(static_cast<int>(mipAddr) +
+                                    vram::TextureFootprintWords(mipWidth, mipHeight, psm));
+        }
+        texture.mipmap.address1 = mipAddresses[0];
+        texture.mipmap.width1   = mipWidths[0];
+        texture.mipmap.address2 = mipAddresses[1];
+        texture.mipmap.width2   = mipWidths[1];
+        texture.mipmap.address3 = mipAddresses[2];
+        texture.mipmap.width3   = mipWidths[2];
+
+        uploads[uploadCount++] = &texture;
+        plannedQwords += headroom;
+    }
+
+    if (uploadCount == 0)
+    {
+        return;
+    }
+
+    // Allocation only reuses textures not touched this frame, but retain the
+    // conservative GS-idle rule for recycled pages. Amortize it once across
+    // the complete batch rather than once per texture.
+    s_vramReuseHazard |= reusedVram;
+    if (s_vramReuseHazard)
+    {
+        SyncGsBeforeVramReuse();
+    }
+    else
+    {
+        vu1::Flush();
+    }
+
+    RenderPacket & pkt = s_texUploadPacket;
+    pkt.Reset();
+    for (int i = 0; i < uploadCount; ++i)
+    {
+        const tex::Texture & texture = *uploads[i];
+        const int psm = tex::GsPsm(texture.format);
+        const u8 * mipPixels = static_cast<const u8 *>(texture.pixels);
+        vram::Address mipAddr = texture.vramAddr;
+        for (int level = 0; level < texture.mipLevels; ++level)
+        {
+            const int mipWidth = MipDimension(texture.storageWidth, level);
+            const int mipHeight = MipDimension(texture.storageHeight, level);
+            const int mipStride = TextureStridePixels(mipWidth, psm);
+            pkt.EnsureSpace(16);
+            pkt.TextureTransfer(mipPixels, mipWidth, mipHeight, psm, mipAddr, mipStride);
+            mipPixels += mipWidth * mipHeight * tex::BytesPerTexel(texture.format);
+            mipAddr = vram::Address(static_cast<int>(mipAddr) +
+                                    vram::TextureFootprintWords(mipWidth, mipHeight, psm));
+        }
+        vram::NoteTextureUpload();
+    }
+    pkt.EnsureSpace(16);
+    pkt.TextureFlush();
+    pkt.SendChain();
+#if PS2_PROFILE
+    ++s_timingStats.textureUploads;
+    const timing::Stamp uploadStart = timing::Now();
+#endif
+    dma_wait_fast();
+
+    pkt.Reset();
+    pkt.Finish();
+    pkt.SendNormal();
+    dma_wait_fast();
+    draw_wait_finish();
+#if PS2_PROFILE
+    s_timingStats.textureUploadMicros += timing::ElapsedMicros(uploadStart);
+#endif
 }
 
 void ReleaseTexture(const tex::Texture & texture)
