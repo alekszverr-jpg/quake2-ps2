@@ -50,6 +50,9 @@ static u32   s_frame      = 0;
 // Debug-overlay stats: the heap's total size and this frame's upload count.
 static int s_heapTotalWords    = 0;
 static int s_uploadsThisFrame  = 0;
+static int s_evictionsThisFrame = 0;
+static int s_reloadsThisFrame = 0;
+static int s_sameFrameEvictions = 0;
 
 void InsertBlockAt(int index)
 {
@@ -117,6 +120,9 @@ void BeginFrame()
 {
     ++s_frame;
     s_uploadsThisFrame = 0;
+    s_evictionsThisFrame = 0;
+    s_reloadsThisFrame = 0;
+    s_sameFrameEvictions = 0;
 }
 
 void EndFrame()
@@ -218,7 +224,13 @@ Address Allocate(const tex::Texture & texture, int sizeWords, bool * outEvicted)
         Com_DPrintf("VRAM: evicting '%s' (%d KB)\n",
                     s_blocks[victim].owner->name, s_blocks[victim].sizeWords * 4 / 1024);
 
+        if (s_blocks[victim].lastBoundFrame == s_frame)
+        {
+            ++s_sameFrameEvictions;
+        }
+        ++s_evictionsThisFrame;
         s_blocks[victim].owner->vramAddr = tex::Texture::kNotResident;
+        s_blocks[victim].owner->evictedSinceUpload = true;
         s_blocks[victim].owner = nullptr;
         *outEvicted = true;
         CoalesceFreeAt(victim);
@@ -298,7 +310,9 @@ Address TryAllocateForPrefetch(const tex::Texture & texture, int sizeWords,
 
         Com_DPrintf("VRAM prefetch: evicting '%s' (%d KB)\n",
                     s_blocks[victim].owner->name, s_blocks[victim].sizeWords * 4 / 1024);
+        ++s_evictionsThisFrame;
         s_blocks[victim].owner->vramAddr = tex::Texture::kNotResident;
+        s_blocks[victim].owner->evictedSinceUpload = true;
         s_blocks[victim].owner = nullptr;
         *outEvicted = true;
         CoalesceFreeAt(victim);
@@ -358,9 +372,14 @@ void Free(const tex::Texture & texture)
     PS2_AssertMsg(false, "Resident texture has no VRAM block!");
 }
 
-void NoteTextureUpload()
+void NoteTextureUpload(const tex::Texture & texture)
 {
     ++s_uploadsThisFrame;
+    if (texture.evictedSinceUpload)
+    {
+        ++s_reloadsThisFrame;
+        texture.evictedSinceUpload = false;
+    }
 }
 
 Stats GetStats()
@@ -368,6 +387,9 @@ Stats GetStats()
     Stats stats = {};
     stats.totalWords       = s_heapTotalWords;
     stats.uploadsThisFrame = s_uploadsThisFrame;
+    stats.evictionsThisFrame = s_evictionsThisFrame;
+    stats.reloadsThisFrame = s_reloadsThisFrame;
+    stats.sameFrameEvictions = s_sameFrameEvictions;
 
     for (int i = 0; i < s_blockCount; ++i)
     {

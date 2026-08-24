@@ -204,7 +204,7 @@ void DrawVramUsageOverlay()
     }
 
     constexpr int kLineHeight = kGlyphSize + 2; // Matches DrawInternalString spacing.
-    constexpr int kNumLines   = 4;              // Header + three stats.
+    constexpr int kNumLines   = 5;              // Header + four stats.
     constexpr int kPanelWidth = 174;
     constexpr int kPadding    = 4;
 
@@ -237,6 +237,12 @@ void DrawVramUsageOverlay()
     textY += kLineHeight;
 
     std::snprintf(line, sizeof(line), "%-10s %d", "Uploads", stats.uploadsThisFrame);
+    DrawInternalString(textX, textY, line);
+    textY += kLineHeight;
+
+    std::snprintf(line, sizeof(line), "E/R/S      %d/%d/%d",
+                  stats.evictionsThisFrame, stats.reloadsThisFrame,
+                  stats.sameFrameEvictions);
     DrawInternalString(textX, textY, line);
 }
 

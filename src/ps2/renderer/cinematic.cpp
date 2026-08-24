@@ -57,6 +57,7 @@ static tex::Texture s_frameTexture = {
     .texbuf       = {},
     .mipmap       = {},
     .dirtyPixels  = false,
+    .evictedSinceUpload = false,
 };
 
 } // namespace

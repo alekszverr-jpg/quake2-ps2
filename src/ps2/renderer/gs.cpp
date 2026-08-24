@@ -635,7 +635,7 @@ void EnsureTextureResident(const tex::Texture & texture)
     s_timingStats.textureUploadMicros += timing::ElapsedMicros(uploadStart);
 #endif
 
-    vram::NoteTextureUpload(); // for the debug overlay's per-frame upload count
+    vram::NoteTextureUpload(texture); // upload/reload counters for the overlay
 }
 
 void PrefetchTextures(const tex::Texture * const * textures, int count)
@@ -755,7 +755,7 @@ void PrefetchTextures(const tex::Texture * const * textures, int count)
             mipAddr = vram::Address(static_cast<int>(mipAddr) +
                                     vram::TextureFootprintWords(mipWidth, mipHeight, psm));
         }
-        vram::NoteTextureUpload();
+        vram::NoteTextureUpload(texture);
     }
     pkt.EnsureSpace(16);
     pkt.TextureFlush();

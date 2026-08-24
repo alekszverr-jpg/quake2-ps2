@@ -259,8 +259,10 @@ vertices, with no visible popping, missing doors or broken moving brush models.
 
 ### P4 - Texture residency and GS page behaviour
 
-- [ ] Measure texture upload churn, evictions, VRAM waits and repeated uploads
-  per frame
+- [~] Measure texture upload churn, evictions, VRAM waits and repeated uploads
+  per frame. Alpha.67 adds lower-left `E/R/S` counters for eviction events,
+  eviction-caused reloads and victims already touched in the current frame;
+  combine them with `Uploads`, `TexUp`, `TexDMA`, `VRAMwait` and `VRAMsync`
 - [ ] Keep frequently used HUD, weapon, particle and common world textures in
   stable VRAM slots where practical
 - [ ] Reuse texture allocations across frames and reduce allocator
@@ -361,9 +363,10 @@ development tools.
 2. Use the recorded alpha.62 Base1 captures as the VIF baseline: light,
    outdoor and heavy scenes produced `VIFchain` 70/74/89, `VIFqw`
    1911/2500/3107 and `VUstate` 93/112/128 with correct rendering.
-3. Validate alpha.66's bounded opaque-world prefetch in the same Base1 scenes.
-   Compare lower-left `Uploads` with `TexUp`, then check `TexDMA`, `VRAMwait`,
-   `VRAMsync`, FPS and all texture/sky/transparency regression paths.
+3. Validate alpha.67's VRAM churn counters in the same Base1 scenes. Record
+   lower-left `Uploads` and `E/R/S` together with `TexUp`, `TexDMA`, `VRAMwait`,
+   `VRAMsync` and FPS; use same-frame evictions and reloads to choose the next
+   residency policy instead of guessing from total uploads.
 4. Revisit audio streaming after frame pacing is more stable; retain LOW
    11025 Hz as the nonblocking sound-effect baseline until then. Implement
    music separately as user-supplied, double-buffered PS2 ADPCM streamed by

@@ -497,6 +497,7 @@ Texture & TextureCache::Register(const char * name, const void * pixels, int wid
     // built-ins such as the checkerboards (real hardware has a non-coherent
     // EE data cache; PCSX2 commonly masks the mistake).
     texture.dirtyPixels  = true;
+    texture.evictedSinceUpload = false;
 
     const auto inserted = m_lookup.emplace(LookupKey(texture.name, texture.type), slot);
     PS2_AssertMsg(inserted.second, "Duplicate texture name+type!");

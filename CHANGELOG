@@ -6,6 +6,26 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.67 - 2026-08-24
+
+### Diagnostics
+
+- Added compact per-frame VRAM churn counters to the lower-left overlay:
+  `E/R/S` means allocations evicted, images reloaded after eviction, and
+  evictions of textures already used in the same frame. This distinguishes
+  true working-set thrash from first uploads and dirty dynamic updates.
+- Kept the counters inside the existing VRAM allocator/upload bookkeeping, so
+  they add no heap allocation, texture lookup or release-build formatting.
+
+### Validation
+
+- Alpha.66 rendered all supplied Base1 scenes correctly. Light and heavy frames
+  combined two image transfers (`Uploads/TexUp` 21/19 and 43/41); the outdoor
+  frame remained 25/25. `TexDMA` was 263/355/500 us and `VRAMsync` 12/7/24.
+- The batching result is real but small. Alpha.67 retains the bounded prefetch
+  while `E/R/S` identifies whether the next optimization should target same-frame
+  churn, cross-frame LRU residency, or fragmentation.
+
 ## 0.1.0-alpha.66 - 2026-08-21
 
 ### Performance

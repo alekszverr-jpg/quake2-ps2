@@ -104,6 +104,7 @@ struct Texture final
     mutable texbuffer_t   texbuf;      // libdraw descriptor used when binding (filled on upload).
     mutable mipmap_t      mipmap;      // MIPTBP1 descriptors for levels 1..3 (filled on upload).
     mutable bool          dirtyPixels; // CPU rewrote 'pixels'; the next bind re-uploads them.
+    mutable bool          evictedSinceUpload; // Next upload reloads an evicted image.
 
     // For dynamic textures (cinematic frames/lightmaps/scrap atlas).
     // Called after rewriting 'pixels' so the next bind refreshes GS VRAM.

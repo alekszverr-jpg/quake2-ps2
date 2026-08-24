@@ -60,10 +60,9 @@ bool BoundThisFrame(const tex::Texture & texture);
 // caller must treat it like evicted VRAM: sync the GS before writing over it.
 void Free(const tex::Texture & texture);
 
-// Records one texture DMA upload for the per-frame counter. Called by
-// gs::EnsureTextureResident each time it transfers a texture's pixels into VRAM
-// (a first upload or a dirty re-upload); reset each frame by BeginFrame().
-void NoteTextureUpload();
+// Records one texture DMA upload and whether it reloads an image evicted since
+// its previous transfer. Called by the GS upload paths; reset each frame.
+void NoteTextureUpload(const tex::Texture & texture);
 
 // Live snapshot of the texture heap, for the ref.cpp debug overlay.
 struct Stats
@@ -72,6 +71,9 @@ struct Stats
     int totalWords;       // heap size handed to Init()
     int residentTextures; // textures currently holding a block
     int uploadsThisFrame; // texture DMA uploads since the last BeginFrame()
+    int evictionsThisFrame; // resident allocations discarded this frame
+    int reloadsThisFrame; // uploads caused by an earlier VRAM eviction
+    int sameFrameEvictions; // victims already touched during this frame
 };
 
 // Computes the current stats (cheap; walks the block list).
