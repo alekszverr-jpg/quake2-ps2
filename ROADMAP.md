@@ -266,11 +266,14 @@ vertices, with no visible popping, missing doors or broken moving brush models.
 - [ ] Keep frequently used HUD, weapon, particle and common world textures in
   stable VRAM slots where practical
 - [~] Reuse texture allocations across frames and reduce allocator
-  fragmentation during level transitions. Alpha.68 replaces the previous
-  frame-only LRU stamp with an exact monotonic bind serial while retaining a
-  separate frame stamp for safety barriers and prefetch pinning
-- [ ] Group world draws by resident texture/lightmap and upload only when the
-  required generation is not already present
+  fragmentation during level transitions. Alpha.68's exact monotonic LRU was
+  rejected after stable sequential scans increased uploads from `22/21/34` to
+  `41/41/61`; Alpha.69 retains the serial only as a fallback behind a known-use
+  opaque-world eviction plan
+- [~] Group world draws by resident texture/lightmap and upload only when the
+  required generation is not already present. Alpha.69 uses the complete unique
+  BSP chain order to preserve nearer future residents and evict textures absent
+  from the remaining world pass, or the farthest future use when unavoidable
 - [ ] Keep related mip levels in predictable nearby GS pages and measure texture
   page reload sensitivity in the benchmark scenes
 - [ ] Identify large projected surfaces or extreme texture-coordinate ranges
@@ -365,9 +368,9 @@ development tools.
 2. Use the recorded alpha.62 Base1 captures as the VIF baseline: light,
    outdoor and heavy scenes produced `VIFchain` 70/74/89, `VIFqw`
    1911/2500/3107 and `VUstate` 93/112/128 with correct rendering.
-3. Validate alpha.68's exact-bind LRU in the same Base1 scenes. Compare
-   `Uploads`, `E/R/S`, `TexUp`, `TexDMA`, `VRAMwait`, `VRAMsync` and FPS against
-   Alpha.67, checking every texture/sky/transparency regression path.
+3. Validate alpha.69's scan-resistant opaque-world plan in the same Base1
+   scenes. Compare `Uploads`, `E/R/S`, `TexUp`, `TexDMA`, `VRAMwait`, `VRAMsync`
+   and FPS against Alpha.67/68, checking every texture/sky/transparency path.
 4. Revisit audio streaming after frame pacing is more stable; retain LOW
    11025 Hz as the nonblocking sound-effect baseline until then. Implement
    music separately as user-supplied, double-buffered PS2 ADPCM streamed by

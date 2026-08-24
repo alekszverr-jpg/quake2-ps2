@@ -42,12 +42,16 @@ struct Block
     const tex::Texture * owner;          // nullptr = free block
     u32                  lastBoundFrame; // Safety stamp for current-frame use.
     u64                  lastBoundSerial; // Exact LRU order, including within a frame.
+    int                  plannedUse;     // Opaque-world ordinal, or -1 if not needed again.
 };
 
 static Block s_blocks[kMaxBlocks];
 static int   s_blockCount = 0;
 static u32   s_frame      = 0;
 static u64   s_bindSerial = 0;
+static const tex::Texture * const * s_plannedTextures = nullptr;
+static int s_plannedTextureCount = 0;
+static bool s_texturePlanActive = false;
 
 // Debug-overlay stats: the heap's total size and this frame's upload count.
 static int s_heapTotalWords    = 0;
@@ -55,6 +59,45 @@ static int s_uploadsThisFrame  = 0;
 static int s_evictionsThisFrame = 0;
 static int s_reloadsThisFrame = 0;
 static int s_sameFrameEvictions = 0;
+
+int FindPlannedUse(const tex::Texture & texture)
+{
+    for (int i = 0; i < s_plannedTextureCount; ++i)
+    {
+        if (s_plannedTextures[i] == &texture)
+        {
+            return i;
+        }
+    }
+    return -1;
+}
+
+bool IsBetterVictim(int candidate, int current)
+{
+    if (current < 0)
+    {
+        return true;
+    }
+
+    if (s_texturePlanActive)
+    {
+        const bool candidateNeeded = s_blocks[candidate].plannedUse >= 0;
+        const bool currentNeeded = s_blocks[current].plannedUse >= 0;
+        if (candidateNeeded != currentNeeded)
+        {
+            return !candidateNeeded; // Discard a texture with no remaining world use first.
+        }
+        if (candidateNeeded)
+        {
+            // Belady's choice for the known one-use world chains: preserve the
+            // nearer draw and discard the texture used farthest in the future.
+            return s_blocks[candidate].plannedUse > s_blocks[current].plannedUse;
+        }
+    }
+
+    return s_blocks[candidate].lastBoundSerial <
+           s_blocks[current].lastBoundSerial;
+}
 
 void InsertBlockAt(int index)
 {
@@ -112,7 +155,7 @@ void Init(int heapBaseWords)
     }
 
     s_blocks[0] = { Address(heapBaseWords), heapEndWords - heapBaseWords,
-                    nullptr, 0, 0 };
+                    nullptr, 0, 0, -1 };
     s_blockCount = 1;
     s_heapTotalWords = s_blocks[0].sizeWords;
 
@@ -195,7 +238,8 @@ Address Allocate(const tex::Texture & texture, int sizeWords, bool * outEvicted)
                     s_blocks[i].sizeWords - sizeWords,
                     nullptr,
                     0,
-                    0
+                    0,
+                    -1
                 };
                 s_blocks[i].sizeWords = sizeWords;
             }
@@ -203,6 +247,7 @@ Address Allocate(const tex::Texture & texture, int sizeWords, bool * outEvicted)
             s_blocks[i].owner = &texture;
             s_blocks[i].lastBoundFrame = s_frame;
             s_blocks[i].lastBoundSerial = ++s_bindSerial;
+            s_blocks[i].plannedUse = -1; // Allocate is the texture's immediate draw.
             return s_blocks[i].addrWords;
         }
 
@@ -219,8 +264,7 @@ Address Allocate(const tex::Texture & texture, int sizeWords, bool * outEvicted)
             {
                 continue;
             }
-            if (victim < 0 ||
-                s_blocks[i].lastBoundSerial < s_blocks[victim].lastBoundSerial)
+            if (IsBetterVictim(i, victim))
             {
                 victim = i;
             }
@@ -290,7 +334,8 @@ Address TryAllocateForPrefetch(const tex::Texture & texture, int sizeWords,
                     s_blocks[i].sizeWords - sizeWords,
                     nullptr,
                     0,
-                    0
+                    0,
+                    -1
                 };
                 s_blocks[i].sizeWords = sizeWords;
             }
@@ -298,6 +343,7 @@ Address TryAllocateForPrefetch(const tex::Texture & texture, int sizeWords,
             s_blocks[i].owner = &texture;
             s_blocks[i].lastBoundFrame = s_frame;
             s_blocks[i].lastBoundSerial = ++s_bindSerial;
+            s_blocks[i].plannedUse = FindPlannedUse(texture);
             return s_blocks[i].addrWords;
         }
 
@@ -309,8 +355,7 @@ Address TryAllocateForPrefetch(const tex::Texture & texture, int sizeWords,
             {
                 continue;
             }
-            if (victim < 0 ||
-                s_blocks[i].lastBoundSerial < s_blocks[victim].lastBoundSerial)
+            if (IsBetterVictim(i, victim))
             {
                 victim = i;
             }
@@ -328,6 +373,48 @@ Address TryAllocateForPrefetch(const tex::Texture & texture, int sizeWords,
     }
 }
 
+void BeginPlannedTextureUses(const tex::Texture * const * textures, int count)
+{
+    PS2_Assert(textures != nullptr || count == 0);
+    PS2_AssertMsg(!s_texturePlanActive, "Nested VRAM texture plan!");
+
+    s_plannedTextures = textures;
+    s_plannedTextureCount = count;
+    s_texturePlanActive = true;
+    for (int i = 0; i < s_blockCount; ++i)
+    {
+        s_blocks[i].plannedUse = s_blocks[i].owner != nullptr
+            ? FindPlannedUse(*s_blocks[i].owner)
+            : -1;
+    }
+}
+
+void EndPlannedTextureUses()
+{
+    PS2_AssertMsg(s_texturePlanActive, "No active VRAM texture plan!");
+    s_texturePlanActive = false;
+    s_plannedTextures = nullptr;
+    s_plannedTextureCount = 0;
+}
+
+void PinForPrefetch(const tex::Texture & texture)
+{
+    PS2_AssertMsg(texture.vramAddr != tex::Texture::kNotResident,
+                  "Prefetch pin on a non-resident texture!");
+
+    for (int i = 0; i < s_blockCount; ++i)
+    {
+        if (s_blocks[i].owner == &texture)
+        {
+            s_blocks[i].lastBoundFrame = s_frame;
+            s_blocks[i].lastBoundSerial = ++s_bindSerial;
+            return; // Preserve plannedUse until the dependent draw binds it.
+        }
+    }
+
+    PS2_AssertMsg(false, "Resident texture has no VRAM block!");
+}
+
 void Touch(const tex::Texture & texture)
 {
     PS2_AssertMsg(texture.vramAddr != tex::Texture::kNotResident, "Touch on a non-resident texture!");
@@ -338,6 +425,7 @@ void Touch(const tex::Texture & texture)
         {
             s_blocks[i].lastBoundFrame = s_frame;
             s_blocks[i].lastBoundSerial = ++s_bindSerial;
+            s_blocks[i].plannedUse = -1;
             return;
         }
     }

@@ -1827,6 +1827,7 @@ void DrawTextureChains(const math::Mat4 & mvp)
             prefetchTextures[prefetchCount++] = texture;
         }
     }
+    vram::BeginPlannedTextureUses(prefetchTextures, prefetchCount);
     gs::PrefetchTextures(prefetchTextures, prefetchCount);
 
     for (int i = 0; i < s_chainTextureCount; ++i)
@@ -1871,6 +1872,7 @@ void DrawTextureChains(const math::Mat4 & mvp)
 
         texture->textureChain = nullptr; // Reset for the next frame.
     }
+    vram::EndPlannedTextureUses();
     s_chainTextureCount = 0;
 }
 

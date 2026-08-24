@@ -47,8 +47,20 @@ Address Allocate(const tex::Texture & texture, int sizeWords, bool * outEvicted)
 Address TryAllocateForPrefetch(const tex::Texture & texture, int sizeWords,
                                bool * outEvicted);
 
-// Marks the resident texture with both the current frame and exact bind order.
-// Victim selection uses the serial so repeated binds in one frame remain LRU.
+// Installs the unique draw-order texture plan for the opaque world pass. While
+// active, eviction prefers allocations absent from the remaining plan; if all
+// candidates are still needed, the farthest future use is discarded. Touch()
+// consumes a texture's planned use. This makes the allocator scan-resistant
+// when the visible set is larger than VRAM without changing draw order.
+void BeginPlannedTextureUses(const tex::Texture * const * textures, int count);
+void EndPlannedTextureUses();
+
+// Marks a resident texture as current-frame-safe during bounded prefetch while
+// preserving its later planned draw. The ordinary Touch() consumes that use.
+void PinForPrefetch(const tex::Texture & texture);
+
+// Marks the resident texture with both the current frame and exact bind order,
+// and consumes its current opaque-world planned use when a plan is active.
 void Touch(const tex::Texture & texture);
 
 // True when the (resident) texture was already bound this frame - its draws may

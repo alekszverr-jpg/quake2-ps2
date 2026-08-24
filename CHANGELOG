@@ -6,6 +6,28 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.69 - 2026-08-24
+
+### Performance
+
+- Added a scan-resistant eviction plan for the opaque BSP texture chains. The
+  renderer already knows their complete unique draw order, so VRAM replacement
+  now discards textures absent from the remaining world pass first and, when
+  necessary, the resident texture whose use is farthest in the future.
+- Kept Alpha.66's bounded PATH3 prefetch and all current-frame GS safety stamps.
+  Prefetch pins retain their future-use position until the dependent PATH1 draw;
+  entities, transparent surfaces and 2D rendering keep the proven fallback.
+
+### Validation
+
+- Alpha.68's exact LRU was rejected as a sequential-scan regression. Compared
+  with Alpha.67, light/outdoor/heavy uploads rose from `22/21/34` to `41/41/61`;
+  `E/R/S` became `40/41/4`, `41/41/4` and `61/61/24`. Visuals remained correct,
+  but texture DMA rose to `609/659/859` us.
+- Alpha.69 should reduce `Uploads` and `R` below Alpha.68 without relying on the
+  accidental VRAM-address tie order of Alpha.67. Compare the same three views
+  and retain the complete sky, transparency, weapon and stale-page checks.
+
 ## 0.1.0-alpha.68 - 2026-08-24
 
 ### Performance

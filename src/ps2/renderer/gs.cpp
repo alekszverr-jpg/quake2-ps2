@@ -659,7 +659,7 @@ void PrefetchTextures(const tex::Texture * const * textures, int count)
         }
         if (texture.vramAddr != tex::Texture::kNotResident)
         {
-            vram::Touch(texture); // Pin only the prepared draw-order prefix.
+            vram::PinForPrefetch(texture); // Preserve its later planned draw.
             continue;
         }
 
