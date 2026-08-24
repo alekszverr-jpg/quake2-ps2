@@ -47,7 +47,8 @@ Address Allocate(const tex::Texture & texture, int sizeWords, bool * outEvicted)
 Address TryAllocateForPrefetch(const tex::Texture & texture, int sizeWords,
                                bool * outEvicted);
 
-// Marks the resident texture as recently bound for LRU victim selection.
+// Marks the resident texture with both the current frame and exact bind order.
+// Victim selection uses the serial so repeated binds in one frame remain LRU.
 void Touch(const tex::Texture & texture);
 
 // True when the (resident) texture was already bound this frame - its draws may

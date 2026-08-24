@@ -40,12 +40,14 @@ struct Block
     Address              addrWords;      // absolute GS VRAM word address
     int                  sizeWords;
     const tex::Texture * owner;          // nullptr = free block
-    u32                  lastBoundFrame; // LRU stamp; valid while owned
+    u32                  lastBoundFrame; // Safety stamp for current-frame use.
+    u64                  lastBoundSerial; // Exact LRU order, including within a frame.
 };
 
 static Block s_blocks[kMaxBlocks];
 static int   s_blockCount = 0;
 static u32   s_frame      = 0;
+static u64   s_bindSerial = 0;
 
 // Debug-overlay stats: the heap's total size and this frame's upload count.
 static int s_heapTotalWords    = 0;
@@ -109,7 +111,8 @@ void Init(int heapBaseWords)
         PS2_Assert(heapEndWords <= kVramTotalWords);
     }
 
-    s_blocks[0] = { Address(heapBaseWords), heapEndWords - heapBaseWords, nullptr, 0 };
+    s_blocks[0] = { Address(heapBaseWords), heapEndWords - heapBaseWords,
+                    nullptr, 0, 0 };
     s_blockCount = 1;
     s_heapTotalWords = s_blocks[0].sizeWords;
 
@@ -191,6 +194,7 @@ Address Allocate(const tex::Texture & texture, int sizeWords, bool * outEvicted)
                     Address(static_cast<int>(s_blocks[i].addrWords) + sizeWords),
                     s_blocks[i].sizeWords - sizeWords,
                     nullptr,
+                    0,
                     0
                 };
                 s_blocks[i].sizeWords = sizeWords;
@@ -198,6 +202,7 @@ Address Allocate(const tex::Texture & texture, int sizeWords, bool * outEvicted)
 
             s_blocks[i].owner = &texture;
             s_blocks[i].lastBoundFrame = s_frame;
+            s_blocks[i].lastBoundSerial = ++s_bindSerial;
             return s_blocks[i].addrWords;
         }
 
@@ -214,7 +219,8 @@ Address Allocate(const tex::Texture & texture, int sizeWords, bool * outEvicted)
             {
                 continue;
             }
-            if (victim < 0 || s_blocks[i].lastBoundFrame < s_blocks[victim].lastBoundFrame)
+            if (victim < 0 ||
+                s_blocks[i].lastBoundSerial < s_blocks[victim].lastBoundSerial)
             {
                 victim = i;
             }
@@ -283,6 +289,7 @@ Address TryAllocateForPrefetch(const tex::Texture & texture, int sizeWords,
                     Address(static_cast<int>(s_blocks[i].addrWords) + sizeWords),
                     s_blocks[i].sizeWords - sizeWords,
                     nullptr,
+                    0,
                     0
                 };
                 s_blocks[i].sizeWords = sizeWords;
@@ -290,6 +297,7 @@ Address TryAllocateForPrefetch(const tex::Texture & texture, int sizeWords,
 
             s_blocks[i].owner = &texture;
             s_blocks[i].lastBoundFrame = s_frame;
+            s_blocks[i].lastBoundSerial = ++s_bindSerial;
             return s_blocks[i].addrWords;
         }
 
@@ -301,7 +309,8 @@ Address TryAllocateForPrefetch(const tex::Texture & texture, int sizeWords,
             {
                 continue;
             }
-            if (victim < 0 || s_blocks[i].lastBoundFrame < s_blocks[victim].lastBoundFrame)
+            if (victim < 0 ||
+                s_blocks[i].lastBoundSerial < s_blocks[victim].lastBoundSerial)
             {
                 victim = i;
             }
@@ -328,6 +337,7 @@ void Touch(const tex::Texture & texture)
         if (s_blocks[i].owner == &texture)
         {
             s_blocks[i].lastBoundFrame = s_frame;
+            s_blocks[i].lastBoundSerial = ++s_bindSerial;
             return;
         }
     }

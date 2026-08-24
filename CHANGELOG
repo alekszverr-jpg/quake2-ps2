@@ -6,6 +6,26 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.68 - 2026-08-24
+
+### Performance
+
+- Replaced the VRAM allocator's frame-granularity LRU comparison with an exact
+  monotonic bind serial. Textures touched in the same frame no longer tie and
+  fall back to VRAM address order; both ordinary streaming and bounded prefetch
+  now evict the genuinely least-recently-used eligible allocation.
+- Kept the separate frame stamp for current-frame reuse hazards and prefetch
+  pinning, so the ordering and GS synchronization rules are unchanged.
+
+### Validation
+
+- Alpha.67 reported `E/R/S` of `22/22/15`, `21/21/7` and `34/34/22` in the
+  supplied light/outdoor/heavy Base1 frames. Every upload restored an evicted
+  texture, and many allocator victims had already been touched that frame.
+- Alpha.68 tests should compare `Uploads`, `R` and `S` against Alpha.67. Exact
+  LRU should retain recently reused textures more reliably; visuals and
+  PATH1/PATH3 correctness must remain identical.
+
 ## 0.1.0-alpha.67 - 2026-08-24
 
 ### Diagnostics
