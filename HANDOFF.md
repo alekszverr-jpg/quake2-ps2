@@ -12,15 +12,15 @@ before changing renderer, audio or memory-management code.
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current version: `0.1.0-alpha.67`
-- Current code commit before this handoff: `63fb841`
-  (`Profile per-frame VRAM churn`)
+- Current version: `0.1.0-alpha.68`
+- Current code commit before this handoff: `cc682d6`
+  (`Use exact VRAM texture LRU order`)
 - Current published release:
-  `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.67`
-- Alpha.67 PROFILE ELF SHA-256:
-  `0F30046F519A66BDE008DE6ED3DEBC735B29A14AF706DFB56D002BFE78FD0104`
+  `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.68`
+- Alpha.68 PROFILE ELF SHA-256:
+  `59879CEECA5410752933F25A9BDC314AD5FA7E18BDBE0FEEF6F23D19ACB9E624`
 
-The next code release should normally be `0.1.0-alpha.68`. This handoff-only
+The next code release should normally be `0.1.0-alpha.69`. This handoff-only
 checkpoint does not advance `VERSION`.
 
 ## Workspace safety
@@ -96,34 +96,36 @@ Renderer changes must be checked for regressions in all of the following:
 - Campaign-wide rendering, cinematics, long-session memory stability and all
   special effects are not yet fully validated.
 
-## Latest PROFILE result: Alpha.67 awaiting validation
+## Latest PROFILE result: Alpha.68 awaiting validation
 
-Alpha.67 retains Alpha.66's bounded opaque-world prefetch and adds per-frame
-VRAM churn measurement. The lower-left `E/R/S` row reports eviction events,
-uploads that reload a texture after eviction, and evictions of a texture already
-touched in the current frame. These counters distinguish first-time uploads
-from cross-frame residency loss and within-frame working-set thrash.
+Alpha.67's supplied PCSX2 screenshots proved that the visible texture workload
+is dominated by VRAM replacement rather than first-time uploads. Every upload
+restored an evicted texture, and many victims had already been touched in the
+same frame:
 
-Alpha.66's supplied PCSX2 results validated the bounded prefetch visually:
-
-| Scene | FPS | Uploads | TexUp | TexDMA us | VRAMwait us | VRAMsync | VIFchain | VUWait us |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Base1 light | 24 | 21 | 19 | 263 | 271 | 12 | 15 | 78 |
-| Base1 outdoor | 20 | 25 | 25 | 355 | 208 | 7 | 16 | 168 |
-| Base1 heavy | 15 | 43 | 41 | 500 | 636 | 24 | 33 | 214 |
+| Scene | FPS | Uploads | E/R/S | TexUp | TexDMA us | VRAMwait us | VRAMsync | VIFchain | VUWait us |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Base1 light | 22 | 22 | 22/22/15 | 20 | 270 | 295 | 13 | 16 | 84 |
+| Base1 outdoor | 20 | 21 | 21/21/7 | 21 | 335 | 184 | 7 | 12 | 155 |
+| Base1 heavy | 15 | 34 | 34/34/22 | 34 | 486 | 484 | 20 | 29 | 149 |
 
 The screenshots showed correct geometry, textures, sky, entities and weapons.
-Light and heavy combined two transfers, while outdoor combined none. The heavy
-capture also contained more work than Alpha.65 (43 versus 37 uploads and 7613
-versus 6773 triangles), so its 24 versus 20 `VRAMsync` is not a like-for-like
-regression. Alpha.67 CI passed for `63fb841`; hardware validation is pending.
+Inspection then found that `lastBoundFrame` was serving both as the safety stamp
+and as LRU recency. All binds in one frame therefore tied, so the allocator fell
+back to VRAM block order instead of choosing the least-recently-bound texture.
 
-## Exact next task: validate per-frame VRAM churn counters
+Alpha.68 retains the frame stamp for current-frame safety and prefetch pins, but
+adds a monotonic 64-bit bind serial for exact victim ordering. New allocations
+and every texture touch advance the serial. CI passed for `cc682d6`; runtime
+validation is pending.
 
-Test the published Alpha.67 PROFILE ELF in the same Base1 positions. Record
-lower-left `Uploads` and `E/R/S`, plus `TexUp`, `TexDMA`, `VRAMwait`, `VRAMsync`,
-FPS and the established geometry counters. Inspect WALs, sky, glass/water,
-weapons, entities and all renderer regression paths listed above.
+## Exact next task: validate exact bind-serial LRU
+
+Test the published Alpha.68 PROFILE ELF in the same three Base1 positions.
+Record lower-left `Uploads` and `E/R/S`, plus `TexUp`, `TexDMA`, `VRAMwait`,
+`VRAMsync`, FPS and the established geometry counters. Compare directly with
+the Alpha.67 table above. Inspect WALs, sky, glass/water, weapons, entities and
+all renderer regression paths listed above.
 
 The relevant files are:
 
@@ -134,7 +136,7 @@ The relevant files are:
 - `src/ps2/renderer/vram.h`
 - `src/ps2/renderer/ref.cpp`
 
-Alpha.67 counters:
+Counter interpretation remains:
 
 1. `E` increments for each resident VRAM block evicted, including multiple
    victims needed to form one larger allocation.
@@ -145,17 +147,11 @@ Alpha.67 counters:
 4. All three counters reset with `Uploads` at `BeginFrame` and do not alter the
    release renderer's allocation policy.
 
-Expected Alpha.67 interpretation:
-
-- High `S` and `R` close to `Uploads` prove the visible working set exceeds the
-  usable heap or is ordered poorly within one frame; prioritize draw/pass reuse.
-- High `E/R` with low `S` indicates cross-frame LRU loss or fragmentation;
-  investigate stable slots/common textures and allocation sizes.
-- Low `E/R/S` with high `Uploads` means mostly first or dirty uploads, so an LRU
-  policy change is unlikely to help.
-
-Do not change eviction policy until these counters are measured. Preserve the
-Alpha.66 PATH1/PATH3 ordering and bounded fallback during Alpha.67 validation.
+Expected Alpha.68 result: lower `Uploads`, `R` and especially `S`, with lower
+texture DMA/wait cost and no visual regression. If churn remains essentially
+unchanged, the working set genuinely exceeds usable VRAM or pass ordering
+reuses textures too late; use the measured counters to choose the next P4 step.
+Preserve Alpha.66 PATH1/PATH3 ordering and bounded fallback during validation.
 
 ## Build and release procedure
 
@@ -188,8 +184,8 @@ game directories.
 
 > Continue the Quake II PS2 port in this workspace. Read HANDOFF.md completely,
 > then ROADMAP.md and CHANGELOG. Check git status and recent commits. Review the
-> Alpha.67 Base1 PROFILE results and renderer screenshots. Record lower-left
-> Uploads and E/R/S with TexUp/TexDMA/VRAMwait/VRAMsync, then choose the next
-> P4 residency step from measured churn without weakening PATH1/PATH3 ordering.
+> Alpha.68 Base1 PROFILE results and renderer screenshots. Compare lower-left
+> Uploads and E/R/S with Alpha.67, together with TexUp/TexDMA/VRAMwait/VRAMsync,
+> then choose the next P4 residency step without weakening PATH1/PATH3 ordering.
 > Build and publish only the numbered PROFILE prerelease, copy the successful
 > quake2-profile.elf to the project root, and do not touch untracked game data.
