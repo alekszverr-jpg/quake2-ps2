@@ -12,15 +12,15 @@ before changing renderer, audio or memory-management code.
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current version: `0.1.0-alpha.66`
-- Current code commit before this handoff: `c1b27f1`
-  (`Batch visible world texture uploads`)
+- Current version: `0.1.0-alpha.67`
+- Current code commit before this handoff: `63fb841`
+  (`Profile per-frame VRAM churn`)
 - Current published release:
-  `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.66`
-- Alpha.66 PROFILE ELF SHA-256:
-  `AD6FF21F306F69FC5104BD777F48B51DBAD6751D40B738BB16AF8ABE40BA1850`
+  `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.67`
+- Alpha.67 PROFILE ELF SHA-256:
+  `0F30046F519A66BDE008DE6ED3DEBC735B29A14AF706DFB56D002BFE78FD0104`
 
-The next code release should normally be `0.1.0-alpha.67`. This handoff-only
+The next code release should normally be `0.1.0-alpha.68`. This handoff-only
 checkpoint does not advance `VERSION`.
 
 ## Workspace safety
@@ -96,68 +96,66 @@ Renderer changes must be checked for regressions in all of the following:
 - Campaign-wide rendering, cinematics, long-session memory stability and all
   special effects are not yet fully validated.
 
-## Latest PROFILE result: Alpha.66 awaiting validation
+## Latest PROFILE result: Alpha.67 awaiting validation
 
-Alpha.66 builds a bounded draw-order working-set prefix from the opaque BSP
-texture chains. Up to 32 missing clean textures are allocated without evicting
-anything already prepared this frame, then all selected mip levels share one
-PATH3 source chain and one GS `FINISH`. Dirty images, packet overflow and sets
-larger than available VRAM remain on the proven synchronous per-bind path.
+Alpha.67 retains Alpha.66's bounded opaque-world prefetch and adds per-frame
+VRAM churn measurement. The lower-left `E/R/S` row reports eviction events,
+uploads that reload a texture after eviction, and evictions of a texture already
+touched in the current frame. These counters distinguish first-time uploads
+from cross-frame residency loss and within-frame working-set thrash.
 
-Alpha.65's supplied PCSX2 results rejected the extra entity sort:
+Alpha.66's supplied PCSX2 results validated the bounded prefetch visually:
 
-| Scene | FPS | EntTex0/EntTex | TexDMA us | TexUp | Uploads | VRAMwait us | VRAMsync | VIFchain | VUWait us |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Base1 light | 24 | 3/3 | 721 | 21 | 21 | 324 | 14 | 17 | 83 |
-| Base1 outdoor | 20 | 11/11 | 335 | 21 | 21 | 180 | 7 | 12 | 150 |
-| Base1 heavy | 15 | 12/12 | 529 | 37 | 37 | 532 | 20 | 29 | 183 |
+| Scene | FPS | Uploads | TexUp | TexDMA us | VRAMwait us | VRAMsync | VIFchain | VUWait us |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Base1 light | 24 | 21 | 19 | 263 | 271 | 12 | 15 | 78 |
+| Base1 outdoor | 20 | 25 | 25 | 355 | 208 | 7 | 16 | 168 |
+| Base1 heavy | 15 | 43 | 41 | 500 | 636 | 24 | 33 | 214 |
 
-The screenshots showed correct geometry, textures, sky, entities and weapons,
-but `EntTex0 == EntTex` in every scene. Quake II's existing client order was
-already sufficient, so Alpha.66 removes the second sort/copy and its counters.
-Alpha.66 CI passed for `c1b27f1`; PCSX2 and retail-PS2 validation are pending.
+The screenshots showed correct geometry, textures, sky, entities and weapons.
+Light and heavy combined two transfers, while outdoor combined none. The heavy
+capture also contained more work than Alpha.65 (43 versus 37 uploads and 7613
+versus 6773 triangles), so its 24 versus 20 `VRAMsync` is not a like-for-like
+regression. Alpha.67 CI passed for `63fb841`; hardware validation is pending.
 
-## Exact next task: validate bounded world-texture prefetch
+## Exact next task: validate per-frame VRAM churn counters
 
-Test the published Alpha.66 PROFILE ELF in the same Base1 positions. Record the
-lower-left `Uploads`, draw-stats `TexUp`, `TexDMA`, `VRAMwait`, `VRAMsync`, FPS
-and the established VIF/geometry counters. Inspect WALs, sky, glass/water,
+Test the published Alpha.67 PROFILE ELF in the same Base1 positions. Record
+lower-left `Uploads` and `E/R/S`, plus `TexUp`, `TexDMA`, `VRAMwait`, `VRAMsync`,
+FPS and the established geometry counters. Inspect WALs, sky, glass/water,
 weapons, entities and all renderer regression paths listed above.
 
 The relevant files are:
 
-- `src/ps2/renderer/render_view.cpp`
+- `src/ps2/renderer/texture.h`
+- `src/ps2/renderer/texture.cpp`
 - `src/ps2/renderer/gs.cpp`
-- `src/ps2/renderer/gs.h`
 - `src/ps2/renderer/vram.cpp`
 - `src/ps2/renderer/vram.h`
+- `src/ps2/renderer/ref.cpp`
 
-Alpha.66 behaviour:
+Alpha.67 counters:
 
-1. The BSP walk builds its normal opaque texture chains in draw order.
-2. Resident textures and successful allocations pin only the prepared prefix.
-3. Prefetch allocation may evict only textures not touched in this frame and
-   stops before recycling any prepared/current-frame allocation.
-4. Deferred PATH1 geometry is drained, selected mip transfers share one PATH3
-   chain, and one final `FINISH` completes the whole batch.
-5. Any remaining or dirty texture uploads through `EnsureTextureResident` as
-   before; entity and translucent draw order is the original ref_gl order.
+1. `E` increments for each resident VRAM block evicted, including multiple
+   victims needed to form one larger allocation.
+2. `R` increments when a later upload restores a texture marked by eviction;
+   initial uploads, explicit releases and dirty in-place updates do not count.
+3. `S` increments when ordinary on-demand allocation evicts a texture already
+   touched this frame; bounded prefetch allocation refuses such a victim.
+4. All three counters reset with `Uploads` at `BeginFrame` and do not alter the
+   release renderer's allocation policy.
 
-Expected Alpha.66 validation result:
+Expected Alpha.67 interpretation:
 
-- Lower-left `Uploads` remains the number of texture images transferred, while
-  `TexUp` is now the number of synchronous DMA batches. Useful batching should
-  produce `TexUp < Uploads` in streaming-heavy frames.
-- `TexDMA` and especially `VRAMsync` should fall or at least not regress; world,
-  triangle and VIF counts should remain comparable to Alpha.65.
-- No black/foreign strips, stale pages, sky leaks, glass/water corruption,
-  missing entities or weapon/sprite regressions.
+- High `S` and `R` close to `Uploads` prove the visible working set exceeds the
+  usable heap or is ordered poorly within one frame; prioritize draw/pass reuse.
+- High `E/R` with low `S` indicates cross-frame LRU loss or fragmentation;
+  investigate stable slots/common textures and allocation sizes.
+- Low `E/R/S` with high `Uploads` means mostly first or dirty uploads, so an LRU
+  policy change is unlikely to help.
 
-If Alpha.66 validates and reduces `TexUp`/synchronisation, retain the bounded
-prefix and consider extending the same batch primitive only to another measured,
-order-safe pass. If `TexUp` remains equal to `Uploads` or uploads/visuals regress,
-revert the prefetch experiment and continue with P4 residency/fragmentation
-measurement rather than weakening PATH1/PATH3 ordering.
+Do not change eviction policy until these counters are measured. Preserve the
+Alpha.66 PATH1/PATH3 ordering and bounded fallback during Alpha.67 validation.
 
 ## Build and release procedure
 
@@ -190,8 +188,8 @@ game directories.
 
 > Continue the Quake II PS2 port in this workspace. Read HANDOFF.md completely,
 > then ROADMAP.md and CHANGELOG. Check git status and recent commits. Review the
-> Alpha.66 Base1 PROFILE results and renderer screenshots. Compare lower-left
-> Uploads with TexUp plus TexDMA/VRAMwait/VRAMsync, then retain or revert the
-> bounded P2 world-prefetch experiment without weakening PATH1/PATH3 ordering.
+> Alpha.67 Base1 PROFILE results and renderer screenshots. Record lower-left
+> Uploads and E/R/S with TexUp/TexDMA/VRAMwait/VRAMsync, then choose the next
+> P4 residency step from measured churn without weakening PATH1/PATH3 ordering.
 > Build and publish only the numbered PROFILE prerelease, copy the successful
 > quake2-profile.elf to the project root, and do not touch untracked game data.
