@@ -100,7 +100,31 @@ Renderer changes must be checked for regressions in all of the following:
 - Campaign-wide rendering, cinematics, long-session memory stability and all
   special effects are not yet fully validated.
 
-## Latest PROFILE result: Alpha.69 rejected for performance
+## Latest PROFILE result: Alpha.70 partial churn improvement
+
+Supplied Base1 screenshots (light/outdoor/heavy):
+
+| Scene | FPS | Uploads | E/R/S | TexUp | TexDMA us | VRAMwait us | VRAMsync | VIFchain | VUWait us |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Base1 light | 20 | 32 | 32/32/9 | 18 | 520 | 224 | 10 | 20 | 85 |
+| Base1 outdoor | 20 | 34 | 34/34/9 | 20 | 611 | 260 | 10 | 22 | 170 |
+| Base1 heavy | 15 | 47 | 47/47/20 | 30 | 726 | 421 | 18 | 33 | 179 |
+
+| Scene | Nodes | Surfs | Tris | Batches | BoxCull | SurfCull | BoxPlane | SurfBBox | VIFqw | VUvert | MD2Vert | MD2Corner |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Base1 light | 563 | 326 | 3652 | 70 | 21 | 49 | 572 | 238 | 2374 | 10956 | 949 | 5655 |
+| Base1 outdoor | 692 | 322 | 5679 | 71 | 26 | 104 | 1128 | 326 | 2907 | 17037 | 1373 | 7845 |
+| Base1 heavy | 578 | 468 | 6725 | 83 | 41 | 83 | 849 | 373 | 3371 | 20175 | 1073 | 6090 |
+
+World/Ent/3D times are 18167/7319/25777, 20835/12181/33287 and
+29889/16821/47006 us. LitBuild and LitColor are zero in all three captures.
+Uploads fell from Alpha.69's 40/40/62 to 32/34/47; FPS is unchanged. The
+heavy view has fewer triangles/entities and the outdoor weapon/camera differ,
+so the whole reduction cannot be attributed to retention. Recent-upload labels
+now show WALs/model skins instead of HUD Pics. No obvious new corruption is
+visible in these static views; motion/glass/water/retail-PS2 remain unverified.
+
+## Previous PROFILE result: Alpha.69 rejected for performance
 
 The supplied September 13 Base1 screenshots report the following light,
 outdoor and heavy views. These are user-supplied observations, not an agent-run
@@ -132,7 +156,7 @@ failed to recover Alpha.67's upload baseline. The latest-upload labels include
 HUD icons and conchars in all three views; these are absent from the world
 plan but used later, motivating bounded retention rather than more exact LRU.
 
-## Exact next task: validate bounded small-Pic retention
+## Current policy: bounded small-Pic retention
 
 Alpha.70 prefers a recently used small-Pic subset before applying Alpha.69's
 world plan and serial fallback. Each image is at most 16 KB, touched this or
@@ -146,15 +170,32 @@ remain unimplemented. No GS/PATH barriers or texture formats are changed.
 Host tests compile production vram.cpp with minimal SDK/texture stubs and
 exercise retention, expiration, size/budget limits, prefetch failure/success
 and full-heap fallback under ASan/UBSan in CI. They do not validate GS DMA,
-rendering or real frame time. Alpha.70 runtime validation remains pending.
+rendering or real frame time. Alpha.70 screenshot results are recorded above.
 
-Test the Alpha.70 PROFILE ELF in the same three Base1 views. Compare Uploads,
-E/R/S, TexUp, TexDMA, VRAMwait, VRAMsync, FPS and geometry with both Alpha.67
-and Alpha.69 above. Check HUD/weapon changes, particles, large menus, sky,
-water/glass, moving brush models and the regression list above. A lower HUD
-reload rate is useful only if total uploads/waits improve without corruption.
-If total churn remains near Alpha.69, measure phase/type upload distribution
-before expanding retention to weapon/world textures or extending the use plan.
+## Exact next task: measure remaining churn with Alpha.71
+
+Alpha.71 retains Alpha.70 policy and adds PROFILE-only upload accounting.
+In GAME -> TEST MAP -> DIAGNOSTICS: FULL, the right-side UP TYPE panel shows
+N/R/KB: uploaded images, images reloaded after eviction, and packed pixel KiB
+rounded up per type. KB excludes DMA commands and VRAM padding. Pic includes
+HUD/font/particle images; Skin is model/weapon skins; Wall includes liquid and
+brush WALs; Sprite and Sky have separate rows. Other is the unused Null class.
+
+PHASE W/E/A/P/2D counts uploads during world (including sky and prefetch), all
+entities (including weapons/brushes/translucent entities), world alpha surfaces,
+particles, and other/2D respectively. Type and phase totals should each equal
+the lower-left Uploads count because both panels use the same snapshot. The
+snapshot precedes drawing those panels, so any resulting diagnostic-font miss
+is excluded from both. All counters reset at BeginFrame; transfers counted are
+images, not TexUp DMA batches. Tests cover payload/reload/phase/reset semantics.
+
+Repeat the same Base1 positions with the same weapon, camera and settled scene.
+Record the new panel together with Uploads/E/R/S, TexUp/TexDMA/VRAMwait/VRAMsync,
+FPS and geometry. Use the dominant type/phase to choose further P4 work:
+weapon/skin retention, expansion of the known-use plan or fragmentation work.
+Do not change policy again without these measurements. Check panel readability
+in NTSC/PAL and the usual HUD/weapon/particle/sky/water/glass regressions.
+Alpha.71 runtime validation is pending; instrumentation does not claim a speedup.
 
 E counts each evicted block, R counts uploads restoring previously evicted
 images, and S counts demand victims already touched this frame. Initial/dirty
@@ -193,8 +234,8 @@ game directories.
 
 > Continue the Quake II PS2 port in this workspace. Read HANDOFF.md completely,
 > then ROADMAP.md and CHANGELOG. Check git status and recent commits. Review the
-> Alpha.70 Base1 PROFILE results and renderer screenshots. Compare lower-left
-> Uploads and E/R/S with Alpha.67/69, together with
+> Alpha.71 Base1 PROFILE results and renderer screenshots. Compare lower-left
+> Uploads and E/R/S with Alpha.67/70, together with
 > TexUp/TexDMA/VRAMwait/VRAMsync,
 > then choose the next P4 residency step without weakening PATH1/PATH3 ordering.
 > Build and publish only the numbered PROFILE prerelease, copy the successful

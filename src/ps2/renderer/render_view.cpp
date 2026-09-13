@@ -2761,6 +2761,7 @@ void RenderFrame(const refdef_t & viewDef)
     s_drawStats.setupMicros = timing::ElapsedMicros(phaseStart);
 
     phaseStart = timing::Now();
+    vram::SetUploadPhase(vram::UploadPhase::World);
 #endif
     RenderWorldModel(viewDef);
 #if PS2_PROFILE
@@ -2769,6 +2770,7 @@ void RenderFrame(const refdef_t & viewDef)
 
 #if PS2_PROFILE
     phaseStart = timing::Now();
+    vram::SetUploadPhase(vram::UploadPhase::Entities);
 #endif
     RenderEntities(viewDef);
 #if PS2_PROFILE
@@ -2779,9 +2781,13 @@ void RenderFrame(const refdef_t & viewDef)
     // VU1 path keeps its original depth state; placing particles last prevents
     // their billboard triangles from rejecting a later water pass without
     // reprogramming ZBUF inside PATH1 batches.
+#if PS2_PROFILE
+    vram::SetUploadPhase(vram::UploadPhase::Alpha);
+#endif
     DrawAlphaSurfaces();
 #if PS2_PROFILE
     phaseStart = timing::Now();
+    vram::SetUploadPhase(vram::UploadPhase::Particles);
 #endif
     RenderParticles(viewDef);
 #if PS2_PROFILE
@@ -2795,6 +2801,10 @@ void RenderFrame(const refdef_t & viewDef)
     // commands. DrawTriangles stages caller memory, so this is the ordinary
     // pass-level submission point rather than a per-batch wait.
     vu1::Flush();
+
+#if PS2_PROFILE
+    vram::SetUploadPhase(vram::UploadPhase::Other2D);
+#endif
 
     // Later milestones continue here: remaining translucent entity variants.
 }

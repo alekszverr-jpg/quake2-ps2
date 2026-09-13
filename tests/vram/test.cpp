@@ -82,5 +82,30 @@ int main()
     assert(world.vramAddr == tex::Texture::kNotResident);
     vram::Free(miss);
     assert(vram::GetStats().freeWords == 32 * page);
-    std::puts("VRAM retention, expiry, budget, prefetch safety and fallback: PASS");
+#if PS2_PROFILE
+    // Count first/dirty uploads separately from eviction reloads, attribute
+    // them to their type and active phase, and reset everything next frame.
+    vram::BeginFrame();
+    tex::Texture sample;
+    sample.type = tex::ImageType::Skin;
+    sample.pixelBytes = 12345;
+    vram::SetUploadPhase(vram::UploadPhase::Entities);
+    vram::NoteTextureUpload(sample);
+    vram::NoteTextureUpload(sample); // A dirty update has no eviction mark.
+    sample.evictedSinceUpload = true;
+    vram::NoteTextureUpload(sample);
+    auto counters = vram::GetStats();
+    const auto & skin = counters.uploadsByType[static_cast<int>(tex::ImageType::Skin)];
+    assert(skin.images == 3 && skin.reloads == 1 && skin.bytes == 37035);
+    assert(counters.uploadsByPhase[static_cast<int>(vram::UploadPhase::Entities)] == 3);
+    assert(counters.uploadsThisFrame == 3 && counters.reloadsThisFrame == 1);
+    vram::BeginFrame();
+    counters = vram::GetStats();
+    for (const auto & type : counters.uploadsByType)
+        assert(type.images == 0 && type.reloads == 0 && type.bytes == 0);
+    for (int phase : counters.uploadsByPhase) assert(phase == 0);
+    vram::NoteTextureUpload(sample);
+    assert(vram::GetStats().uploadsByPhase[0] == 1);
+#endif
+    std::puts("VRAM retention, safety, fallback and upload accounting: PASS");
 }

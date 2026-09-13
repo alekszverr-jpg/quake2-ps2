@@ -244,6 +244,32 @@ void DrawVramUsageOverlay()
                   stats.evictionsThisFrame, stats.reloadsThisFrame,
                   stats.sameFrameEvictions);
     DrawInternalString(textX, textY, line);
+
+    // Use the same snapshot as Uploads/E/R/S, before drawing this panel can
+    // itself upload the diagnostic font. Keep clear of the left draw stats
+    // and bottom memory/HUD panels in both NTSC and PAL layouts.
+    constexpr int uploadWidth = 224;
+    constexpr int uploadY = 60;
+    const int uploadX = viddef.width - uploadWidth;
+    ps2::gs::FillRect(uploadX, uploadY, uploadWidth, 9 * kLineHeight + 8,
+                     0, 0, 0, 255);
+    int uploadTextY = uploadY + kPadding;
+    DrawInternalString(uploadX + kPadding, uploadTextY, "UP TYPE  N/R    KB");
+    const char * const typeNames[] = { "Other", "Pic", "Skin", "Sprite", "Wall", "Sky" };
+    for (int i = 0; i < ps2::ArrayLength(typeNames); ++i)
+    {
+        const auto & type = stats.uploadsByType[i];
+        uploadTextY += kLineHeight;
+        std::snprintf(line, sizeof(line), "%-6s %3d/%-3d %5d", typeNames[i],
+                      type.images, type.reloads, (type.bytes + 1023) / 1024);
+        DrawInternalString(uploadX + kPadding, uploadTextY, line);
+    }
+    uploadTextY += kLineHeight;
+    DrawInternalString(uploadX + kPadding, uploadTextY, "PHASE W/E/A/P/2D");
+    const auto & phase = stats.uploadsByPhase;
+    std::snprintf(line, sizeof(line), "%d/%d/%d/%d/%d", phase[1], phase[2],
+                  phase[3], phase[4], phase[0]);
+    DrawInternalString(uploadX + kPadding, uploadTextY + kLineHeight, line);
 }
 
 // 3D draw statistics overlay in the top-left corner: what the last rendered

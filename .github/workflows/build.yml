@@ -25,7 +25,7 @@ jobs:
 
       - name: Check VRAM allocator on host
         run: |
-          g++ -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined \
+          g++ -std=c++17 -DPS2_PROFILE=1 -Wall -Wextra -Werror -fsanitize=address,undefined \
             -Itests/vram/stubs -Isrc tests/vram/test.cpp -o /tmp/quake2-vram-test
           /tmp/quake2-vram-test
 

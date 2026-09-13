@@ -77,6 +77,17 @@ void Free(const tex::Texture & texture);
 // its previous transfer. Called by the GS upload paths; reset each frame.
 void NoteTextureUpload(const tex::Texture & texture);
 
+#if PS2_PROFILE
+enum class UploadPhase { Other2D, World, Entities, Alpha, Particles, Count };
+void SetUploadPhase(UploadPhase phase);
+struct UploadBreakdown
+{
+    int images;
+    int reloads;
+    int bytes; // Packed pixel payload, excluding DMA tags and GS page padding.
+};
+#endif
+
 // Live snapshot of the texture heap, for the ref.cpp debug overlay.
 struct Stats
 {
@@ -87,6 +98,10 @@ struct Stats
     int evictionsThisFrame; // resident allocations discarded this frame
     int reloadsThisFrame; // uploads caused by an earlier VRAM eviction
     int sameFrameEvictions; // victims already touched during this frame
+#if PS2_PROFILE
+    UploadBreakdown uploadsByType[6]; // ImageType Null/Pic/Skin/Sprite/Wall/Sky.
+    int uploadsByPhase[static_cast<int>(UploadPhase::Count)];
+#endif
 };
 
 // Computes the current stats (cheap; walks the block list).

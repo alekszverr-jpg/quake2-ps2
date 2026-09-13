@@ -6,6 +6,32 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.71 - 2026-09-13
+
+### Diagnostics
+
+- Added a PROFILE-only upload breakdown to FULL diagnostics. The right panel
+  reports image count/reload count/pixel KB for Pic, Skin, Sprite, Wall and Sky
+  textures, plus upload counts for world (including sky/prefetch), entities,
+  translucent BSP, particles and other/2D phases. Both upload paths feed the
+  counters, which reset at BeginFrame and share the VRAM panel's snapshot.
+- Kept Alpha.70 residency and all GS/PATH ordering unchanged. This measurement
+  build identifies the remaining churn before widening retention. Pixel KB
+  excludes DMA tags and GS allocation padding; it is not retained VRAM size.
+- Extended the host allocator tests to verify first/dirty versus eviction
+  reload counts, payload bytes, phase attribution and per-frame reset.
+
+### Alpha.70 results
+
+- Supplied light/outdoor/heavy Base1 screenshots report 32/34/47 uploads,
+  E/R/S 32/32/9, 34/34/9, 47/47/20, TexUp 18/20/30, TexDMA 520/611/726 us,
+  VRAMwait 224/260/421 us, VRAMsync 10/10/18 and unchanged 20/20/15 FPS.
+- Uploads are below Alpha.69's 40/40/62, but remain above Alpha.67's 22/21/34.
+  Recent-upload labels now show world textures and model skins. Heavy-scene
+  triangles also fell from 8343 to 6725, so not all improvement can be assigned
+  to retention. Static screenshots show no obvious new corruption; motion and
+  retail-PS2 validation remain open.
+
 ## 0.1.0-alpha.70 - 2026-09-13
 
 ### Performance

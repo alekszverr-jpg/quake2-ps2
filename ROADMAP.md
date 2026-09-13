@@ -267,7 +267,9 @@ vertices, with no visible popping, missing doors or broken moving brush models.
   stable VRAM slots where practical. Alpha.70 begins bounded soft retention of
   small recently used Pics (HUD, font and particle dot); weapon/world retention
   remains open. The cap is 256 KB or one quarter of the heap, and demand
-  allocation can still reclaim retained ranges. Runtime validation is pending
+  allocation can still reclaim retained ranges. Supplied Alpha.70 Base1 views
+  reduced uploads from 40/40/62 to 32/34/47 at unchanged 20/20/15 FPS; the
+  heavy view also contains fewer triangles, limiting direct comparison
 - [~] Reuse texture allocations across frames and reduce allocator
   fragmentation during level transitions. Alpha.68's exact monotonic LRU was
   rejected after stable sequential scans increased uploads from `22/21/34` to
@@ -371,11 +373,11 @@ development tools.
 2. Use the recorded alpha.62 Base1 captures as the VIF baseline: light,
    outdoor and heavy scenes produced `VIFchain` 70/74/89, `VIFqw`
    1911/2500/3107 and `VUstate` 93/112/128 with correct rendering.
-3. Validate alpha.70's bounded small-Pic retention in the same Base1
-   scenes. Compare `Uploads`, `E/R/S`, `TexUp`, `TexDMA`, `VRAMwait`, `VRAMsync`
-   and FPS against Alpha.67/69, checking every texture/sky/transparency path.
-   Alpha.69 remained at 40/40/62 uploads and 20/20/15 FPS, so its world-only
-   plan did not recover Alpha.67's 22/21/34 upload baseline.
+3. Use Alpha.71 FULL diagnostics to identify remaining uploads by image type
+   and phase in the same Base1 scenes. Record N/R/KB and W/E/A/P/2D together
+   with Uploads, E/R/S, TexUp, TexDMA, VRAMwait, VRAMsync, geometry and FPS.
+   Alpha.70 improved uploads to 32/34/47 but has not recovered Alpha.67's
+   22/21/34 baseline. Measure before extending retention or the world use plan.
 4. Revisit audio streaming after frame pacing is more stable; retain LOW
    11025 Hz as the nonblocking sound-effect baseline until then. Implement
    music separately as user-supplied, double-buffered PS2 ADPCM streamed by

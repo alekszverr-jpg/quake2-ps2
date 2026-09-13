@@ -59,6 +59,12 @@ static int s_uploadsThisFrame  = 0;
 static int s_evictionsThisFrame = 0;
 static int s_reloadsThisFrame = 0;
 static int s_sameFrameEvictions = 0;
+#if PS2_PROFILE
+static UploadBreakdown s_uploadsByType[6] = {};
+static_assert(static_cast<int>(tex::ImageType::Sky) == 5, "Update upload type counters");
+static int s_uploadsByPhase[static_cast<int>(UploadPhase::Count)] = {};
+static UploadPhase s_uploadPhase = UploadPhase::Other2D;
+#endif
 
 int FindPlannedUse(const tex::Texture & texture)
 {
@@ -193,6 +199,11 @@ void BeginFrame()
     s_evictionsThisFrame = 0;
     s_reloadsThisFrame = 0;
     s_sameFrameEvictions = 0;
+#if PS2_PROFILE
+    for (auto & type : s_uploadsByType) { type = {}; }
+    for (int & phase : s_uploadsByPhase) { phase = 0; }
+    s_uploadPhase = UploadPhase::Other2D;
+#endif
 }
 
 void EndFrame()
@@ -510,12 +521,29 @@ void Free(const tex::Texture & texture)
 void NoteTextureUpload(const tex::Texture & texture)
 {
     ++s_uploadsThisFrame;
+#if PS2_PROFILE
+    const int typeIndex = static_cast<int>(texture.type);
+    PS2_Assert(typeIndex >= 0 && typeIndex < 6);
+    UploadBreakdown & type = s_uploadsByType[typeIndex];
+    ++type.images;
+    type.reloads += texture.evictedSinceUpload ? 1 : 0;
+    type.bytes += texture.pixelBytes;
+    ++s_uploadsByPhase[static_cast<int>(s_uploadPhase)];
+#endif
     if (texture.evictedSinceUpload)
     {
         ++s_reloadsThisFrame;
         texture.evictedSinceUpload = false;
     }
 }
+
+#if PS2_PROFILE
+void SetUploadPhase(UploadPhase phase)
+{
+    PS2_Assert(phase >= UploadPhase::Other2D && phase < UploadPhase::Count);
+    s_uploadPhase = phase;
+}
+#endif
 
 Stats GetStats()
 {
@@ -525,6 +553,13 @@ Stats GetStats()
     stats.evictionsThisFrame = s_evictionsThisFrame;
     stats.reloadsThisFrame = s_reloadsThisFrame;
     stats.sameFrameEvictions = s_sameFrameEvictions;
+#if PS2_PROFILE
+    for (int i = 0; i < 6; ++i) { stats.uploadsByType[i] = s_uploadsByType[i]; }
+    for (int i = 0; i < static_cast<int>(UploadPhase::Count); ++i)
+    {
+        stats.uploadsByPhase[i] = s_uploadsByPhase[i];
+    }
+#endif
 
     for (int i = 0; i < s_blockCount; ++i)
     {
