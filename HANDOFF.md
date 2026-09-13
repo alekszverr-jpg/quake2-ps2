@@ -100,7 +100,53 @@ Renderer changes must be checked for regressions in all of the following:
 - Campaign-wide rendering, cinematics, long-session memory stability and all
   special effects are not yet fully validated.
 
-## Latest PROFILE result: Alpha.71 identifies sky upload traffic
+## Latest PROFILE result: Alpha.72 sky clipping accepted for supplied views
+
+The user supplied three Base1 screenshots and reported no noticed sky problems.
+This validates the change in those views; no specific NTSC/PAL, rotating-sky or
+retail-PS2 matrix was supplied, so those checks remain open.
+
+| Scene | FPS | Uploads | E/R/S | TexUp | TexDMA us | VRAMwait us | VRAMsync | VIFchain | VUWait us |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Light | 20 | 32 | 36/32/15 | 18 | 465 | 206 | 10 | 20 | 90 |
+| Outdoor | 20 | 28 | 28/28/3 | 14 | 431 | 208 | 8 | 16 | 160 |
+| Heavy | 15 | 58 | 59/58/23 | 37 | 671 | 476 | 20 | 34 | 189 |
+
+| Scene | Pic N/R/KB | Skin N/R/KB | Wall N/R/KB | Sky N/R/KB | W/E/A/P/2D |
+| --- | --- | --- | --- | --- | --- |
+| Light | 0/0/0 | 4/4/169 | 25/25/226 | 3/3/384 | 27/5/0/0/0 |
+| Outdoor | 0/0/0 | 9/9/285 | 16/16/112 | 3/3/384 | 18/9/1/0/0 |
+| Heavy | 10/10/5 | 8/8/274 | 37/37/290 | 3/3/384 | 28/20/0/0/10 |
+
+Other/Sprite are zero. Sky transfers fell from Alpha.71's 4/5/5 faces and
+512/640/640 KiB to 3/3/3 and 384 KiB in each scene. Total uploads changed
+33/32/59 -> 32/28/58; FPS is unchanged. Heavy VRAMwait increased 387 -> 476 us
+and VRAMsync 17 -> 20, so reduced sky bandwidth has not solved general churn.
+
+Geometry Tris/Batches/VUvert is 4016/71/12048, 5505/66/16515 and
+6884/86/20652. World/Ent/3D us is 18771/8734/27799, 18506/12142/30921,
+29967/18385/48647. LitBuild/LitColor are zero. Camera/geometry differ from
+Alpha.71, so whole-frame timing differences are not isolated speedup evidence.
+
+## Exact next task: investigate contiguous allocation churn
+
+Keep Alpha.72 sky clipping. The remaining heavy view reloads 37 Wall images,
+8 Skins and 10 Pics. Source review shows demand and prefetch choose victims
+individually by retention/plan/LRU without considering whether their addresses
+contribute to a usable contiguous range. First-fit is retried after every
+victim. Thus separated evictions can discard more textures than a suitable
+local span requires; these screenshots do not measure how much churn that causes.
+
+Before changing policy, reproduce this with the host allocator tests using
+unequal-size blocks and separated free spans. Evaluate bounded selection of a
+contiguous victim span, retaining the small-Pic budget and future-use priorities.
+Measure evicted blocks/words per allocation, largest free span and final reloads;
+do not claim fragmentation from total free KB alone. Preserve prefetch's
+no-current-frame-victim rule and failure-without-mutation guarantee, all GS/PATH
+barriers and bounded demand fallback. Do not reserve sky/skin memory blindly.
+Use the Alpha.72 tables above as the next runtime comparison baseline.
+
+## Previous PROFILE result: Alpha.71 identifies sky upload traffic
 
 Supplied Base1 light/outdoor/heavy screenshots, not agent-run hardware tests:
 
@@ -130,7 +176,7 @@ Geometry Tris/Batches/VUvert is 3699/70/11097, 5314/65/15942 and
 limit comparisons with prior captures. No obvious new corruption is visible;
 static screenshots do not establish motion or retail-PS2 correctness.
 
-## Exact next task: validate Alpha.72 sky viewport clipping
+## Alpha.72 sky clipping implementation and remaining coverage
 
 Alpha.72 replaces only sky side-plane distances with the actual framebuffer
 bounds plus two pixels of overscan per edge. The existing triangle clipper then
@@ -143,7 +189,7 @@ Base1 views. Also record total Uploads, Pic/Skin/Wall, phase counts, TexDMA,
 VRAMwait/sync, geometry and FPS: fewer sky transfers must not worsen total churn.
 Rotate horizontally/vertically through all sky seams and screen edges, walk
 between indoor/outdoor views, and check NTSC/PAL, sky rotation and the existing
-weapon/water/glass/particle regression list. Runtime validation is pending.
+weapon/water/glass/particle regression list. Supplied-view results are above.
 If sky traffic remains large after clipping, investigate portal bounds before
 considering permanent residency or a quality change. Heavy HUD churn remains open.
 

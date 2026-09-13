@@ -32,6 +32,19 @@ Development priorities and completion criteria are tracked in
   `978fa46`. Alpha.72 is published with only quake2-profile.elf; the release
   matches the checked local PROFILE ELF copies. Runtime validation is pending.
 
+### Supplied Alpha.72 validation
+
+- The user reported no noticed sky problems. Light/outdoor/heavy captures show
+  Sky 3/3/3 reloads (384 KiB each), down from Alpha.71's 4/5/5 and
+  512/640/640 KiB. Keep the viewport clipping; broader platform/rotation checks
+  remain open.
+- Total uploads are 32/28/58, E/R/S 36/32/15, 28/28/3, 59/58/23,
+  TexDMA 465/431/671 us and unchanged 20/20/15 FPS. Heavy VRAMwait rose
+  from 387 to 476 us; 37 Wall and 10 Pic reloads remain. Camera/geometry
+  differences prevent assigning whole-frame timing changes to this patch.
+- Next investigation: reproduce excess evictions across disconnected VRAM
+  spans with the host allocator before changing contiguous victim selection.
+
 ## 0.1.0-alpha.71 - 2026-09-13
 
 ### Diagnostics
