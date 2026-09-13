@@ -39,6 +39,30 @@ void * PS2_Sbrk(size_t increment)
 /* Pull in Doug Lea's allocator (exports the dl-prefixed API). */
 #include "malloc.c"
 
+/* Error-path diagnostic only. Chunk sizes include allocator metadata; this
+ * is not a promise that an aligned request of exactly this size will fit.
+ * Traverse the same lists as mallinfo without allocating or probing sbrk. */
+size_t PS2_DlLargestFreeChunk(void)
+{
+    mstate av = get_malloc_state();
+    size_t largest = av->top != 0 ? chunksize(av->top) : 0;
+    int i;
+    mchunkptr p;
+    mbinptr b;
+    if (av->top == 0)
+        return 0;
+    for (i = 0; i < NFASTBINS; ++i)
+        for (p = av->fastbins[i]; p != 0; p = p->fd)
+            if (chunksize(p) > largest) largest = chunksize(p);
+    for (i = 1; i < NBINS; ++i)
+    {
+        b = bin_at(av, i);
+        for (p = last(b); p != b; p = p->bk)
+            if (chunksize(p) > largest) largest = chunksize(p);
+    }
+    return largest;
+}
+
 /* ------------------------------------------------------------------------------------------------
  * Global allocator override: public C API -> dlmalloc.
  * ---------------------------------------------------------------------------------------------- */

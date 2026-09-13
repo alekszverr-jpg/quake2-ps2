@@ -367,6 +367,12 @@ development tools.
 
 ## Immediate priorities
 
+Transition failure takes precedence over VRAM optimization: the user reports
+Base1 -> Base2 fails after long exploration but succeeds after a quick run.
+Alpha.73 adds real heap/contiguous-chunk diagnostics for the failed 5,063,632-byte
+world hunk. Determine fragmentation versus total pressure before changing BSP
+storage or cache lifetime; the old world/alias allocations are already freed.
+
 1. Keep alpha.54 PROFILE as the culling baseline: repeat the same camera pairs
    after each renderer optimization and compare FPS, `Ent us`, `MD2Vert`,
    `MD2Corner`, `BoxCull` and visual popping.

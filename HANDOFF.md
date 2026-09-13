@@ -100,6 +100,30 @@ Renderer changes must be checked for regressions in all of the following:
 - Campaign-wide rendering, cinematics, long-session memory stability and all
   special effects are not yet fully validated.
 
+## Priority override: Base1 -> Base2 EE allocation failure
+
+The user reports that long Base1 exploration leads to a transition crash, while
+speedrunning Base1 allows Base2 to load. The screenshot shows a failed
+5,063,632-byte / alignment 16 / Mdl_World request. Tags: Quake 6.93 MB,
+Renderer 1.04 MB, TexImage 73.01 KB, OpNew 72.04 KB, total 8.12 MB;
+Mdl_World and Mdl_Alias are zero, with allocation/free counts balanced.
+Do not diagnose this as the old world failing to unload or as a proven leak.
+
+LoadBrushModel allocates one exact contiguous hunk after ComputeBrushHunkSize,
+while ModelCache::LoadModel still holds the full FS_LoadFile buffer. Long-lived
+allocations from gameplay may fragment the heap; the tag report cannot prove it.
+Alpha.73 adds dlmalloc arena/used/free bytes and largest free chunk to the error
+report. These include allocator bookkeeping and untagged libc allocations;
+free covers the acquired arena only, largest chunk includes metadata. No heap
+policy is changed, and no hardware reproduction or fix is claimed.
+
+Exact next task: test Alpha.73 on the long Base1 route and collect both HEAP
+lines if the failure recurs, with a fast-run control. If enough heap is free
+but no large chunk fits, consider segmented BSP ownership or reducing source
+file/hunk overlap. If total pressure dominates, measure Quake sound/game/cache
+lifetimes before purging anything. Preserve game data and existing transitions.
+The VRAM optimization task below is deferred until transition stability improves.
+
 ## Latest PROFILE result: Alpha.72 sky clipping accepted for supplied views
 
 The user supplied three Base1 screenshots and reported no noticed sky problems.

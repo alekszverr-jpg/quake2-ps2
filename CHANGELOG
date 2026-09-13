@@ -6,6 +6,22 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.73 - 2026-09-13
+
+### Memory diagnostics
+
+- Added actual dlmalloc arena/used/free bytes and largest free chunk to the
+  fatal memory report. Tag totals omit untagged libc allocations and cannot
+  establish how much contiguous heap is available. Chunk size includes
+  allocator metadata; arena excludes RAM not yet acquired through sbrk.
+- This diagnostic build investigates the reported Base1 -> Base2 failure after
+  extended exploration: a 5,063,632-byte Mdl_World allocation fails even after
+  old world/alias resources are released. A fast first-level run succeeds.
+  The loader needs a contiguous BSP hunk while the source BSP is still live;
+  fragmentation versus total heap pressure is not yet established.
+- No allocation policy or gameplay cleanup is changed. Repeat the long route
+  and capture the complete error with both HEAP lines if it fails again.
+
 ## 0.1.0-alpha.72 - 2026-09-13
 
 ### Performance

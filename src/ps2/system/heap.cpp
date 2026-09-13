@@ -20,6 +20,7 @@
 extern "C" {
     #define USE_DL_PREFIX 1
     #include "dlmalloc/malloc.h"
+    size_t PS2_DlLargestFreeChunk(void);
 }
 #pragma GCC diagnostic pop
 
@@ -194,6 +195,16 @@ const char * PS2_DumpMemTags()
     static char s_memTagsDumpBuff[2048];
     char * ptr = s_memTagsDumpBuff;
     size_t memTotal = 0;
+
+    // Unlike tag totals, mallinfo includes untagged libc allocations and
+    // allocator overhead. It covers the acquired heap, not all physical RAM.
+    const auto heap = dlmallinfo();
+    ptr += std::sprintf(ptr, "HEAP bytes: arena %u used %u free %u\n",
+                        static_cast<unsigned int>(heap.arena),
+                        static_cast<unsigned int>(heap.uordblks),
+                        static_cast<unsigned int>(heap.fordblks));
+    ptr += std::sprintf(ptr, "HEAP largest free chunk: %zu (includes metadata)\n",
+                        PS2_DlLargestFreeChunk());
 
     ptr += std::sprintf(ptr, "--------------------------- MEMTAGS ---------------------------\n");
     ptr += std::sprintf(ptr, "Tag Name          Bytes      Allocs  Frees   Small    Large\n");
