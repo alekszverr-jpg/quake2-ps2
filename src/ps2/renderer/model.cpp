@@ -9,6 +9,7 @@
 
 #include "ps2/renderer/model.h"
 #include "ps2/renderer/model_load.h"
+#include "ps2/renderer/world_hunk.h"
 #include "ps2/renderer/texture.h"
 #include "ps2/small_pool.h"
 #include "ps2/hash.h"
@@ -251,6 +252,7 @@ void ModelCache::SetUpInlineModels(ModelInstance & world)
         inl = world;
         inl.hunkBase = nullptr;
         inl.hunkSize = 0;
+        inl.worldHunkBlocks = nullptr;
         inl.isInline = true;
 
         inl.firstModelSurface = sm.firstFace;
@@ -326,6 +328,7 @@ void ModelCache::ReferenceAllTextures(ModelInstance & mdl)
 void ModelCache::Unload(u16 slot)
 {
     ModelInstance & mdl = m_modelPool.Slot(slot);
+    FreeWorldHunkBlocks(mdl.worldHunkBlocks);
     if (mdl.hunkBase != nullptr)
     {
         PS2_MemFree(mdl.hunkBase, mdl.hunkSize, MemTagForType(mdl.type));

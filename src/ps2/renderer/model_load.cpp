@@ -18,6 +18,7 @@
 #include "ps2/common.h"
 #include "ps2/renderer/model.h"
 #include "ps2/renderer/model_load.h"
+#include "ps2/renderer/world_hunk.h"
 #include "ps2/renderer/texture.h"
 
 #include <cmath>
@@ -91,12 +92,28 @@ class HunkAllocator final
 public:
     // Allocates and zero-fills the block (loaders rely on zero-initialised
     // fields, matching ref_gl's Hunk_Alloc semantics). PS2_MemAllocAligned aborts
-    // on OOM, so this always succeeds.
-    void Init(u32 sizeBytes, PS2MemTag tag)
+    // on OOM. Worlds can fall back to separately owned segments if the full
+    // contiguous request fails; all actual loader allocations still succeed
+    // or enter the fatal diagnostic path.
+    void Init(u32 sizeBytes, PS2MemTag tag, WorldHunkBlock ** blocks = nullptr)
     {
-        m_base     = static_cast<u8 *>(PS2_MemAllocAligned(kHunkAlign, sizeBytes, tag));
         m_offset   = 0;
         m_capacity = sizeBytes;
+        if (blocks != nullptr)
+        {
+            PS2_Assert(tag == MEMTAG_MDL_WORLD && *blocks == nullptr);
+            m_base = static_cast<u8 *>(PS2_MemTryAllocAligned(kHunkAlign, sizeBytes, tag));
+            if (m_base == nullptr)
+            {
+                m_blocks = blocks;
+                Com_Printf("BSP: segmented world hunk (%u bytes).\n", sizeBytes);
+                return;
+            }
+        }
+        else
+        {
+            m_base = static_cast<u8 *>(PS2_MemAllocAligned(kHunkAlign, sizeBytes, tag));
+        }
         std::memset(m_base, 0, sizeBytes);
     }
 
@@ -105,7 +122,9 @@ public:
         const u32 aligned = AlignUp(sizeBytes, kHunkAlign);
         // A failure here means the pre-pass under-estimated - a loader bug.
         PS2_Assert(m_offset + aligned <= m_capacity);
-        u8 * const ptr = m_base + m_offset;
+        void * const ptr = m_blocks != nullptr
+            ? AllocWorldHunkSegment(*m_blocks, aligned, m_capacity - m_offset)
+            : m_base + m_offset;
         m_offset += aligned;
         return ptr;
     }
@@ -122,6 +141,7 @@ public:
     u32 BytesUsed() const { return m_offset; }
 
 private:
+    WorldHunkBlock ** m_blocks = nullptr;
     u8 * m_base     = nullptr;
     u32  m_offset   = 0;
     u32  m_capacity = 0;
@@ -950,7 +970,7 @@ bool LoadBrushModel(ModelInstance & mdl, const void * const modelData, const int
     }
 
     HunkAllocator hunk{};
-    hunk.Init(hunkSize, MEMTAG_MDL_WORLD);
+    hunk.Init(hunkSize, MEMTAG_MDL_WORLD, &mdl.worldHunkBlocks);
     mdl.hunkBase = hunk.Base();
     mdl.hunkSize = hunkSize;
     mdl.type     = ModelType::Brush;

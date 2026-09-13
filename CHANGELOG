@@ -6,6 +6,26 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.74 - 2026-09-13 (local test build)
+
+### Level-transition memory
+
+- Alpha.73 confirms fragmentation at the failed Base1 -> Base2 transition:
+  arena 21,440,592 bytes, used 8,558,008, free 12,582,584, largest free chunk
+  2,611,976 versus the requested 5,063,632-byte world hunk.
+- Keep the ordinary contiguous BSP allocation when it fits; otherwise allocate
+  world arrays and polygon records across owned segments. Each individual
+  array stays contiguous/aligned and zero-filled, while small records share
+  up to 64 KB arenas. If an arena cannot fit, retry the exact record size.
+- Release every segment on world eviction; inline brush models borrow geometry
+  without owning the segment list. Alias/sprite storage and rendering are
+  unchanged. Individual arrays can still fail if no sufficient chunk exists.
+- Added sanitized host coverage for a 5,063,632-byte logical world under a
+  smaller per-allocation limit, alignment/zero-fill, stable data, repeated
+  teardown and exact-size fallback. Actual Base1 -> Base2 validation is pending.
+- GitHub releases are paused at the user's request. Use the local PROFILE ELF
+  and retain the Alpha.73 error diagnostics for further transition tests.
+
 ## 0.1.0-alpha.73 - 2026-09-13
 
 ### Memory diagnostics

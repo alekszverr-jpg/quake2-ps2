@@ -29,6 +29,12 @@ jobs:
             -Itests/vram/stubs -Isrc tests/vram/test.cpp -o /tmp/quake2-vram-test
           /tmp/quake2-vram-test
 
+      - name: Check segmented BSP allocation on host
+        run: |
+          g++ -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined \
+            -Itests/vram/stubs -Isrc tests/world_hunk/test.cpp -o /tmp/quake2-world-hunk-test
+          /tmp/quake2-world-hunk-test
+
       - name: Download PS2DEV prebuilt toolchain
         run: |
           mkdir -p "$PS2DEV"

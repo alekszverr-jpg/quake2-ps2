@@ -15,6 +15,8 @@
 
 namespace ps2::mod {
 
+struct WorldHunkBlock;
+
 // ------------------------------------------------------------------------------------------------
 // Misc constants / flags
 // ------------------------------------------------------------------------------------------------
@@ -332,6 +334,7 @@ struct ModelInstance final
     // block and leave hunkBase null so they never double-free.
     void * hunkBase;
     u32 hunkSize;
+    WorldHunkBlock * worldHunkBlocks; // Owned segmented fallback; null for inline aliases.
 };
 
 // ------------------------------------------------------------------------------------------------

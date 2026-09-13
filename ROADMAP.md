@@ -369,9 +369,10 @@ development tools.
 
 Transition failure takes precedence over VRAM optimization: the user reports
 Base1 -> Base2 fails after long exploration but succeeds after a quick run.
-Alpha.73 adds real heap/contiguous-chunk diagnostics for the failed 5,063,632-byte
-world hunk. Determine fragmentation versus total pressure before changing BSP
-storage or cache lifetime; the old world/alias allocations are already freed.
+Alpha.73 confirms fragmentation: 12,582,584 bytes free, largest chunk 2,611,976
+against a 5,063,632-byte request. Validate Alpha.74's segmented world fallback
+after long Base1 exploration and repeated Base1 -> Base2 -> Base3 transitions;
+old world/alias resources were already freed. GitHub releases remain paused.
 
 1. Keep alpha.54 PROFILE as the culling baseline: repeat the same camera pairs
    after each renderer optimization and compare FPS, `Ent us`, `MD2Vert`,

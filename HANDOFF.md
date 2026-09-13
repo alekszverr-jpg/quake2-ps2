@@ -24,15 +24,15 @@ before changing renderer, audio or memory-management code.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
-Publish the prepared Alpha.73 before advancing to `0.1.0-alpha.74`. This handoff-only
+Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Pending Alpha.73 publication
+## Publication preference
 
-Automatic approval review rejected the Alpha.73 ELF/release-notes upload to
-alekszverr-jpg/quake2-ps2 because it considers prior approval limited to Alpha.72.
-The PROFILE build passed, and both local root ELF copies are updated. Obtain
-explicit Alpha.73 publication approval before retrying; no rebuild is needed.
+The user paused GitHub releases: prepare local PROFILE test builds until a
+confirmed result warrants publication and the user requests it. Continue using
+the established PROFILE CI toolchain, but do not create releases or upload assets
+to releases. Alpha.73 was not published; Alpha.72 is the latest public release.
 
 ## Workspace safety
 
@@ -107,7 +107,35 @@ Renderer changes must be checked for regressions in all of the following:
 - Campaign-wide rendering, cinematics, long-session memory stability and all
   special effects are not yet fully validated.
 
-## Priority override: Base1 -> Base2 EE allocation failure
+## Current transition result and Alpha.74 test target
+
+Alpha.73 crash screenshot confirms heap fragmentation: arena 21,440,592 bytes,
+used 8,558,008, free 12,582,584, largest free chunk 2,611,976. The requested
+world hunk is 5,063,632 bytes. Old Mdl_World/Alias are zero; this is not simply
+an old-world unload delay. The screenshot does not identify which surviving
+allocations originally fragmented the heap.
+
+Alpha.74 tries the normal contiguous world hunk first. On failure, world arrays
+and small polygon records use a list of aligned zero-filled segments owned by
+ModelInstance. Small allocations share up to 64 KB; larger arrays get their own
+contiguous segment. If preferred chunk allocation fails, the exact record size
+is attempted. The prepass logical capacity/BytesUsed check remains active.
+Unload frees every block with its actual allocated size; inline models clear
+both ownership pointers. Alias/sprite layouts and all renderer barriers stay
+unchanged. No pointers are relocated and no game data is modified.
+
+Host tests cover the real segment helper with a smaller allocation limit than
+the reported hunk, zero-fill/alignment/data preservation and repeated cleanup.
+These are not hardware transition tests. Individual BSP arrays still need a
+contiguous chunk, and segment tails/headers add some memory overhead.
+
+Next: use Alpha.74 after long Base1 exploration, then enter Base2. Also try a
+quick-run control and Base2 -> Base3 / repeated map changes. Check doors/lifts,
+lighting, sky and model geometry. If it fails, capture the complete HEAP/tag
+report: the failed request now identifies any remaining oversized array or
+pressure. Keep releases paused until a useful result is confirmed.
+
+## Previous diagnosis: Base1 -> Base2 EE allocation failure
 
 The user reports that long Base1 exploration leads to a transition crash, while
 speedrunning Base1 allows Base2 to load. The screenshot shows a failed
@@ -124,7 +152,7 @@ report. These include allocator bookkeeping and untagged libc allocations;
 free covers the acquired arena only, largest chunk includes metadata. No heap
 policy is changed, and no hardware reproduction or fix is claimed.
 
-Exact next task: test Alpha.73 on the long Base1 route and collect both HEAP
+Historical Alpha.73 test request: test Alpha.73 on the long Base1 route and collect both HEAP
 lines if the failure recurs, with a fast-run control. If enough heap is free
 but no large chunk fits, consider segmented BSP ownership or reducing source
 file/hunk overlap. If total pressure dominates, measure Quake sound/game/cache
