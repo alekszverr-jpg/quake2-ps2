@@ -72,11 +72,35 @@ int FindPlannedUse(const tex::Texture & texture)
     return -1;
 }
 
-bool IsBetterVictim(int candidate, int current)
+// Small UI images include the font and built-in particle dot. Keep a bounded
+// recently-used subset across the world scan, which has no knowledge of the
+// later HUD pass. Large menu/cinematic images must not reserve the heap.
+bool RetainSmallPic(int index, int & retainedWords)
+{
+    const Block & block = s_blocks[index];
+    const int budgetWords = (s_heapTotalWords / 4 < 65536)
+        ? s_heapTotalWords / 4 : 65536; // At most 256 KB / one quarter of heap.
+    if (block.owner->type != tex::ImageType::Pic ||
+        block.sizeWords > 4096 || // At most 16 KB per image.
+        static_cast<u32>(s_frame - block.lastBoundFrame) > 1 ||
+        retainedWords + block.sizeWords > budgetWords)
+    {
+        return false;
+    }
+    retainedWords += block.sizeWords;
+    return true;
+}
+
+bool IsBetterVictim(int candidate, int current, bool candidateRetained, bool currentRetained)
 {
     if (current < 0)
     {
         return true;
+    }
+
+    if (candidateRetained != currentRetained)
+    {
+        return !candidateRetained;
     }
 
     if (s_texturePlanActive)
@@ -258,15 +282,19 @@ Address Allocate(const tex::Texture & texture, int sizeWords, bool * outEvicted)
         // textures artificially pinned can exceed the heap on the first busy
         // frame even though safe streaming is already available.
         int victim = -1;
+        int retainedWords = 0;
+        bool victimRetained = false;
         for (int i = 0; i < s_blockCount; ++i)
         {
             if (s_blocks[i].owner == nullptr)
             {
                 continue;
             }
-            if (IsBetterVictim(i, victim))
+            const bool retained = RetainSmallPic(i, retainedWords);
+            if (IsBetterVictim(i, victim, retained, victimRetained))
             {
                 victim = i;
+                victimRetained = retained;
             }
         }
         PS2_AssertMsg(victim >= 0, "GS texture heap has no evictable allocation!");
@@ -348,16 +376,25 @@ Address TryAllocateForPrefetch(const tex::Texture & texture, int sizeWords,
         }
 
         int victim = -1;
+        int retainedWords = 0;
+        bool victimRetained = false;
         for (int i = 0; i < s_blockCount; ++i)
         {
-            if (s_blocks[i].owner == nullptr ||
-                s_blocks[i].lastBoundFrame == s_frame)
+            if (s_blocks[i].owner == nullptr)
             {
                 continue;
             }
-            if (IsBetterVictim(i, victim))
+            // Count pinned images toward the same budget even though they are
+            // ineligible for prefetch eviction. The fit proof remains intact.
+            const bool retained = RetainSmallPic(i, retainedWords);
+            if (s_blocks[i].lastBoundFrame == s_frame)
+            {
+                continue;
+            }
+            if (IsBetterVictim(i, victim, retained, victimRetained))
             {
                 victim = i;
+                victimRetained = retained;
             }
         }
         PS2_AssertMsg(victim >= 0, "Prefetch fit proof lost its evictable span!");

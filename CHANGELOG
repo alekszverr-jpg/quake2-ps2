@@ -6,6 +6,32 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.70 - 2026-09-13
+
+### Performance
+
+- Prefer retaining recently used small HUD/font/particle Pics ahead of the
+  opaque-world victim plan. The address-ordered retained subset is bounded to
+  256 KB or one quarter of the texture heap, whichever is smaller; individual
+  images must fit 16 KB and have been touched this or the previous frame.
+- Keep retention soft: demand allocation can still evict any image to make a
+  contiguous range. Prefetch still refuses current-frame victims, and all
+  PATH1/PATH3 reuse and upload barriers are unchanged.
+
+### Validation
+
+- Supplied Alpha.69 light/outdoor/heavy screenshots show 20/20/15 FPS,
+  40/40/62 uploads and E/R/S 45/40/12, 40/40/5, 62/62/27. TexDMA is
+  587/669/902 us, TexUp 26/27/47, VRAMwait 295/279/614 us and VRAMsync
+  13/11/26. This does not improve on Alpha.67's 22/21/34 uploads.
+- Recent-upload labels include HUD Pics and conchars in every view, supporting
+  bounded UI retention as the next experiment. These static views show no
+  obvious new corruption; motion, transparency and retail-PS2 tests remain open.
+- Added host tests of the production allocator with SDK stubs, including
+  retention, expiry, budget, prefetch failure and full-heap fallback, run under
+  address/undefined-behaviour sanitizers in CI. They do not emulate GS or DMA.
+- Alpha.70 runtime performance and visual validation are pending.
+
 ## 0.1.0-alpha.69 - 2026-08-24
 
 ### Performance

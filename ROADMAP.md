@@ -264,7 +264,10 @@ vertices, with no visible popping, missing doors or broken moving brush models.
   `21/21/7` and `34/34/22`, proving that all sampled uploads restored evicted
   textures and many victims had already been touched in the current frame
 - [ ] Keep frequently used HUD, weapon, particle and common world textures in
-  stable VRAM slots where practical
+  stable VRAM slots where practical. Alpha.70 begins bounded soft retention of
+  small recently used Pics (HUD, font and particle dot); weapon/world retention
+  remains open. The cap is 256 KB or one quarter of the heap, and demand
+  allocation can still reclaim retained ranges. Runtime validation is pending
 - [~] Reuse texture allocations across frames and reduce allocator
   fragmentation during level transitions. Alpha.68's exact monotonic LRU was
   rejected after stable sequential scans increased uploads from `22/21/34` to
@@ -368,9 +371,11 @@ development tools.
 2. Use the recorded alpha.62 Base1 captures as the VIF baseline: light,
    outdoor and heavy scenes produced `VIFchain` 70/74/89, `VIFqw`
    1911/2500/3107 and `VUstate` 93/112/128 with correct rendering.
-3. Validate alpha.69's scan-resistant opaque-world plan in the same Base1
+3. Validate alpha.70's bounded small-Pic retention in the same Base1
    scenes. Compare `Uploads`, `E/R/S`, `TexUp`, `TexDMA`, `VRAMwait`, `VRAMsync`
-   and FPS against Alpha.67/68, checking every texture/sky/transparency path.
+   and FPS against Alpha.67/69, checking every texture/sky/transparency path.
+   Alpha.69 remained at 40/40/62 uploads and 20/20/15 FPS, so its world-only
+   plan did not recover Alpha.67's 22/21/34 upload baseline.
 4. Revisit audio streaming after frame pacing is more stable; retain LOW
    11025 Hz as the nonblocking sound-effect baseline until then. Implement
    music separately as user-supplied, double-buffered PS2 ADPCM streamed by

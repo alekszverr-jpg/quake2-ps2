@@ -23,6 +23,12 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential make git wget bzip2 pkg-config curl cmake
 
+      - name: Check VRAM allocator on host
+        run: |
+          g++ -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined \
+            -Itests/vram/stubs -Isrc tests/vram/test.cpp -o /tmp/quake2-vram-test
+          /tmp/quake2-vram-test
+
       - name: Download PS2DEV prebuilt toolchain
         run: |
           mkdir -p "$PS2DEV"

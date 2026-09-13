@@ -12,7 +12,7 @@ before changing renderer, audio or memory-management code.
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current version: `0.1.0-alpha.69`
+- Current source version: `0.1.0-alpha.70` (CI/release pending)
 - Current code commit before this handoff: `4a1cc74`
   (`Plan opaque world VRAM evictions`)
 - Current published release:
@@ -20,7 +20,7 @@ before changing renderer, audio or memory-management code.
 - Alpha.69 PROFILE ELF SHA-256:
   `8D19FB2B61409DF6A953487C1917E6B1B226CB9B43730F06555AA18BA54B4791`
 
-The next code release should normally be `0.1.0-alpha.70`. This handoff-only
+The next code release after Alpha.70 should normally be `0.1.0-alpha.71`. This handoff-only
 checkpoint does not advance `VERSION`.
 
 ## Workspace safety
@@ -96,69 +96,66 @@ Renderer changes must be checked for regressions in all of the following:
 - Campaign-wide rendering, cinematics, long-session memory stability and all
   special effects are not yet fully validated.
 
-## Latest PROFILE result: Alpha.69 awaiting validation
+## Latest PROFILE result: Alpha.69 rejected for performance
 
-Alpha.68's exact bind-serial LRU was a clear sequential-scan regression. It
-reduced same-frame victims in the light/outdoor views, but doubled total reload
-churn because a stable draw-order scan larger than VRAM evicted textures just
-before their next use:
+The supplied September 13 Base1 screenshots report the following light,
+outdoor and heavy views. These are user-supplied observations, not an agent-run
+PCSX2 or retail-PS2 test.
 
 | Scene | FPS | Uploads | E/R/S | TexUp | TexDMA us | VRAMwait us | VRAMsync | VIFchain | VUWait us |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Base1 light | 20 | 41 | 40/41/4 | 27 | 609 | 284 | 13 | 23 | 94 |
-| Base1 outdoor | 20 | 41 | 41/41/4 | 28 | 659 | 239 | 10 | 18 | 142 |
-| Base1 heavy | 15 | 61 | 61/61/24 | 43 | 859 | 485 | 21 | 35 | 221 |
+| Base1 light | 20 | 40 | 45/40/12 | 26 | 587 | 295 | 13 | 21 | 85 |
+| Base1 outdoor | 20 | 40 | 40/40/5 | 27 | 669 | 279 | 11 | 19 | 171 |
+| Base1 heavy | 15 | 62 | 62/62/27 | 47 | 902 | 614 | 26 | 40 | 210 |
 
-Alpha.67 had only `22/21/34` uploads and `270/335/486` us texture DMA in the
-same three positions; its `E/R/S` values were `22/22/15`, `21/21/7` and
-`34/34/22`, with `TexUp` `20/21/34` and `VRAMsync` `13/7/20`. Alpha.68 visuals
-remained correct, so the rejection is performance-only rather than a PATH
-ordering or rendering failure.
+| Scene | Nodes | Surfs | Tris | Batches | BoxCull | SurfCull | BoxPlane | SurfBBox | VIFqw | VUvert | MD2Vert | MD2Corner |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Base1 light | 563 | 326 | 3635 | 69 | 21 | 49 | 572 | 238 | 2353 | 10905 | 949 | 5655 |
+| Base1 outdoor | 650 | 313 | 5629 | 66 | 35 | 101 | 1038 | 314 | 2760 | 16887 | 1404 | 7935 |
+| Base1 heavy | 627 | 524 | 8343 | 91 | 36 | 80 | 836 | 386 | 3949 | 25029 | 1655 | 9438 |
 
-Alpha.69 keeps the serial as a fallback but installs the BSP's complete unique
-opaque texture order as a temporary allocator plan. During the world pass,
-victim choice first prefers textures absent from the remaining plan, then the
-texture used farthest in the future. Actual binds consume their planned use;
-prefetch pins preserve it. The plan ends before entities/transparency/2D, and
-all Alpha.66 PATH1/PATH3 synchronization remains unchanged. CI passed for
-`4a1cc74`; runtime validation is pending.
+World/Ent/3D times are 23591/7874/31725, 19700/13556/33530 and
+34096/20121/54507 us. LitBuild is zero in all three captures. Static views show
+no obvious new texture/geometry corruption, but do not prove motion, glass,
+water or campaign-wide correctness. Camera/weapon/entity differences mean the
+samples are not deterministic benchmarks.
 
-## Exact next task: validate scan-resistant opaque-world planning
+Alpha.67 uploads were 22/21/34, E/R/S 22/22/15, 21/21/7, 34/34/22,
+TexDMA 270/335/486 us, TexUp 20/21/34 and VRAMsync 13/7/20.
+Alpha.68 uploads were 41/41/61, E/R/S 40/41/4, 41/41/4, 61/61/24,
+TexDMA 609/659/859 us and FPS 20/20/15. Alpha.69's world-only plan therefore
+failed to recover Alpha.67's upload baseline. The latest-upload labels include
+HUD icons and conchars in all three views; these are absent from the world
+plan but used later, motivating bounded retention rather than more exact LRU.
 
-Test the published Alpha.69 PROFILE ELF in the same three Base1 positions.
-Record lower-left `Uploads` and `E/R/S`, plus `TexUp`, `TexDMA`, `VRAMwait`,
-`VRAMsync`, FPS and the established geometry counters. Compare directly with
-the Alpha.67 baseline and Alpha.68 table above. Inspect WALs, sky, glass/water,
-weapons, entities and all renderer regression paths listed above.
+## Exact next task: validate bounded small-Pic retention
 
-The relevant files are:
+Alpha.70 prefers a recently used small-Pic subset before applying Alpha.69's
+world plan and serial fallback. Each image is at most 16 KB, touched this or
+the previous frame, with a total cap of 256 KB or one quarter of the heap.
+The subset is selected in address order on each victim scan. This is soft
+retention, not a separate permanent arena: large demand allocations can evict
+it, while prefetch still cannot recycle anything touched in the current frame.
+The built-in font and particle dot are Pics; weapons/common world retention
+remain unimplemented. No GS/PATH barriers or texture formats are changed.
 
-- `src/ps2/renderer/texture.h`
-- `src/ps2/renderer/texture.cpp`
-- `src/ps2/renderer/gs.cpp`
-- `src/ps2/renderer/render_view.cpp`
-- `src/ps2/renderer/vram.cpp`
-- `src/ps2/renderer/vram.h`
-- `src/ps2/renderer/ref.cpp`
+Host tests compile production vram.cpp with minimal SDK/texture stubs and
+exercise retention, expiration, size/budget limits, prefetch failure/success
+and full-heap fallback under ASan/UBSan in CI. They do not validate GS DMA,
+rendering or real frame time. Alpha.70 runtime validation remains pending.
 
-Counter interpretation remains:
+Test the Alpha.70 PROFILE ELF in the same three Base1 views. Compare Uploads,
+E/R/S, TexUp, TexDMA, VRAMwait, VRAMsync, FPS and geometry with both Alpha.67
+and Alpha.69 above. Check HUD/weapon changes, particles, large menus, sky,
+water/glass, moving brush models and the regression list above. A lower HUD
+reload rate is useful only if total uploads/waits improve without corruption.
+If total churn remains near Alpha.69, measure phase/type upload distribution
+before expanding retention to weapon/world textures or extending the use plan.
 
-1. `E` increments for each resident VRAM block evicted, including multiple
-   victims needed to form one larger allocation.
-2. `R` increments when a later upload restores a texture marked by eviction;
-   initial uploads, explicit releases and dirty in-place updates do not count.
-3. `S` increments when ordinary on-demand allocation evicts a texture already
-   touched this frame; bounded prefetch allocation refuses such a victim.
-4. All three counters reset with `Uploads` at `BeginFrame` and do not alter the
-   release renderer's allocation policy.
-
-Expected Alpha.69 result: `Uploads` and `R` substantially below Alpha.68, with
-lower texture DMA cost and no visual regression. `S` may rise because an
-already-consumed world texture is a correct victim for a future miss; total
-reloads and waits matter more than minimizing `S` in isolation. If Alpha.69
-does not beat Alpha.67, target stable HUD/weapon/particle slots or expand the
-known-use plan rather than restoring exact LRU as the primary policy. Preserve
-Alpha.66 PATH1/PATH3 ordering and bounded fallback during validation.
+E counts each evicted block, R counts uploads restoring previously evicted
+images, and S counts demand victims already touched this frame. Initial/dirty
+uploads are not reloads. Multiple evictions can make E exceed Uploads; all
+counters reset at BeginFrame. Lower S alone is not a performance improvement.
 
 ## Build and release procedure
 
@@ -191,7 +188,7 @@ game directories.
 
 > Continue the Quake II PS2 port in this workspace. Read HANDOFF.md completely,
 > then ROADMAP.md and CHANGELOG. Check git status and recent commits. Review the
-> Alpha.69 Base1 PROFILE results and renderer screenshots. Compare lower-left
+> Alpha.70 Base1 PROFILE results and renderer screenshots. Compare lower-left
 > Uploads and E/R/S with Alpha.67/68, together with
 > TexUp/TexDMA/VRAMwait/VRAMsync,
 > then choose the next P4 residency step without weakening PATH1/PATH3 ordering.
