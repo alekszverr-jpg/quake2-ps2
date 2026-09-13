@@ -100,7 +100,54 @@ Renderer changes must be checked for regressions in all of the following:
 - Campaign-wide rendering, cinematics, long-session memory stability and all
   special effects are not yet fully validated.
 
-## Latest PROFILE result: Alpha.70 partial churn improvement
+## Latest PROFILE result: Alpha.71 identifies sky upload traffic
+
+Supplied Base1 light/outdoor/heavy screenshots, not agent-run hardware tests:
+
+| Scene | FPS | Uploads | E/R/S | TexUp | TexDMA us | VRAMwait us | VRAMsync | VIFchain | VUWait us |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Light | 20 | 33 | 30/33/9 | 19 | 527 | 246 | 11 | 21 | 85 |
+| Outdoor | 20 | 32 | 32/32/5 | 18 | 576 | 261 | 11 | 20 | 152 |
+| Heavy | 15 | 59 | 58/59/21 | 40 | 808 | 387 | 17 | 37 | 207 |
+
+| Scene | Pic N/R/KB | Skin N/R/KB | Wall N/R/KB | Sky N/R/KB | W/E/A/P/2D |
+| --- | --- | --- | --- | --- | --- |
+| Light | 0/0/0 | 4/4/169 | 25/25/223 | 4/4/512 | 28/5/0/0/0 |
+| Outdoor | 0/0/0 | 9/9/285 | 18/18/123 | 5/5/640 | 22/9/1/0/0 |
+| Heavy | 11/11/5 | 8/8/274 | 35/35/263 | 5/5/640 | 31/17/0/0/11 |
+
+Other/Sprite are zero in all three. Type/phase sums equal Uploads. Sky is the
+largest pixel payload contributor, even in the light indoor view. HUD retention
+works in the first two captures but still churns in the heavy frame. Sky faces
+are 128 KiB each; the world plan cannot avoid their earlier sky-pass transfers.
+The current sky code clips to the VU +/-0.8 guard, whereas visible GS-scaled
+NDC spans only screen width/4096 and height/4096. This unnecessarily submits
+some faces entirely outside the framebuffer.
+
+Geometry Tris/Batches/VUvert is 3699/70/11097, 5314/65/15942 and
+7369/86/22107. World/Ent/3D us is 18165/7182/25695, 21040/11481/32794,
+32368/17378/50041. FPS remains 20/20/15. Camera, weapon and entity differences
+limit comparisons with prior captures. No obvious new corruption is visible;
+static screenshots do not establish motion or retail-PS2 correctness.
+
+## Exact next task: validate Alpha.72 sky viewport clipping
+
+Alpha.72 replaces only sky side-plane distances with the actual framebuffer
+bounds plus two pixels of overscan per edge. The existing triangle clipper then
+rejects off-screen sky faces before they can bind/upload textures. It preserves
+rotation, full-resolution images, seam sampling, exact far Z and sky-before-world
+ordering. Alpha.70 retention, world/weapon clipping and PATH barriers are intact.
+
+Compare Sky N/R/KB against Alpha.71's 4/5/5 and 512/640/640 KiB in the same
+Base1 views. Also record total Uploads, Pic/Skin/Wall, phase counts, TexDMA,
+VRAMwait/sync, geometry and FPS: fewer sky transfers must not worsen total churn.
+Rotate horizontally/vertically through all sky seams and screen edges, walk
+between indoor/outdoor views, and check NTSC/PAL, sky rotation and the existing
+weapon/water/glass/particle regression list. Runtime validation is pending.
+If sky traffic remains large after clipping, investigate portal bounds before
+considering permanent residency or a quality change. Heavy HUD churn remains open.
+
+## Previous PROFILE result: Alpha.70 partial churn improvement
 
 Supplied Base1 screenshots (light/outdoor/heavy):
 
@@ -172,7 +219,7 @@ exercise retention, expiration, size/budget limits, prefetch failure/success
 and full-heap fallback under ASan/UBSan in CI. They do not validate GS DMA,
 rendering or real frame time. Alpha.70 screenshot results are recorded above.
 
-## Exact next task: measure remaining churn with Alpha.71
+## Alpha.71 diagnostic reference
 
 Alpha.71 retains Alpha.70 policy and adds PROFILE-only upload accounting.
 In GAME -> TEST MAP -> DIAGNOSTICS: FULL, the right-side UP TYPE panel shows
@@ -193,9 +240,9 @@ Repeat the same Base1 positions with the same weapon, camera and settled scene.
 Record the new panel together with Uploads/E/R/S, TexUp/TexDMA/VRAMwait/VRAMsync,
 FPS and geometry. Use the dominant type/phase to choose further P4 work:
 weapon/skin retention, expansion of the known-use plan or fragmentation work.
-Do not change policy again without these measurements. Check panel readability
+The supplied Alpha.71 measurements above motivate sky clipping. Check panel readability
 in NTSC/PAL and the usual HUD/weapon/particle/sky/water/glass regressions.
-Alpha.71 runtime validation is pending; instrumentation does not claim a speedup.
+Alpha.71 screenshots confirm readable accounting; instrumentation claims no speedup.
 
 E counts each evicted block, R counts uploads restoring previously evicted
 images, and S counts demand victims already touched this frame. Initial/dirty
@@ -234,8 +281,8 @@ game directories.
 
 > Continue the Quake II PS2 port in this workspace. Read HANDOFF.md completely,
 > then ROADMAP.md and CHANGELOG. Check git status and recent commits. Review the
-> Alpha.71 Base1 PROFILE results and renderer screenshots. Compare lower-left
-> Uploads and E/R/S with Alpha.67/70, together with
+> Alpha.72 Base1 PROFILE results and renderer screenshots. Compare lower-left
+> Uploads and E/R/S with Alpha.67/71, together with
 > TexUp/TexDMA/VRAMwait/VRAMsync,
 > then choose the next P4 residency step without weakening PATH1/PATH3 ordering.
 > Build and publish only the numbered PROFILE prerelease, copy the successful

@@ -1328,6 +1328,18 @@ ClipVertex MakeSkyVertex(float s, float t, int axis, const refdef_t & viewDef,
                   0.0f, 0.0f };
     vertex.color = { 128.0f, 128.0f, 128.0f, 128.0f };
     SetClipDistances(vertex, mvp);
+    // The GS projection scales the visible screen to width/4096 and
+    // height/4096 NDC, far inside the VU's +/-0.8 guard band. Sky faces
+    // surviving only in that off-screen margin still trigger 128 KB uploads.
+    // Clip sky to the framebuffer with two pixels of overscan on each edge;
+    // keep the general world/weapon guard and exact far-depth handling intact.
+    const math::Vec4 clip = math::Transform(vertex.pos, mvp);
+    const float screenX = (static_cast<float>(gs::Width()) + 4.0f) / 4096.0f;
+    const float screenY = (static_cast<float>(gs::Height()) + 4.0f) / 4096.0f;
+    vertex.d.f[2] = screenX * clip.w - clip.x;
+    vertex.d.f[3] = screenX * clip.w + clip.x;
+    vertex.d.f[4] = screenY * clip.w - clip.y;
+    vertex.d.f[5] = screenY * clip.w + clip.y;
     // The sky projection deliberately places z exactly on the far plane.
     // The generic EE clipper subtracts kClipEpsilon and would otherwise
     // reject that boundary even though VU1/GS accept it. Keep all other clip

@@ -373,11 +373,12 @@ development tools.
 2. Use the recorded alpha.62 Base1 captures as the VIF baseline: light,
    outdoor and heavy scenes produced `VIFchain` 70/74/89, `VIFqw`
    1911/2500/3107 and `VUstate` 93/112/128 with correct rendering.
-3. Use Alpha.71 FULL diagnostics to identify remaining uploads by image type
-   and phase in the same Base1 scenes. Record N/R/KB and W/E/A/P/2D together
-   with Uploads, E/R/S, TexUp, TexDMA, VRAMwait, VRAMsync, geometry and FPS.
-   Alpha.70 improved uploads to 32/34/47 but has not recovered Alpha.67's
-   22/21/34 baseline. Measure before extending retention or the world use plan.
+3. Validate Alpha.72's sky viewport clipping in the same Base1 scenes. Alpha.71
+   exposed 4/5/5 sky reloads (512/640/640 KiB per frame), with Pic 0/0/11,
+   Skin 4/9/8 and Wall 25/18/35. Check reduced Sky N/R/KB and total uploads
+   alongside phase counts, TexDMA/VRAM waits and FPS. Rotate through sky seams
+   and screen edges in NTSC/PAL; full resolution and far-depth ordering remain
+   unchanged. Heavy-frame HUD churn still needs further P4 investigation.
 4. Revisit audio streaming after frame pacing is more stable; retain LOW
    11025 Hz as the nonblocking sound-effect baseline until then. Implement
    music separately as user-supplied, double-buffered PS2 ADPCM streamed by

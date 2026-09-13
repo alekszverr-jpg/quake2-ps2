@@ -6,6 +6,29 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.72 - 2026-09-13
+
+### Performance
+
+- Clip sky triangles to the visible framebuffer plus two pixels of overscan
+  on each edge, instead of the much wider VU guard band. Faces that survive
+  only outside the screen no longer produce scratch geometry or texture binds.
+- Preserve full sky texture resolution, rotation, seam coordinates, exact far
+  depth and sky-before-world ordering. Ordinary world/weapon clipping, texture
+  retention and all PATH1/PATH3 barriers are unchanged.
+
+### Alpha.71 measurements
+
+- Light/outdoor/heavy captures report 33/32/59 uploads and 20/20/15 FPS.
+  Pic uploads are 0/0/11, Skin 4/9/8, Wall 25/18/35 and Sky 4/5/5;
+  every uploaded image is a reload. Sky alone transfers 512/640/640 KiB,
+  versus Wall 223/123/263 and Skin 169/285/274 KiB.
+- Phase W/E/A/P/2D totals are 28/5/0/0/0, 22/9/1/0/0 and 31/17/0/0/11,
+  matching total Uploads. Heavy-scene HUD retention is still imperfect.
+- The sky draw path uses the GS-scaled projection but clips against the wide
+  VU guard, allowing off-screen faces to trigger uploads. Alpha.72 targets that
+  avoidable work without reserving more VRAM. Runtime validation is pending.
+
 ## 0.1.0-alpha.71 - 2026-09-13
 
 ### Diagnostics
