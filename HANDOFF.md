@@ -13,18 +13,18 @@ before changing renderer, audio or memory-management code.
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current version: `0.1.0-alpha.70`
-- Current code commit before this handoff: `adf2ffd`
-  (`Retain bounded small HUD textures across world scans`)
+- Current version: `0.1.0-alpha.71`
+- Current code commit before this handoff: `c52f5d5`
+  (`Profile texture uploads by image type and render phase`)
 - Current published release:
-  `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.70`
-- Alpha.70 PROFILE ELF SHA-256 (7,504,756 bytes):
-  `5A54B32A315BFF1FC7D5370F6D1271B7A64B2295BA95ACFC17DB82CC16F3DC52`
-- CI `34740150864` passed host allocator ASan/UBSan tests and the PROFILE build.
+  `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.71`
+- Alpha.71 PROFILE ELF SHA-256 (7,512,224 bytes):
+  `CEFABD7510F0795456861DAEAD6B4926B2F45907EFAA2DCA682E5D9C5E4A5DEF`
+- CI `34740946902` passed host allocator ASan/UBSan tests and the PROFILE build.
   Both root ELF copies above match the downloaded CI artifact. The release
   contains only `quake2-profile.elf`.
 
-The next code release should normally be `0.1.0-alpha.71`. This handoff-only
+The next code release should normally be `0.1.0-alpha.72`. This handoff-only
 checkpoint does not advance `VERSION`.
 
 ## Workspace safety

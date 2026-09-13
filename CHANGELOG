@@ -20,6 +20,9 @@ Development priorities and completion criteria are tracked in
   excludes DMA tags and GS allocation padding; it is not retained VRAM size.
 - Extended the host allocator tests to verify first/dirty versus eviction
   reload counts, payload bytes, phase attribution and per-frame reset.
+- CI `34740946902` passed sanitized host tests and the PROFILE build for
+  `c52f5d5`; Alpha.71 was published with only quake2-profile.elf and matching
+  root copies. Runtime measurement and panel readability checks are pending.
 
 ### Alpha.70 results
 
