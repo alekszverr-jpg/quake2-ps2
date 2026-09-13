@@ -13,19 +13,27 @@ before changing renderer, audio or memory-management code.
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current version: `0.1.0-alpha.71`
-- Current code commit before this handoff: `c52f5d5`
-  (`Profile texture uploads by image type and render phase`)
+- Current source/test version: `0.1.0-alpha.72` (release publication blocked)
+- Current code commit before this handoff: `978fa46`
+  (`Clip sky faces to the visible GS viewport`)
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.71`
-- Alpha.71 PROFILE ELF SHA-256 (7,512,224 bytes):
-  `CEFABD7510F0795456861DAEAD6B4926B2F45907EFAA2DCA682E5D9C5E4A5DEF`
-- CI `34740946902` passed host allocator ASan/UBSan tests and the PROFILE build.
-  Both root ELF copies above match the downloaded CI artifact. The release
+- Alpha.72 local PROFILE ELF SHA-256 (7,513,024 bytes):
+  `B7C8ABB549B1F533C9392DC05E21CF944A1F65BFFCD9494267533A5BDB121549`
+- CI `34762425594` passed host allocator ASan/UBSan tests and the PROFILE build.
+  Both root ELF copies above match the downloaded CI artifact. Alpha.71 release
   contains only `quake2-profile.elf`.
 
-The next code release should normally be `0.1.0-alpha.72`. This handoff-only
+Publish the prepared Alpha.72 before advancing to `0.1.0-alpha.73`. This handoff-only
 checkpoint does not advance `VERSION`.
+
+## Pending publication
+
+Automatic approval review twice rejected uploading Alpha.72 ELF/release notes to
+alekszverr-jpg/quake2-ps2, requesting explicit payload/destination authorization.
+The code is on fork main and PROFILE CI passed; Alpha.72 is not published.
+Ask for explicit approval before retrying publication. Do not rebuild or bump
+the version just to publish the existing checked artifact.
 
 ## Workspace safety
 

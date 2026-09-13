@@ -28,6 +28,9 @@ Development priorities and completion criteria are tracked in
 - The sky draw path uses the GS-scaled projection but clips against the wide
   VU guard, allowing off-screen faces to trigger uploads. Alpha.72 targets that
   avoidable work without reserving more VRAM. Runtime validation is pending.
+- PROFILE CI `34762425594` and existing host allocator tests passed for
+  `978fa46`. Local PROFILE ELF copies are ready. Alpha.72 release publication
+  is pending explicit approval after automatic approval review rejected upload.
 
 ## 0.1.0-alpha.71 - 2026-09-13
 
