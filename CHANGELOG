@@ -21,6 +21,9 @@ Development priorities and completion criteria are tracked in
   fragmentation versus total heap pressure is not yet established.
 - No allocation policy or gameplay cleanup is changed. Repeat the long route
   and capture the complete error with both HEAP lines if it fails again.
+- PROFILE CI `34763196754` passed for `8299585`; local root ELFs match the
+  artifact. Publication awaits explicit approval after automatic review
+  rejected Alpha.73 upload. Runtime diagnosis remains pending.
 
 ## 0.1.0-alpha.72 - 2026-09-13
 
