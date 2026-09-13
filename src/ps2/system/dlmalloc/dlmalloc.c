@@ -63,6 +63,14 @@ size_t PS2_DlLargestFreeChunk(void)
     return largest;
 }
 
+void PS2_DlHeapStats(size_t * arena, size_t * used, size_t * available)
+{
+    struct mallinfo info = mALLINFo();
+    *arena = info.arena;
+    *used = info.uordblks;
+    *available = info.fordblks;
+}
+
 /* ------------------------------------------------------------------------------------------------
  * Global allocator override: public C API -> dlmalloc.
  * ---------------------------------------------------------------------------------------------- */
