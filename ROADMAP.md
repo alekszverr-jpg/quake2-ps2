@@ -263,7 +263,7 @@ vertices, with no visible popping, missing doors or broken moving brush models.
   per frame. Alpha.67's supplied captures reported `E/R/S` of `22/22/15`,
   `21/21/7` and `34/34/22`, proving that all sampled uploads restored evicted
   textures and many victims had already been touched in the current frame
-- [ ] Keep frequently used HUD, weapon, particle and common world textures in
+- [~] Keep frequently used HUD, weapon, particle and common world textures in
   stable VRAM slots where practical. Alpha.70 begins bounded soft retention of
   small recently used Pics (HUD, font and particle dot); weapon/world retention
   remains open. The cap is 256 KB or one quarter of the heap, and demand

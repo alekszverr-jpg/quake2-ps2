@@ -31,6 +31,8 @@ Development priorities and completion criteria are tracked in
   retention, expiry, budget, prefetch failure and full-heap fallback, run under
   address/undefined-behaviour sanitizers in CI. They do not emulate GS or DMA.
 - Alpha.70 runtime performance and visual validation are pending.
+- CI `34740150864` passed both the sanitized host allocator tests and the
+  PROFILE build for `adf2ffd`; the prerelease contains only quake2-profile.elf.
 
 ## 0.1.0-alpha.69 - 2026-08-24
 

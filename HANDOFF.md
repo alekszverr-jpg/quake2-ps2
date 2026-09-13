@@ -6,21 +6,25 @@ before changing renderer, audio or memory-management code.
 
 ## Repository checkpoint
 
-- Workspace: `C:\Users\user\Documents\quake2-ps2`
-- Active Git branch: `main`
+- Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
+- Local testing project: `C:\Users\user\Documents\quake2-ps2`
+- Worktree branch: `codex/alpha70-small-pic-retention`; published to fork `main`
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source version: `0.1.0-alpha.70` (CI/release pending)
-- Current code commit before this handoff: `4a1cc74`
-  (`Plan opaque world VRAM evictions`)
+- Current version: `0.1.0-alpha.70`
+- Current code commit before this handoff: `adf2ffd`
+  (`Retain bounded small HUD textures across world scans`)
 - Current published release:
-  `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.69`
-- Alpha.69 PROFILE ELF SHA-256:
-  `8D19FB2B61409DF6A953487C1917E6B1B226CB9B43730F06555AA18BA54B4791`
+  `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.70`
+- Alpha.70 PROFILE ELF SHA-256 (7,504,756 bytes):
+  `5A54B32A315BFF1FC7D5370F6D1271B7A64B2295BA95ACFC17DB82CC16F3DC52`
+- CI `34740150864` passed host allocator ASan/UBSan tests and the PROFILE build.
+  Both root ELF copies above match the downloaded CI artifact. The release
+  contains only `quake2-profile.elf`.
 
-The next code release after Alpha.70 should normally be `0.1.0-alpha.71`. This handoff-only
+The next code release should normally be `0.1.0-alpha.71`. This handoff-only
 checkpoint does not advance `VERSION`.
 
 ## Workspace safety
@@ -172,8 +176,9 @@ make BUILD=profile
 For every numbered code release:
 
 1. Update source plus `VERSION`, README badge, `CHANGELOG` and `ROADMAP.md`.
-2. Stage only those exact files and commit on `main`.
-3. Push to remote `fork`.
+2. Stage only those exact files and commit in the development worktree.
+3. Verify fork `main` has not advanced independently, then fast-forward it
+   from the worktree branch. Never force-push or reset the user's main checkout.
 4. Wait for the GitHub Actions `build` run to pass.
 5. Download its artifact into a new `build/ci-<short-commit>/` directory.
 6. Compute and record the PROFILE ELF SHA-256.
@@ -189,7 +194,7 @@ game directories.
 > Continue the Quake II PS2 port in this workspace. Read HANDOFF.md completely,
 > then ROADMAP.md and CHANGELOG. Check git status and recent commits. Review the
 > Alpha.70 Base1 PROFILE results and renderer screenshots. Compare lower-left
-> Uploads and E/R/S with Alpha.67/68, together with
+> Uploads and E/R/S with Alpha.67/69, together with
 > TexUp/TexDMA/VRAMwait/VRAMsync,
 > then choose the next P4 residency step without weakening PATH1/PATH3 ordering.
 > Build and publish only the numbered PROFILE prerelease, copy the successful
