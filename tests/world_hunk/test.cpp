@@ -3,6 +3,9 @@
 #include <cstdio>
 #include <unordered_map>
 #include <vector>
+#ifdef _WIN32
+#include <malloc.h>
+#endif
 
 static std::unordered_map<void *, size_t> live;
 static size_t maxChunk = 512 * 1024;
@@ -11,7 +14,12 @@ void * PS2_MemTryAllocAligned(size_t alignment, size_t bytes, PS2MemTag tag)
     assert(tag == MEMTAG_MDL_WORLD);
     if (bytes > maxChunk) return nullptr;
     void * result = nullptr;
+#ifdef _WIN32
+    result = _aligned_malloc(bytes, alignment);
+    if (result == nullptr) return nullptr;
+#else
     if (posix_memalign(&result, alignment, bytes) != 0) return nullptr;
+#endif
     live[result] = bytes;
     return result;
 }
@@ -25,7 +33,11 @@ void PS2_MemFree(void * ptr, size_t bytes, PS2MemTag tag)
 {
     assert(tag == MEMTAG_MDL_WORLD && live.at(ptr) == bytes);
     live.erase(ptr);
+#ifdef _WIN32
+    _aligned_free(ptr);
+#else
     std::free(ptr);
+#endif
 }
 
 int main()

@@ -8,14 +8,14 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; published to fork `main`
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.74 changes are local only
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.73` (publication pending approval)
-- Current code commit before this handoff: `8299585`
-  (`Expose heap statistics through the PS2 allocator wrapper`)
+- Current source version: `0.1.0-alpha.74` (PS2 build not yet available)
+- Current implementation commit: `7864242`
+  (`Fall back to segmented BSP storage on fragmented heaps`)
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
 - Alpha.73 local PROFILE ELF SHA-256 (7,514,992 bytes):
@@ -30,9 +30,8 @@ checkpoint does not advance `VERSION`.
 ## Publication preference
 
 The user paused GitHub releases: prepare local PROFILE test builds until a
-confirmed result warrants publication and the user requests it. Continue using
-the established PROFILE CI toolchain, but do not create releases or upload assets
-to releases. Alpha.73 was not published; Alpha.72 is the latest public release.
+confirmed result warrants publication and the user requests it. Automatic approval review also blocked pushing Alpha.74 source for CI.
+Do not retry the push without explicit CI authorization. Alpha.73 was not published; Alpha.72 is the latest public release.
 
 ## Workspace safety
 
@@ -106,6 +105,21 @@ Renderer changes must be checked for regressions in all of the following:
   copyrighted CD audio must not be bundled.
 - Campaign-wide rendering, cinematics, long-session memory stability and all
   special effects are not yet fully validated.
+
+## Alpha.74 local verification and build blocker
+
+The production segment helper passed native MinGW g++ tests with warnings as
+errors: 5,063,632 logical bytes under a 512 KB per-allocation cap, alignment,
+zero-fill, stable records, four teardown cycles and exact-size allocation when
+a 64 KB chunk cannot fit. Existing VRAM tests also passed. These local runs
+had no sanitizers; the configured Linux CI would run ASan/UBSan. Neither test
+is a PS2 game execution or proof that the level transition now succeeds.
+
+MinGW is at C:/msys64/mingw64/bin/g++.exe. No local PS2 cross compiler was found
+in MSYS2, the project's tools or Downloads, and no WSL distro was listed.
+The CI push was rejected due to the user's GitHub pause. Ask whether pushing
+source for PROFILE CI alone is permitted, with releases still paused. Until
+then the root ELF remains Alpha.73; do not label it as Alpha.74.
 
 ## Current transition result and Alpha.74 test target
 
