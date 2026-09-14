@@ -25,10 +25,10 @@ Development priorities and completion criteria are tracked in
   teardown and exact-size fallback. Actual Base1 -> Base2 validation is pending.
 - GitHub releases are paused at the user's request. Use the local PROFILE ELF
   and retain the Alpha.73 error diagnostics for further transition tests.
-- Native MinGW segment/VRAM tests passed without sanitizers. Alpha.74 PS2 ELF
-  is not yet built: automatic approval review also blocked the source push for
-  CI. Root test ELFs remain Alpha.73 until CI is explicitly authorized or a
-  local PS2 toolchain is available.
+- Native MinGW segment/VRAM tests passed; after explicit GitHub authorization,
+  CI `34801447124` also passed both test suites with ASan/UBSan and built only
+  quake2-profile.elf for `1d4ae74`. Root ELFs now contain Alpha.74 with matching
+  SHA-256. Actual long-session level-transition validation remains pending.
 
 ## 0.1.0-alpha.73 - 2026-09-13
 

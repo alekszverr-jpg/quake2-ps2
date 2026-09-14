@@ -373,6 +373,8 @@ Alpha.73 confirms fragmentation: 12,582,584 bytes free, largest chunk 2,611,976
 against a 5,063,632-byte request. Validate Alpha.74's segmented world fallback
 after long Base1 exploration and repeated Base1 -> Base2 -> Base3 transitions;
 old world/alias resources were already freed. GitHub releases remain paused.
+Alpha.74 PROFILE CI and sanitized BSP/VRAM host tests passed; the local ELF is
+ready. GitHub push/CI is authorized, while release publication awaits results.
 
 1. Keep alpha.54 PROFILE as the culling baseline: repeat the same camera pairs
    after each renderer optimization and compare FPS, `Ent us`, `MD2Vert`,

@@ -8,19 +8,19 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.74 changes are local only
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.74 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source version: `0.1.0-alpha.74` (PS2 build not yet available)
+- Current source/test version: `0.1.0-alpha.74` (PROFILE CI passed)
 - Current implementation commit: `7864242`
   (`Fall back to segmented BSP storage on fragmented heaps`)
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.73 local PROFILE ELF SHA-256 (7,514,992 bytes):
-  `A8CD8AAEAACB923D73E273B33831EB2120A1248F01BB8B5C8C22949ADFFEDF09`
-- CI `34763196754` passed host allocator ASan/UBSan tests and the PROFILE build.
+- Alpha.74 local PROFILE ELF SHA-256 (7,559,692 bytes):
+  `9C95875ED33034AD055085F570B68E3C9E6A8C5C21D613CAE5EE21C71BEA9A9A`
+- CI `34801447124` passed BSP/VRAM ASan/UBSan tests and the PROFILE build for `1d4ae74`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
@@ -29,9 +29,10 @@ checkpoint does not advance `VERSION`.
 
 ## Publication preference
 
-The user paused GitHub releases: prepare local PROFILE test builds until a
-confirmed result warrants publication and the user requests it. Automatic approval review also blocked pushing Alpha.74 source for CI.
-Do not retry the push without explicit CI authorization. Alpha.73 was not published; Alpha.72 is the latest public release.
+The user explicitly authorized any GitHub actions on September 14, including
+push/CI. Continue PROFILE-only builds. New numbered releases remain deferred
+until a useful runtime result, as requested earlier. Alpha.72 is the latest
+public release; Alpha.74 is available locally for testing.
 
 ## Workspace safety
 
@@ -106,20 +107,13 @@ Renderer changes must be checked for regressions in all of the following:
 - Campaign-wide rendering, cinematics, long-session memory stability and all
   special effects are not yet fully validated.
 
-## Alpha.74 local verification and build blocker
+## Alpha.74 verification
 
-The production segment helper passed native MinGW g++ tests with warnings as
-errors: 5,063,632 logical bytes under a 512 KB per-allocation cap, alignment,
-zero-fill, stable records, four teardown cycles and exact-size allocation when
-a 64 KB chunk cannot fit. Existing VRAM tests also passed. These local runs
-had no sanitizers; the configured Linux CI would run ASan/UBSan. Neither test
-is a PS2 game execution or proof that the level transition now succeeds.
-
-MinGW is at C:/msys64/mingw64/bin/g++.exe. No local PS2 cross compiler was found
-in MSYS2, the project's tools or Downloads, and no WSL distro was listed.
-The CI push was rejected due to the user's GitHub pause. Ask whether pushing
-source for PROFILE CI alone is permitted, with releases still paused. Until
-then the root ELF remains Alpha.73; do not label it as Alpha.74.
+Native MinGW host tests and Linux CI ASan/UBSan tests passed for segmented BSP
+allocation and VRAM accounting. PROFILE CI 34801447124 passed for 1d4ae74.
+Only quake2-profile.elf was built for PS2; both root copies match the hash above.
+The tests validate allocation alignment, zero-fill, lifetime, repeated teardown
+and exact-size fallback. The long Base1 -> Base2 gameplay test remains pending.
 
 ## Current transition result and Alpha.74 test target
 
