@@ -107,6 +107,29 @@ Renderer changes must be checked for regressions in all of the following:
 - Campaign-wide rendering, cinematics, long-session memory stability and all
   special effects are not yet fully validated.
 
+## Priority: Alpha.74 runtime image OOM on the third map
+
+The user reached the third map and reported a gameplay-time TexImage OOM:
+262,144 bytes / alignment 128; arena 21,901,296, used 21,101,912,
+free 799,384, largest free chunk 133,704. Tags include Mdl_World 6.43 MB,
+TexImage 3.89 MB, Alias 2.88 MB, Quake 5.75 MB. This is both low available
+memory and fragmentation, distinct from the earlier large world-hunk failure.
+Reaching map three does not prove every transition/fallback path is validated.
+
+Alpha.75 targets the matching lazy-sky load path: a 256x256 TGA previously
+needed a 256 KB RGBA decode plus a simultaneous 128 KB RGB16 conversion.
+Sky now decodes directly into its final 128 KB RGB16 output, retaining identical
+packing and row order. Regular TGA images still use RGBA32. The first sky
+resolution also clears regenerable lighting caches before world submission;
+no cached geometry pointers are in use at that point. No texture quality loss
+or change to depth/PATH ordering is intended. The failing filename was not
+shown, so runtime confirmation of this targeted fix is still required.
+
+Next: repeat the route to map three and explore/fight until the previously
+failing view, checking sky, lights, doors, water/glass and weapons. If it fails,
+record full HEAP/tags. Large non-sky images, source-file buffers and aggregate
+memory pressure may still require further work. Keep releases deferred.
+
 ## Alpha.74 verification
 
 Native MinGW host tests and Linux CI ASan/UBSan tests passed for segmented BSP

@@ -51,22 +51,19 @@ void FreePixels(u8 * pic, int sizeBytes)
 
 // TGA rows are stored bottom-up; the decoders below write the file's pixel
 // stream top-down into the buffer, then this puts the rows in sampling order.
-void FlipRowsInPlace(u8 * pic, int width, int height)
+void FlipRowsInPlace(u8 * pic, int width, int height, int bytesPerPixel)
 {
-    u32 * texels = static_cast<u32 *>(static_cast<void *>(pic));
+    const int rowBytes = width * bytesPerPixel;
     for (int top = 0, bottom = height - 1; top < bottom; ++top, --bottom)
     {
-        u32 * rowA = texels + (top    * width);
-        u32 * rowB = texels + (bottom * width);
-        for (int x = 0; x < width; ++x)
+        for (int i = 0; i < rowBytes; ++i)
         {
-            const u32 tmp = rowA[x];
-            rowA[x] = rowB[x];
-            rowB[x] = tmp;
+            const u8 value = pic[top * rowBytes + i];
+            pic[top * rowBytes + i] = pic[bottom * rowBytes + i];
+            pic[bottom * rowBytes + i] = value;
         }
     }
 }
-
 } // namespace
 
 // ------------------------------------------------------------------------------------------------
@@ -277,7 +274,7 @@ bool LoadWal(const char * filename, u8 ** outPic, int * outWidth, int * outHeigh
 // TGA
 // ------------------------------------------------------------------------------------------------
 
-bool LoadTga(const char * filename, u8 ** outPic, int * outWidth, int * outHeight, bool * outHasAlpha)
+bool LoadTga(const char * filename, u8 ** outPic, int * outWidth, int * outHeight, bool * outHasAlpha, bool opaque16)
 {
     constexpr int kTgaHeaderBytes = 18;
 
@@ -326,8 +323,25 @@ bool LoadTga(const char * filename, u8 ** outPic, int * outWidth, int * outHeigh
     const int bytesPerPixel = pixelSize / 8;
     const int pixelCount    = width * height;
 
-    u8 * pic = AllocPixels(pixelCount * 4);
+    const int outputBytes = opaque16 ? 2 : 4;
+    u8 * pic = AllocPixels(pixelCount * outputBytes);
     u8 * out = pic;
+    const auto writePixel = [&](u8 r, u8 g, u8 b, u8 alpha)
+    {
+        if (opaque16)
+        {
+            const u16 packed = static_cast<u16>(0x8000u |
+                ((static_cast<u32>(b) >> 3) << 10) |
+                ((static_cast<u32>(g) >> 3) << 5) | (static_cast<u32>(r) >> 3));
+            out[0] = static_cast<u8>(packed & 255u);
+            out[1] = static_cast<u8>(packed >> 8);
+        }
+        else
+        {
+            out[0] = r; out[1] = g; out[2] = b; out[3] = alpha;
+        }
+        out += outputBytes;
+    };
 
     // Both variants decode BGR(A) into a flat top-down RGBA stream (RLE runs
     // simply continue across row boundaries); rows are flipped afterwards.
@@ -342,11 +356,7 @@ bool LoadTga(const char * filename, u8 ** outPic, int * outWidth, int * outHeigh
         {
             for (int i = 0; i < pixelCount; ++i)
             {
-                out[0] = in[2];
-                out[1] = in[1];
-                out[2] = in[0];
-                out[3] = (bytesPerPixel == 4) ? in[3] : 255;
-                out += 4;
+                writePixel(in[2], in[1], in[0], (bytesPerPixel == 4) ? in[3] : 255);
                 in  += bytesPerPixel;
             }
         }
@@ -382,11 +392,7 @@ bool LoadTga(const char * filename, u8 ** outPic, int * outWidth, int * outHeigh
 
                 for (int i = 0; i < packetSize; ++i)
                 {
-                    out[0] = r;
-                    out[1] = g;
-                    out[2] = b;
-                    out[3] = a;
-                    out += 4;
+                    writePixel(r, g, b, a);
                 }
             }
             else // raw packet
@@ -398,11 +404,7 @@ bool LoadTga(const char * filename, u8 ** outPic, int * outWidth, int * outHeigh
                 }
                 for (int i = 0; i < packetSize; ++i)
                 {
-                    out[0] = in[2];
-                    out[1] = in[1];
-                    out[2] = in[0];
-                    out[3] = (bytesPerPixel == 4) ? in[3] : 255;
-                    out += 4;
+                    writePixel(in[2], in[1], in[0], (bytesPerPixel == 4) ? in[3] : 255);
                     in  += bytesPerPixel;
                 }
             }
@@ -416,16 +418,16 @@ bool LoadTga(const char * filename, u8 ** outPic, int * outWidth, int * outHeigh
     if (malformed)
     {
         Com_DPrintf("WARNING: Malformed TGA file '%s'\n", filename);
-        FreePixels(pic, pixelCount * 4);
+        FreePixels(pic, pixelCount * outputBytes);
         return false;
     }
 
-    FlipRowsInPlace(pic, width, height);
+    FlipRowsInPlace(pic, width, height, outputBytes);
 
     *outPic      = pic;
     *outWidth    = width;
     *outHeight   = height;
-    *outHasAlpha = (pixelSize == 32);
+    *outHasAlpha = !opaque16 && (pixelSize == 32);
     return true;
 }
 

@@ -37,6 +37,8 @@ bool LoadWal(const char * filename, u8 ** outPic, int * outWidth, int * outHeigh
 // TGA (types 2 and 10, 24/32 bpp, no colormaps - all Quake II ever shipped):
 // RGBA32 texels, 4 bytes/texel. *outHasAlpha is set when the file carried an
 // alpha channel (32 bpp source); 24 bpp texels get alpha 255.
-bool LoadTga(const char * filename, u8 ** outPic, int * outWidth, int * outHeight, bool * outHasAlpha);
+// opaque16 decodes directly to opaque GS RGB5A1, 2 bytes/texel, for sky faces.
+bool LoadTga(const char * filename, u8 ** outPic, int * outWidth, int * outHeight,
+             bool * outHasAlpha, bool opaque16 = false);
 
 } // namespace ps2::img

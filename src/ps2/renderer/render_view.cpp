@@ -1258,6 +1258,11 @@ void ResolveSkyTextures()
         return;
     }
 
+    // First sky visibility can occur long after level registration, when the
+    // optional lighting cache has filled otherwise reusable EE memory. This
+    // runs before world submission; cached geometry can safely be rebuilt.
+    ClearLitTriangleCaches();
+
     for (int face = 0; face < 6; ++face)
     {
         char path[MAX_QPATH];

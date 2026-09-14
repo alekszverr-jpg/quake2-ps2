@@ -35,6 +35,12 @@ jobs:
             -Itests/vram/stubs -Isrc tests/world_hunk/test.cpp -o /tmp/quake2-world-hunk-test
           /tmp/quake2-world-hunk-test
 
+      - name: Check TGA output formats on host
+        run: |
+          g++ -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined \
+            -Itests/image_load/stubs -Itests/vram/stubs -Isrc tests/image_load/test.cpp -o /tmp/quake2-image-test
+          /tmp/quake2-image-test
+
       - name: Download PS2DEV prebuilt toolchain
         run: |
           mkdir -p "$PS2DEV"

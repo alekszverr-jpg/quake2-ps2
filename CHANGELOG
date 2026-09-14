@@ -6,6 +6,20 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.75 - 2026-09-14 (local test build)
+
+- Address the lazy-sky image allocation peak by decoding TGA sky faces directly
+  to opaque RGB16. A 256x256 face no longer needs a temporary 256 KB RGBA
+  buffer alongside its final 128 KB image. Regular TGA output remains RGBA32.
+- Release regenerable lighting caches before the first sky texture resolution,
+  before world geometry submission, to make memory available for required art.
+- Alpha.74 user report: gameplay-time image OOM on map three, requesting
+  262,144 aligned bytes with 799,384 free and largest chunk 133,704. This
+  matches the old sky decode request, but the failed image name is unavailable;
+  the targeted fix still needs runtime validation.
+- Native tests compare RGB16 output with the old conversion for raw/RLE and
+  24/32-bit TGA, and check malformed-input cleanup. CI runs them with sanitizers.
+
 ## 0.1.0-alpha.74 - 2026-09-13 (local test build)
 
 ### Level-transition memory

@@ -367,6 +367,11 @@ development tools.
 
 ## Immediate priorities
 
+Alpha.74 reached map three but hit a gameplay-time 256 KB image allocation
+failure with only 799,384 bytes free / 133,704 largest chunk. Validate Alpha.75
+direct RGB16 sky decode and pre-sky lighting-cache reclaim before resuming
+VRAM optimization. The exact failed texture is not identified by the report.
+
 Transition failure takes precedence over VRAM optimization: the user reports
 Base1 -> Base2 fails after long exploration but succeeds after a quick run.
 Alpha.73 confirms fragmentation: 12,582,584 bytes free, largest chunk 2,611,976
