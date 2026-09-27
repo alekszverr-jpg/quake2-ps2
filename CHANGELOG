@@ -16,7 +16,9 @@ Development priorities and completion criteria are tracked in
 - Temporarily disable developer logging and console notifications, restoring
   both on completion/cancellation. Results draw on an opaque black background.
 - Regression tests cover stale frames before serverdata, duplicate frame IDs,
-  setting restoration and result-background drawing. Hardware validation pending.
+  setting restoration and result-background drawing. CI `36311839100` passed
+  sanitizer tests and PROFILE build; both local ELF copies are hash-verified.
+  Hardware validation pending.
 - Alpha.77 preliminary user results: 688/689/689 frames, 30.74/28.17/27.98 FPS.
   Do not compare these directly to the corrected Alpha.78 measurement protocol.
 
