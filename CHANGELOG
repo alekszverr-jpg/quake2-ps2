@@ -19,6 +19,9 @@ Development priorities and completion criteria are tracked in
   the targeted fix still needs runtime validation.
 - Native tests compare RGB16 output with the old conversion for raw/RLE and
   24/32-bit TGA, and check malformed-input cleanup. CI runs them with sanitizers.
+- CI `34802415843` passed the host tests and PROFILE build. Both local testing
+  ELF copies were updated and hash-verified on September 27; gameplay validation
+  on the third map remains pending.
 
 ## 0.1.0-alpha.74 - 2026-09-13 (local test build)
 

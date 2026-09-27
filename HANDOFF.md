@@ -8,19 +8,20 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.74 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.75 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.74` (PROFILE CI passed)
-- Current implementation commit: `7864242`
-  (`Fall back to segmented BSP storage on fragmented heaps`)
+- Current source/test version: `0.1.0-alpha.75` (PROFILE CI passed; runtime test pending)
+- Current implementation commit: `74e43c1`
+  (`Reduce lazy sky loading memory peak`)
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.74 local PROFILE ELF SHA-256 (7,559,692 bytes):
-  `9C95875ED33034AD055085F570B68E3C9E6A8C5C21D613CAE5EE21C71BEA9A9A`
-- CI `34801447124` passed BSP/VRAM ASan/UBSan tests and the PROFILE build for `1d4ae74`.
+- Alpha.75 local PROFILE ELF SHA-256 (7,562,348 bytes):
+  `E4EB44A4629B4B3DBBEEAA6AF9C670650A99228533A7B3633C8B86F90442ACA3`
+- CI `34802415843` passed the host tests (BSP/VRAM/TGA with ASan/UBSan)
+  and the PROFILE build for `74e43c1`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
@@ -32,7 +33,8 @@ checkpoint does not advance `VERSION`.
 The user explicitly authorized any GitHub actions on September 14, including
 push/CI. Continue PROFILE-only builds. New numbered releases remain deferred
 until a useful runtime result, as requested earlier. Alpha.72 is the latest
-public release; Alpha.74 is available locally for testing.
+public release; Alpha.75 is available locally for testing. Interrupted ELF copying
+was completed on September 27; both root copies were verified against the CI hash.
 
 ## Workspace safety
 
