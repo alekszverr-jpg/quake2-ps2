@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "common/q_common.h"
 #include "client/console.h"
+#include "client/benchmark.h"
 #include <setjmp.h>
 
 //
@@ -200,12 +201,14 @@ void Com_Error(int code, const char * fmt, ...)
 
     if (code == ERR_DISCONNECT)
     {
+        CL_BenchmarkCancel();
         CL_Drop();
         recursive = false;
         longjmp(abortframe, -1);
     }
     else if (code == ERR_DROP)
     {
+        CL_BenchmarkCancel();
         Com_Printf("********************\nERROR: %s\n********************\n", msg);
         SV_Shutdown(va("Server crashed: %s\n", msg), false);
         CL_Drop();

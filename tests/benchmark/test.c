@@ -5,8 +5,8 @@
 #include <stdio.h>
 #include <string.h>
 #include "client/benchmark.h"
-enum { ca_active = 2 };
-static struct { int state, disable_screen; } cls;
+enum { ca_uninitialized = 0, ca_disconnected = 1, ca_active = 2 };
+static struct { int state, disable_screen, disable_servercount; } cls;
 static struct { int refresh_prepped; struct { int valid; } frame; } cl;
 static struct { int width, height; } viddef;
 static void DrawChar(int x, int y, int c) { (void)x; (void)y; (void)c; }
@@ -25,7 +25,8 @@ static int Setting(const char * name)
 static float Cvar_VariableValue(const char * name) { return values[Setting(name)]; }
 static void Cvar_SetValue(const char * name, float value) { values[Setting(name)] = value; }
 static void Cbuf_AddText(const char * text) { assert(strlen(queued) + strlen(text) < sizeof(queued)); strcat(queued, text); }
-static void CL_Disconnect(void) { cls.state = 0; }
+static void CL_Disconnect(void) { cls.state = ca_disconnected; }
+static void SCR_EndLoadingPlaque(void) {}
 static void M_ForceMenuOff(void) {}
 void M_BenchmarkResults(void) { ++resultScreens; }
 static int FS_FOpenFile(const char * name, FILE ** file)
@@ -36,6 +37,8 @@ static void Com_sprintf(char * out, int size, const char * fmt, ...)
 { va_list args; va_start(args, fmt); vsnprintf(out, (size_t)size, fmt, args); va_end(args); }
 static void Cmd_AddCommand(const char * name, void (*fn)(void)) { (void)name; (void)fn; }
 #include "../../src/client/cl_benchmark.c"
+/* Extracted verbatim from cl_main.c by run.py, not a mock of the drop path. */
+#include "benchmark_drop.inc"
 
 static void Frame(int begin, int end)
 { now = begin; CL_BenchmarkBeginFrame(); now = end; CL_BenchmarkEndFrame(); }
@@ -49,6 +52,12 @@ int main(void)
     missing = 0;
     CL_BenchmarkStart();
     assert(active && values[0] == 1 && values[5] == 0);
+    queued[0] = 0;
+    CL_Drop(); /* SV_InitGame normally drops an already-disconnected client. */
+    assert(active && values[0] == 1 && !queued[0]);
+    cls.state = ca_active;
+    CL_Drop(); /* A normal connected drop must also not enqueue killserver. */
+    assert(active && values[0] == 1 && !queued[0]);
     for (i = 0; i < 3; ++i)
     {
         queued[0] = 0;

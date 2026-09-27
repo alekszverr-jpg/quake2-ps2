@@ -43,9 +43,7 @@ jobs:
 
       - name: Check demo benchmark coordinator on host
         run: |
-          gcc -std=gnu89 -Wall -Wextra -Werror -fsanitize=address,undefined \
-            -Isrc tests/benchmark/test.c -o /tmp/quake2-benchmark-test
-          /tmp/quake2-benchmark-test
+          python3 tests/benchmark/run.py
 
       - name: Download PS2DEV prebuilt toolchain
         run: |

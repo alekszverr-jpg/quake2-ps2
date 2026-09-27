@@ -6,6 +6,18 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.77 - 2026-09-27 (local test build)
+
+- Fix the benchmark cancelling itself during startup: `SV_InitGame` uses
+  `CL_Drop` for ordinary client teardown, even when already disconnected.
+  Benchmark cancellation now belongs to actual `ERR_DROP`/`ERR_DISCONNECT`
+  handling in `Com_Error`, preserving menu cancellation and error cleanup.
+- Extend the host regression test to compile the actual `CL_Drop` function
+  from the client source and verify both disconnected and connected teardown
+  preserve an active benchmark without queuing `killserver`.
+- The Alpha.76 coordinator tests missed this engine startup interaction.
+  Three-pass playback and the results screen still require runtime validation.
+
 ## 0.1.0-alpha.76 - 2026-09-27 (local test build)
 
 - Game menu: `benchmark (3 runs)` replays the stock `demos/demo1.dm2` three

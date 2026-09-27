@@ -391,7 +391,6 @@ Called after an ERR_DROP was thrown
 */
 void CL_Drop(void)
 {
-    CL_BenchmarkCancel();
     if (cls.state == ca_uninitialized)
         return;
     if (cls.state == ca_disconnected)

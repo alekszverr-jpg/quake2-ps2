@@ -30,6 +30,15 @@ checkpoint does not advance `VERSION`.
 
 ## Publication preference
 
+Alpha.76 runtime failed immediately after selecting benchmark: the log shows
+demo1 found, server spawned and then ShutdownGame, before demo playback.
+Root cause: SV_InitGame calls CL_Drop for normal startup; Alpha.76 had put
+CL_BenchmarkCancel at the beginning of CL_Drop, which queued killserver even
+for an already-disconnected client. Alpha.77 moves cancellation into the two
+recoverable Com_Error paths, leaving normal drops alone. The host test now
+extracts/compiles the actual CL_Drop body to cover this engine interaction.
+Runtime recheck is pending; do not treat Alpha.76 as a working benchmark baseline.
+
 Alpha.76 adds `Game -> benchmark (3 runs)`. It uses stock `demos/demo1.dm2`
 from the virtual filesystem (confirmed in the user's pak0: 696 records and
 normal -1 end marker). Three passes, no separate warm-up, loading excluded.
