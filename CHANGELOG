@@ -6,6 +6,19 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.79 - 2026-09-27 (local test build)
+
+- Fix repeated benchmark playback remaining behind LOADING after pass one.
+  With developer logging disabled the ordinary loading plaque is enabled;
+  replaying identical serverdata does not change the demo servercount, and
+  registration can complete after the initial active-frame transition.
+- Dismiss the benchmark loading plaque only after fresh serverdata, a valid
+  active frame and completed renderer registration. Cancellation also clears
+  the plaque. Loading remains excluded from measured frames/time.
+- Regression tests now keep disable_screen set across repeated loads, verify
+  it remains during stale/unprepared states and clears before timed rendering.
+  Runtime verification of all three passes remains pending.
+
 ## 0.1.0-alpha.78 - 2026-09-27 (local test build)
 
 - Benchmark waits for fresh serverdata on every pass. Previously a stale valid

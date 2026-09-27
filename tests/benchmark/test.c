@@ -29,7 +29,7 @@ static float Cvar_VariableValue(const char * name) { return values[Setting(name)
 static void Cvar_SetValue(const char * name, float value) { values[Setting(name)] = value; }
 static void Cbuf_AddText(const char * text) { assert(strlen(queued) + strlen(text) < sizeof(queued)); strcat(queued, text); }
 static void CL_Disconnect(void) { cls.state = ca_disconnected; }
-static void SCR_EndLoadingPlaque(void) {}
+static void SCR_EndLoadingPlaque(void) { cls.disable_screen = 0; }
 static void M_ForceMenuOff(void) {}
 void M_BenchmarkResults(void) { ++resultScreens; }
 static int FS_FOpenFile(const char * name, FILE ** file)
@@ -64,15 +64,22 @@ int main(void)
     for (i = 0; i < 3; ++i)
     {
         queued[0] = 0;
+        cls.disable_screen = 123;
         cls.state = ca_active; cl.refresh_prepped = 0; cl.frame.valid = 1;
         Frame(0, 5000); /* loading must not count */
         assert(frames[i] == 0);
+        assert(cls.disable_screen == 123);
         cl.refresh_prepped = 1;
         Frame(100, 200); /* old map frame before new serverdata */
         assert(frames[i] == 0);
         CL_BenchmarkServerData();
+        cl.refresh_prepped = 0;
+        Frame(300, 400);
+        assert(cls.disable_screen == 123 && frames[i] == 0);
+        cl.refresh_prepped = 1;
         cl.frame.serverframe = 10;
         Frame(5000, 5010);
+        assert(cls.disable_screen == 0);
         Frame(5010, 5015); /* duplicate demo frame is not counted twice */
         assert(frames[i] == 1);
         cl.frame.serverframe = 11;

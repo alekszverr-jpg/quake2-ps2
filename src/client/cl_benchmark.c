@@ -27,6 +27,7 @@ void CL_BenchmarkCancel(void)
         return;
     Restore();
     CL_Disconnect();
+    SCR_EndLoadingPlaque();
     strcpy(status, "Cancelled - incomplete results");
     Cbuf_AddText("killserver\n");
 }
@@ -122,6 +123,13 @@ void CL_BenchmarkServerData(void)
 
 void CL_BenchmarkBeginFrame(void)
 {
+    /* Replaying the same recording repeats its servercount. The ordinary
+     * connection path cannot use a changed servercount to dismiss the plaque.
+     * Fresh serverdata plus a valid frame and completed registration are the
+     * benchmark's readiness boundary; never dismiss it for stale/loading data. */
+    if (active && ready && !pending && cls.state == ca_active &&
+        cl.refresh_prepped && cl.frame.valid && cls.disable_screen)
+        SCR_EndLoadingPlaque();
     sampling = active && ready && !pending && cls.state == ca_active &&
                cl.refresh_prepped && cl.frame.valid && !cls.disable_screen &&
                cl.frame.serverframe != previousFrame;
@@ -155,7 +163,7 @@ void CL_BenchmarkDraw(void)
     int i, totalFrames = 0, totalTime = 0;
     char text[80];
     re.DrawFill(0, 0, viddef.width, viddef.height, 0);
-    Line(25, "QUAKE II - BENCHMARK Alpha.78");
+    Line(25, "QUAKE II - BENCHMARK Alpha.79");
     Line(45, status);
     Line(66, "Run    Frames   Seconds     FPS");
     for (i = 0; i < BENCH_RUNS; ++i)

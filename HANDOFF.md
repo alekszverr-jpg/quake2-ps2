@@ -28,6 +28,17 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
+## Alpha.79 loading-plaque correction
+
+Alpha.78 user report: pass one finishes (688 frames / 18.37s / 37.52 FPS),
+then LOADING remains. Disabling developer enabled the stock plaque path.
+Repeated demo serverdata has the same servercount, and CL_ParseFrame only
+attempts plaque dismissal on the initial active transition, potentially before
+registration. Alpha.79 dismisses the plaque at benchmark BeginFrame only with
+fresh serverdata + valid active frame + refresh_prepped; cancel clears it too.
+Tests simulate a held plaque through stale/unprepared states and all repeats.
+Runtime validation pending; do not yet treat this as a stable baseline.
+
 ## Alpha.78 benchmark measurement correction
 
 The user completed Alpha.77: 688/689/689 frames, 22.38/24.46/24.63 seconds,
