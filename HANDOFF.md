@@ -8,20 +8,20 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.75 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.76 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.75` (PROFILE CI passed; runtime test pending)
-- Current implementation commit: `74e43c1`
-  (`Reduce lazy sky loading memory peak`)
+- Current source/test version: `0.1.0-alpha.76` (PROFILE CI passed; runtime test pending)
+- Current implementation commit: `ed19ef8`
+  (`Add gamepad-accessible three-pass demo benchmark`)
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.75 local PROFILE ELF SHA-256 (7,562,348 bytes):
-  `E4EB44A4629B4B3DBBEEAA6AF9C670650A99228533A7B3633C8B86F90442ACA3`
-- CI `34802415843` passed the host tests (BSP/VRAM/TGA with ASan/UBSan)
-  and the PROFILE build for `74e43c1`.
+- Alpha.76 local PROFILE ELF SHA-256 (7,583,744 bytes):
+  `0FC3CB8A47EA324300E03D67FDD6C622106FD239309A75D31DA5ED5C14A06AA5`
+- CI `36310362391` passed host tests (BSP/VRAM/TGA/benchmark with ASan/UBSan)
+  and the PROFILE build for `ed19ef8`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
@@ -47,8 +47,8 @@ The Alpha.75 third-map OOM runtime check is still pending and independent.
 The user explicitly authorized any GitHub actions on September 14, including
 push/CI. Continue PROFILE-only builds. New numbered releases remain deferred
 until a useful runtime result, as requested earlier. Alpha.72 is the latest
-public release; Alpha.75 is available locally for testing. Interrupted ELF copying
-was completed on September 27; both root copies were verified against the CI hash.
+public release; Alpha.76 is available locally for testing. Both root ELF copies
+were updated on September 27 and verified against the CI hash.
 
 ## Workspace safety
 

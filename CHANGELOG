@@ -20,7 +20,8 @@ Development priorities and completion criteria are tracked in
   an on-screen message; truncated demo records abort instead of reporting success.
 - Host coordinator checks cover three passes, duplicate completion events,
   loading exclusion, cancellation, empty demos and setting restoration.
-  PCSX2/PS2 runtime validation remains required.
+  CI `36310362391` passed all host sanitizer tests and the PROFILE build;
+  both local ELF copies were hash-verified. PCSX2/PS2 runtime validation remains required.
 
 ## 0.1.0-alpha.75 - 2026-09-14 (local test build)
 
