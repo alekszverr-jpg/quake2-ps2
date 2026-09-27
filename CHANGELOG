@@ -17,7 +17,8 @@ Development priorities and completion criteria are tracked in
   the plaque. Loading remains excluded from measured frames/time.
 - Regression tests now keep disable_screen set across repeated loads, verify
   it remains during stale/unprepared states and clears before timed rendering.
-  Runtime verification of all three passes remains pending.
+  CI `36328733231` passed all host sanitizer tests and the PROFILE build; both
+  local ELF copies were hash-verified. Runtime verification remains pending.
 
 ## 0.1.0-alpha.78 - 2026-09-27 (local test build)
 
