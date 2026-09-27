@@ -17,6 +17,8 @@ Development priorities and completion criteria are tracked in
   preserve an active benchmark without queuing `killserver`.
 - The Alpha.76 coordinator tests missed this engine startup interaction.
   Three-pass playback and the results screen still require runtime validation.
+- CI `36311421117` passed all sanitizer tests and the PROFILE build. Both
+  local testing ELF copies were updated to Alpha.77 and hash-verified.
 
 ## 0.1.0-alpha.76 - 2026-09-27 (local test build)
 

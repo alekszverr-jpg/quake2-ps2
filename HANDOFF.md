@@ -8,20 +8,20 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.76 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.77 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.76` (PROFILE CI passed; runtime test pending)
-- Current implementation commit: `ed19ef8`
-  (`Add gamepad-accessible three-pass demo benchmark`)
+- Current source/test version: `0.1.0-alpha.77` (PROFILE CI passed; runtime test pending)
+- Current implementation commit: `a02e7f1`
+  (`Keep benchmark active through normal server startup teardown`)
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.76 local PROFILE ELF SHA-256 (7,583,744 bytes):
-  `0FC3CB8A47EA324300E03D67FDD6C622106FD239309A75D31DA5ED5C14A06AA5`
-- CI `36310362391` passed host tests (BSP/VRAM/TGA/benchmark with ASan/UBSan)
-  and the PROFILE build for `ed19ef8`.
+- Alpha.77 local PROFILE ELF SHA-256 (7,583,924 bytes):
+  `E5AE949E4B452981B3E07B69603351EE053C6760E8D94412E5330D2F11236071`
+- CI `36311421117` passed host tests (BSP/VRAM/TGA/benchmark with ASan/UBSan)
+  and the PROFILE build for `a02e7f1`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
@@ -56,7 +56,7 @@ The Alpha.75 third-map OOM runtime check is still pending and independent.
 The user explicitly authorized any GitHub actions on September 14, including
 push/CI. Continue PROFILE-only builds. New numbered releases remain deferred
 until a useful runtime result, as requested earlier. Alpha.72 is the latest
-public release; Alpha.76 is available locally for testing. Both root ELF copies
+public release; Alpha.77 is available locally for testing. Both root ELF copies
 were updated on September 27 and verified against the CI hash.
 
 ## Workspace safety
