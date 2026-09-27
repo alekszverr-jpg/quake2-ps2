@@ -496,6 +496,7 @@ const char * M_Main_Key(int key)
 
 void M_Menu_Main_f(void)
 {
+    CL_BenchmarkCancel();
     M_PushMenu(M_Main_Draw, M_Main_Key);
 }
 
@@ -2213,6 +2214,7 @@ static menuaction_s s_easy_game_action;
 static menuaction_s s_medium_game_action;
 static menuaction_s s_hard_game_action;
 static menuaction_s s_testmap_action;
+static menuaction_s s_benchmark_action;
 static menuaction_s s_load_game_action;
 static menuaction_s s_save_game_action;
 static menuaction_s s_credits_action;
@@ -2259,6 +2261,28 @@ static void TestMapFunc(void * unused)
 {
     (void)unused;
     M_Menu_TestMap_f();
+}
+
+static const char * BenchmarkResultsKey(int key)
+{
+    if (key == K_ESCAPE || key == K_ENTER)
+    {
+        M_ForceMenuOff();
+        M_Menu_Main_f();
+    }
+    return NULL;
+}
+
+void M_BenchmarkResults(void)
+{
+    M_ForceMenuOff();
+    M_PushMenu(CL_BenchmarkDraw, BenchmarkResultsKey);
+}
+
+static void BenchmarkFunc(void * unused)
+{
+    (void)unused;
+    CL_BenchmarkStart();
 }
 
 static void SaveGameFunc(void * unused)
@@ -2335,6 +2359,14 @@ void Game_MenuInit(void)
     s_credits_action.generic.name = "credits";
     s_credits_action.generic.callback = CreditsFunc;
 
+    s_benchmark_action.generic.type = MTYPE_ACTION;
+    s_benchmark_action.generic.flags = QMF_LEFT_JUSTIFY;
+    s_benchmark_action.generic.x = 0;
+    s_benchmark_action.generic.y = 80;
+    s_benchmark_action.generic.name = "benchmark (3 runs)";
+    s_benchmark_action.generic.callback = BenchmarkFunc;
+    s_benchmark_action.generic.statusbar = "Ends current game; any button cancels demo";
+
     Menu_AddItem(&s_game_menu, (void *)&s_easy_game_action);
     Menu_AddItem(&s_game_menu, (void *)&s_medium_game_action);
     Menu_AddItem(&s_game_menu, (void *)&s_hard_game_action);
@@ -2344,6 +2376,7 @@ void Game_MenuInit(void)
     Menu_AddItem(&s_game_menu, (void *)&s_save_game_action);
     Menu_AddItem(&s_game_menu, (void *)&s_blankline);
     Menu_AddItem(&s_game_menu, (void *)&s_credits_action);
+    Menu_AddItem(&s_game_menu, (void *)&s_benchmark_action);
 
     Menu_Center(&s_game_menu);
 }
@@ -4329,6 +4362,7 @@ M_Init
 */
 void M_Init(void)
 {
+    CL_BenchmarkInit();
     Cmd_AddCommand("menu_main", M_Menu_Main_f);
     Cmd_AddCommand("menu_game", M_Menu_Game_f);
     Cmd_AddCommand("menu_loadgame", M_Menu_LoadGame_f);

@@ -81,6 +81,7 @@ PS2_C_SRC = \
 # Stock Quake II engine / game / server - untouched C, statically linked.
 # CD audio remains a null stub; PCM sound uses ps2/audio/snddma_ps2.c above.
 ENGINE_C_SRC = \
+	client/cl_benchmark.c \
 	client/cl_cin.c    client/cl_ents.c   client/cl_fx.c     client/cl_input.c \
 	client/cl_inv.c    client/cl_main.c   client/cl_newfx.c  client/cl_parse.c \
 	client/cl_pred.c   client/cl_scrn.c   client/cl_tent.c   client/cl_view.c  \

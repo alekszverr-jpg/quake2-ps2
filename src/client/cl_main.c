@@ -391,6 +391,7 @@ Called after an ERR_DROP was thrown
 */
 void CL_Drop(void)
 {
+    CL_BenchmarkCancel();
     if (cls.state == ca_uninitialized)
         return;
     if (cls.state == ca_disconnected)
@@ -1806,7 +1807,9 @@ void CL_Frame(int msec)
         time_before_ref = Sys_Milliseconds();
     }
 
+    CL_BenchmarkBeginFrame();
     SCR_UpdateScreen();
+    CL_BenchmarkEndFrame();
 
     if (host_speeds->value)
     {

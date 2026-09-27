@@ -429,6 +429,8 @@ qboolean SV_SendClientDatagram(client_t * client)
 SV_DemoCompleted
 ==================
 */
+extern int CL_BenchmarkDemoCompleted(void);
+
 void SV_DemoCompleted(void)
 {
     if (sv.demofile)
@@ -436,7 +438,8 @@ void SV_DemoCompleted(void)
         fclose(sv.demofile);
         sv.demofile = NULL;
     }
-    SV_Nextserver();
+    if (!CL_BenchmarkDemoCompleted())
+        SV_Nextserver();
 }
 
 /*
@@ -501,7 +504,7 @@ void SV_SendClientMessages(void)
             r = fread(&msglen, 4, 1, sv.demofile);
             if (r != 1)
             {
-                SV_DemoCompleted();
+                Com_Error(ERR_DROP, "Truncated demo message header");
                 return;
             }
             msglen = LittleLong(msglen);
@@ -510,13 +513,13 @@ void SV_SendClientMessages(void)
                 SV_DemoCompleted();
                 return;
             }
-            if (msglen > MAX_MSGLEN)
+            if (msglen < 0 || msglen > MAX_MSGLEN)
                 Com_Error(ERR_DROP, "SV_SendClientMessages: msglen > MAX_MSGLEN");
 
             r = fread(msgbuf, msglen, 1, sv.demofile);
             if (r != 1)
             {
-                SV_DemoCompleted();
+                Com_Error(ERR_DROP, "Truncated demo message body");
                 return;
             }
         }

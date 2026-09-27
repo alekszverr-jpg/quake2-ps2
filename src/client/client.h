@@ -21,6 +21,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef CL_CLIENT_H
 #define CL_CLIENT_H
 
+#include "benchmark.h"
+
 // client.h -- primary header for client
 
 #include <string.h>

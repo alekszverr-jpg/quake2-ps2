@@ -6,6 +6,22 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.76 - 2026-09-27 (local test build)
+
+- Game menu: `benchmark (3 runs)` replays the stock `demos/demo1.dm2` three
+  times and shows each pass's frame count, seconds and FPS, plus combined FPS
+  and mean milliseconds per frame. No additional warm-up pass is performed.
+- Timedemo removes the client FPS cap and PS2 VSync wait while preserving GS
+  completion barriers. Loading is excluded; timing spans the first measured
+  frame through the last completed frame, including work between frames.
+- Diagnostic overlays are temporarily disabled and restored on completion or
+  cancellation. Any demo button opens the main menu and cancels the benchmark.
+  Starting ends the current session without saving. Missing demo data produces
+  an on-screen message; truncated demo records abort instead of reporting success.
+- Host coordinator checks cover three passes, duplicate completion events,
+  loading exclusion, cancellation, empty demos and setting restoration.
+  PCSX2/PS2 runtime validation remains required.
+
 ## 0.1.0-alpha.75 - 2026-09-14 (local test build)
 
 - Address the lazy-sky image allocation peak by decoding TGA sky faces directly

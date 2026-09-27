@@ -30,6 +30,20 @@ checkpoint does not advance `VERSION`.
 
 ## Publication preference
 
+Alpha.76 adds `Game -> benchmark (3 runs)`. It uses stock `demos/demo1.dm2`
+from the virtual filesystem (confirmed in the user's pak0: 696 records and
+normal -1 end marker). Three passes, no separate warm-up, loading excluded.
+The summary shows per-pass frames/time/FPS and combined frames / total time;
+it does not yet collect percentile times, VRAM counters or memory snapshots.
+Start ends the current session without saving. Any button during the demo
+cancels through the stock attract-loop menu handling. Timedemo bypasses the
+client FPS cap and GS VSync wait but retains rendering completion barriers.
+Compare the same game data, hardware/emulator speed and renderer settings;
+these throughput results are not VSync-limited gameplay FPS. Runtime validation
+is pending: three complete passes, results/back navigation, cancellation,
+restored diagnostic overlays, and normal gameplay VSync after the benchmark.
+The Alpha.75 third-map OOM runtime check is still pending and independent.
+
 The user explicitly authorized any GitHub actions on September 14, including
 push/CI. Continue PROFILE-only builds. New numbered releases remain deferred
 until a useful runtime result, as requested earlier. Alpha.72 is the latest

@@ -903,9 +903,15 @@ void EndFrame()
 
     // Send whatever 2D accumulated since the last flush (the HUD/console overlay
     // in the common case) so it lands on top before the buffer is displayed.
+    const bool had2D = s_in2D;
     FlushPending2D();
 
-    graph_wait_vsync();
+    // Timedemos measure throughput without display-refresh quantisation.
+    // All rendering/DMA completion barriers remain in place.
+    if (Cvar_VariableValue("timedemo") == 0.0f)
+        graph_wait_vsync();
+    else if (!had2D)
+        SyncGsBeforeVramReuse(); // no HUD packet supplied a GS FINISH barrier
     graph_set_framebuffer_filtered(static_cast<int>(s_frame[s_drawCtx].address),
                                    static_cast<int>(s_frame[s_drawCtx].width),
                                    static_cast<int>(s_frame[s_drawCtx].psm), 0, 0);

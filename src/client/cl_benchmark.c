@@ -1,0 +1,165 @@
+#include "client.h"
+#include "benchmark.h"
+
+enum { BENCH_RUNS = 3 };
+static int active, pending, run, sampling, first, last;
+static int frames[BENCH_RUNS], milliseconds[BENCH_RUNS];
+static char status[80] = "Select benchmark to run demo1 three times";
+static const char * const settings[] = {
+    "timedemo", "paused", "ps2_show_fps", "ps2_show_memstats",
+    "ps2_show_vramstats", "ps2_show_drawstats"
+};
+static float saved[6];
+
+static void Restore(void)
+{
+    unsigned i;
+    active = pending = sampling = 0;
+    for (i = 0; i < sizeof(settings) / sizeof(settings[0]); ++i)
+        Cvar_SetValue(settings[i], saved[i]);
+}
+
+void CL_BenchmarkCancel(void)
+{
+    if (!active)
+        return;
+    Restore();
+    CL_Disconnect();
+    strcpy(status, "Cancelled - incomplete results");
+    Cbuf_AddText("killserver\n");
+}
+
+static void NextRun(void)
+{
+    if (!active || !pending)
+        return;
+    pending = 0;
+    if (frames[run] < 2 || milliseconds[run] <= 0)
+    {
+        CL_BenchmarkCancel();
+        strcpy(status, "Demo failed: no measurable frames");
+        Cbuf_AddText("benchmark_results\n");
+        return;
+    }
+    Com_Printf("Benchmark demo1 run %d: %d frames, %.3f s, %.2f fps\n",
+               run + 1, frames[run], milliseconds[run] / 1000.0,
+               frames[run] * 1000.0 / milliseconds[run]);
+    if (++run == BENCH_RUNS)
+    {
+        CL_Disconnect();
+        Restore();
+        strcpy(status, "Complete - demo1, uncapped, VSync off");
+        Cbuf_AddText("killserver\nbenchmark_results\n");
+        return;
+    }
+    first = last = 0;
+    Cbuf_AddText("demomap demo1.dm2\n");
+}
+
+void CL_BenchmarkStart(void)
+{
+    FILE * demo = NULL;
+    unsigned i;
+    if (active)
+        return;
+    /* Check through the virtual filesystem: the stock demo lives in pak0. */
+    if (FS_FOpenFile("demos/demo1.dm2", &demo) <= 0 || !demo)
+    {
+        if (demo) fclose(demo);
+        memset(frames, 0, sizeof(frames));
+        memset(milliseconds, 0, sizeof(milliseconds));
+        strcpy(status, "Missing demos/demo1.dm2 in game data");
+        M_BenchmarkResults();
+        return;
+    }
+    fclose(demo);
+    CL_Disconnect();
+    M_ForceMenuOff();
+    for (i = 0; i < sizeof(settings) / sizeof(settings[0]); ++i)
+    {
+        saved[i] = Cvar_VariableValue(settings[i]);
+        Cvar_SetValue(settings[i], i == 0 ? 1 : 0);
+    }
+    memset(frames, 0, sizeof(frames));
+    memset(milliseconds, 0, sizeof(milliseconds));
+    active = 1;
+    pending = sampling = run = first = last = 0;
+    strcpy(status, "Running demo1 (3 passes)...");
+    /* Explicitly leave the current session; never write a savegame. */
+    Cbuf_AddText("killserver\ndemomap demo1.dm2\n");
+}
+
+int CL_BenchmarkDemoCompleted(void)
+{
+    if (!active)
+        return 0;
+    if (!pending)
+    {
+        pending = 1;
+        Cbuf_AddText("benchmark_next\n");
+    }
+    return 1;
+}
+
+void CL_BenchmarkBeginFrame(void)
+{
+    sampling = active && !pending && cls.state == ca_active &&
+               cl.refresh_prepped && cl.frame.valid && !cls.disable_screen;
+    if (sampling && !frames[run])
+        first = Sys_Milliseconds();
+}
+
+void CL_BenchmarkEndFrame(void)
+{
+    if (!sampling || !active)
+        return;
+    last = Sys_Milliseconds();
+    ++frames[run];
+    milliseconds[run] = last - first;
+    sampling = 0;
+}
+
+static void Line(int y, const char * text)
+{
+    int i;
+    int x = (viddef.width - 320) / 2 + 8;
+    y += (viddef.height - 240) / 2;
+    for (i = 0; text[i]; ++i)
+        re.DrawChar(x + i * 8, y, text[i]);
+}
+
+void CL_BenchmarkDraw(void)
+{
+    int i, totalFrames = 0, totalTime = 0;
+    char text[80];
+    Line(25, "QUAKE II - DEMO BENCHMARK");
+    Line(45, status);
+    Line(70, "Run    Frames   Seconds     FPS");
+    for (i = 0; i < BENCH_RUNS; ++i)
+    {
+        if (milliseconds[i] > 0)
+            Com_sprintf(text, sizeof(text), "%d      %5d    %6.2f    %6.2f", i + 1,
+                        frames[i], milliseconds[i] / 1000.0,
+                        frames[i] * 1000.0 / milliseconds[i]);
+        else
+            Com_sprintf(text, sizeof(text), "%d      --", i + 1);
+        Line(90 + i * 16, text);
+        totalFrames += frames[i];
+        totalTime += milliseconds[i];
+    }
+    if (totalTime > 0)
+    {
+        Com_sprintf(text, sizeof(text), "Combined: %.2f FPS / %.2f ms", totalFrames * 1000.0 / totalTime,
+                    (double)totalTime / totalFrames);
+        Line(148, text);
+    }
+    Line(174, "Loading excluded; no extra warm-up.");
+    Line(190, "Compare same data and video settings.");
+    Line(214, "Back: return to menu");
+}
+
+void CL_BenchmarkInit(void)
+{
+    Cmd_AddCommand("benchmark_next", NextRun);
+    Cmd_AddCommand("benchmark_results", M_BenchmarkResults);
+}
