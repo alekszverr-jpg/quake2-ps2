@@ -4,17 +4,19 @@
 enum { BENCH_RUNS = 3 };
 static int active, pending, run, sampling, first, last;
 static int frames[BENCH_RUNS], milliseconds[BENCH_RUNS];
+static int ready, previousFrame;
+static int firstFrame[BENCH_RUNS], lastFrame[BENCH_RUNS];
 static char status[80] = "Select benchmark to run demo1 three times";
 static const char * const settings[] = {
     "timedemo", "paused", "ps2_show_fps", "ps2_show_memstats",
-    "ps2_show_vramstats", "ps2_show_drawstats"
+    "ps2_show_vramstats", "ps2_show_drawstats", "developer", "con_notifytime"
 };
-static float saved[6];
+static float saved[sizeof(settings) / sizeof(settings[0])];
 
 static void Restore(void)
 {
     unsigned i;
-    active = pending = sampling = 0;
+    active = pending = sampling = ready = 0;
     for (i = 0; i < sizeof(settings) / sizeof(settings[0]); ++i)
         Cvar_SetValue(settings[i], saved[i]);
 }
@@ -49,10 +51,14 @@ static void NextRun(void)
         CL_Disconnect();
         Restore();
         strcpy(status, "Complete - demo1, uncapped, VSync off");
+        if (frames[0] != frames[1] || frames[0] != frames[2] ||
+            firstFrame[0] != firstFrame[1] || firstFrame[0] != firstFrame[2] ||
+            lastFrame[0] != lastFrame[1] || lastFrame[0] != lastFrame[2])
+            strcpy(status, "Frame ranges differ - repeat the test");
         Cbuf_AddText("killserver\nbenchmark_results\n");
         return;
     }
-    first = last = 0;
+    first = last = ready = 0;
     Cbuf_AddText("demomap demo1.dm2\n");
 }
 
@@ -83,7 +89,9 @@ void CL_BenchmarkStart(void)
     memset(frames, 0, sizeof(frames));
     memset(milliseconds, 0, sizeof(milliseconds));
     active = 1;
-    pending = sampling = run = first = last = 0;
+    pending = sampling = run = first = last = ready = 0;
+    memset(firstFrame, 0, sizeof(firstFrame));
+    memset(lastFrame, 0, sizeof(lastFrame));
     strcpy(status, "Running demo1 (3 passes)...");
     /* Explicitly leave the current session; never write a savegame. */
     Cbuf_AddText("killserver\ndemomap demo1.dm2\n");
@@ -101,10 +109,22 @@ int CL_BenchmarkDemoCompleted(void)
     return 1;
 }
 
+/* A queued demomap still leaves the previous client frame valid until
+ * serverdata arrives. Do not count that stale frame in the new pass. */
+void CL_BenchmarkServerData(void)
+{
+    if (active && !pending)
+    {
+        ready = 1;
+        previousFrame = -1;
+    }
+}
+
 void CL_BenchmarkBeginFrame(void)
 {
-    sampling = active && !pending && cls.state == ca_active &&
-               cl.refresh_prepped && cl.frame.valid && !cls.disable_screen;
+    sampling = active && ready && !pending && cls.state == ca_active &&
+               cl.refresh_prepped && cl.frame.valid && !cls.disable_screen &&
+               cl.frame.serverframe != previousFrame;
     if (sampling && !frames[run])
         first = Sys_Milliseconds();
 }
@@ -114,6 +134,8 @@ void CL_BenchmarkEndFrame(void)
     if (!sampling || !active)
         return;
     last = Sys_Milliseconds();
+    if (!frames[run]) firstFrame[run] = cl.frame.serverframe;
+    lastFrame[run] = previousFrame = cl.frame.serverframe;
     ++frames[run];
     milliseconds[run] = last - first;
     sampling = 0;
@@ -132,9 +154,10 @@ void CL_BenchmarkDraw(void)
 {
     int i, totalFrames = 0, totalTime = 0;
     char text[80];
-    Line(25, "QUAKE II - DEMO BENCHMARK");
+    re.DrawFill(0, 0, viddef.width, viddef.height, 0);
+    Line(25, "QUAKE II - BENCHMARK Alpha.78");
     Line(45, status);
-    Line(70, "Run    Frames   Seconds     FPS");
+    Line(66, "Run    Frames   Seconds     FPS");
     for (i = 0; i < BENCH_RUNS; ++i)
     {
         if (milliseconds[i] > 0)
@@ -143,7 +166,12 @@ void CL_BenchmarkDraw(void)
                         frames[i] * 1000.0 / milliseconds[i]);
         else
             Com_sprintf(text, sizeof(text), "%d      --", i + 1);
-        Line(90 + i * 16, text);
+        Line(82 + i * 26, text);
+        if (frames[i])
+        {
+            Com_sprintf(text, sizeof(text), "       Demo frames: %d..%d", firstFrame[i], lastFrame[i]);
+            Line(94 + i * 26, text);
+        }
         totalFrames += frames[i];
         totalTime += milliseconds[i];
     }
@@ -151,11 +179,11 @@ void CL_BenchmarkDraw(void)
     {
         Com_sprintf(text, sizeof(text), "Combined: %.2f FPS / %.2f ms", totalFrames * 1000.0 / totalTime,
                     (double)totalTime / totalFrames);
-        Line(148, text);
+        Line(166, text);
     }
-    Line(174, "Loading excluded; no extra warm-up.");
-    Line(190, "Compare same data and video settings.");
-    Line(214, "Back: return to menu");
+    Line(186, "Loading excluded; no extra warm-up.");
+    Line(200, "Compare same data and video settings.");
+    Line(220, "Back: return to menu");
 }
 
 void CL_BenchmarkInit(void)

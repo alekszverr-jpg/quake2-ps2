@@ -28,6 +28,19 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
+## Alpha.78 benchmark measurement correction
+
+The user completed Alpha.77: 688/689/689 frames, 22.38/24.46/24.63 seconds,
+30.74/28.17/27.98 FPS; console text obscured results. Inspection identified
+stale cl.frame/refreshed state after queuing subsequent demomap: measurement
+could start before fresh serverdata, including reload time. Alpha.78 gates each
+pass on CL_ParseServerData, deduplicates serverframe IDs, displays ranges and
+flags differing counts/ranges. Developer output and notify text are disabled
+and restored; the results draw over a black fill. No extra warm-up was added.
+Regression tests pass locally; runtime must confirm all three ranges/counts
+match and the first/later timing discrepancy is reduced. Alpha.77 numbers are
+not a directly comparable optimization baseline after this protocol change.
+
 ## Publication preference
 
 Alpha.76 runtime failed immediately after selecting benchmark: the log shows

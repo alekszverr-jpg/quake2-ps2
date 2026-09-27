@@ -311,6 +311,7 @@ void CL_ParseServerData(void)
     // parse protocol version number
     i = MSG_ReadLong(&net_message);
     cls.serverProtocol = i;
+    CL_BenchmarkServerData();
 
     // BIG HACK to let demos from release work with the 3.0x patch!!!
     if (Com_ServerState() && PROTOCOL_VERSION == 34)

@@ -7,19 +7,22 @@
 #include "client/benchmark.h"
 enum { ca_uninitialized = 0, ca_disconnected = 1, ca_active = 2 };
 static struct { int state, disable_screen, disable_servercount; } cls;
-static struct { int refresh_prepped; struct { int valid; } frame; } cl;
+static struct { int refresh_prepped; struct { int valid, serverframe; } frame; } cl;
 static struct { int width, height; } viddef;
 static void DrawChar(int x, int y, int c) { (void)x; (void)y; (void)c; }
-static struct { void (*DrawChar)(int, int, int); } re = { DrawChar };
+static int fills;
+static void DrawFill(int x, int y, int w, int h, int c)
+{ (void)x; (void)y; (void)w; (void)h; assert(c == 0); ++fills; }
+static struct { void (*DrawChar)(int, int, int); void (*DrawFill)(int, int, int, int, int); } re = { DrawChar, DrawFill };
 static int now, missing, resultScreens;
 static char queued[4096];
-static float values[6] = { 0, 0, 1, 1, 1, 1 };
+static float values[8] = { 0, 0, 1, 1, 1, 1, 1, 3 };
 static int Setting(const char * name)
 {
     const char * names[] = { "timedemo", "paused", "ps2_show_fps", "ps2_show_memstats",
-                            "ps2_show_vramstats", "ps2_show_drawstats" };
+                            "ps2_show_vramstats", "ps2_show_drawstats", "developer", "con_notifytime" };
     int i;
-    for (i = 0; i < 6; ++i) if (!strcmp(name, names[i])) return i;
+    for (i = 0; i < 8; ++i) if (!strcmp(name, names[i])) return i;
     assert(0); return 0;
 }
 static float Cvar_VariableValue(const char * name) { return values[Setting(name)]; }
@@ -65,7 +68,15 @@ int main(void)
         Frame(0, 5000); /* loading must not count */
         assert(frames[i] == 0);
         cl.refresh_prepped = 1;
-        Frame(5000, 5010); Frame(5020, 5030);
+        Frame(100, 200); /* old map frame before new serverdata */
+        assert(frames[i] == 0);
+        CL_BenchmarkServerData();
+        cl.frame.serverframe = 10;
+        Frame(5000, 5010);
+        Frame(5010, 5015); /* duplicate demo frame is not counted twice */
+        assert(frames[i] == 1);
+        cl.frame.serverframe = 11;
+        Frame(5020, 5030);
         assert(frames[i] == 2 && milliseconds[i] == 30);
         assert(CL_BenchmarkDemoCompleted());
         assert(CL_BenchmarkDemoCompleted()); /* duplicate EOF queues once */
@@ -74,18 +85,19 @@ int main(void)
         assert(frames[i] == 2 && milliseconds[i] == 30);
         NextRun();
     }
-    assert(!active && values[0] == 0 && values[5] == 1);
+    assert(!active && values[0] == 0 && values[5] == 1 && values[6] == 1 && values[7] == 3);
     assert(strstr(queued, "benchmark_results"));
     assert(!CL_BenchmarkDemoCompleted());
     CL_BenchmarkStart();
     CL_BenchmarkCancel();
     NextRun();
-    assert(!active && values[0] == 0 && values[5] == 1);
+    assert(!active && values[0] == 0 && values[5] == 1 && values[6] == 1 && values[7] == 3);
     CL_BenchmarkStart();
     assert(CL_BenchmarkDemoCompleted());
     NextRun(); /* empty/corrupt demo cannot be reported as complete */
     assert(!active && strstr(status, "failed"));
     CL_BenchmarkDraw();
+    assert(fills == 1);
     puts("Benchmark lifecycle, loading exclusion, cancellation and restoration PASS");
     return 0;
 }

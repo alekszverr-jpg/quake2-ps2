@@ -6,6 +6,7 @@ void CL_BenchmarkInit(void);
 void CL_BenchmarkStart(void);
 void CL_BenchmarkCancel(void);
 int CL_BenchmarkDemoCompleted(void);
+void CL_BenchmarkServerData(void);
 void CL_BenchmarkBeginFrame(void);
 void CL_BenchmarkEndFrame(void);
 void CL_BenchmarkDraw(void);

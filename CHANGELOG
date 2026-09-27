@@ -6,6 +6,20 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.78 - 2026-09-27 (local test build)
+
+- Benchmark waits for fresh serverdata on every pass. Previously a stale valid
+  client frame after queuing demomap could start the next timer before loading,
+  producing an extra frame and including reload time in later passes.
+- Count each distinct demo serverframe once; show first/last frame IDs for each
+  pass and flag unequal ranges/counts. Three passes, no extra warm-up retained.
+- Temporarily disable developer logging and console notifications, restoring
+  both on completion/cancellation. Results draw on an opaque black background.
+- Regression tests cover stale frames before serverdata, duplicate frame IDs,
+  setting restoration and result-background drawing. Hardware validation pending.
+- Alpha.77 preliminary user results: 688/689/689 frames, 30.74/28.17/27.98 FPS.
+  Do not compare these directly to the corrected Alpha.78 measurement protocol.
+
 ## 0.1.0-alpha.77 - 2026-09-27 (local test build)
 
 - Fix the benchmark cancelling itself during startup: `SV_InitGame` uses
