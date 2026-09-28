@@ -11,6 +11,7 @@
  * ================================================================================================ */
 
 #include "ps2/common.h"
+#include "client/benchmark_stats.h"
 #include "ps2/renderer/gs.h"
 #include "ps2/renderer/vram.h"
 #include "ps2/renderer/vu1.h"
@@ -567,6 +568,28 @@ void PS2_EndFrame()
 #endif
 
     ps2::gs::EndFrame();
+}
+
+// Read only after EndFrame: includes HUD uploads and final VU/GS waits.
+extern "C" void PS2_ReadBenchmarkStats(int values[BENCH_STATS_COUNT])
+{
+    const auto & draw = ps2::view::GetDrawStats();
+    const auto & vu = ps2::vu1::GetTimingStats();
+    const auto & gs = ps2::gs::GetTimingStats();
+    const auto vram = ps2::vram::GetStats();
+    values[BENCH_WORLD] = draw.worldMicros;
+    values[BENCH_ENTITIES] = draw.entityMicros;
+    values[BENCH_SETUP] = draw.setupMicros;
+    values[BENCH_PARTICLES] = draw.particleMicros;
+    values[BENCH_VU_WAIT] = vu.waitMicros;
+    values[BENCH_TEX_DMA] = gs.textureUploadMicros;
+    values[BENCH_VRAM_WAIT] = gs.vramStallMicros;
+    values[BENCH_UPLOADS] = vram.uploadsThisFrame;
+    values[BENCH_RELOADS] = vram.reloadsThisFrame;
+    values[BENCH_EVICTIONS] = vram.evictionsThisFrame;
+    values[BENCH_SYNCS] = gs.vramStalls;
+    values[BENCH_VERTICES] = vu.vertices;
+    values[BENCH_TRIANGLES] = draw.trisDrawn;
 }
 
 void PS2_RenderFrame(refdef_t * viewDef)

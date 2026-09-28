@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <string.h>
 #include "client/benchmark.h"
+#include "client/benchmark_stats.h"
+#include <limits.h>
 enum { ca_uninitialized = 0, ca_disconnected = 1, ca_active = 2 };
 static struct { int state, disable_screen, disable_servercount; } cls;
 static struct { int refresh_prepped; struct { int valid, serverframe; } frame; } cl;
@@ -15,6 +17,14 @@ static void DrawFill(int x, int y, int w, int h, int c)
 { (void)x; (void)y; (void)w; (void)h; assert(c == 0); ++fills; }
 static struct { void (*DrawChar)(int, int, int); void (*DrawFill)(int, int, int, int, int); } re = { DrawChar, DrawFill };
 static int now, missing, resultScreens;
+static int statReads;
+void PS2_ReadBenchmarkStats(int values[BENCH_STATS_COUNT])
+{
+    int i;
+    ++statReads;
+    for (i = 0; i < BENCH_STATS_COUNT; ++i) values[i] = (i + 1) * 1000;
+    values[BENCH_VERTICES] = INT_MAX;
+}
 static char queued[4096];
 static float values[8] = { 0, 0, 1, 1, 1, 1, 1, 3 };
 static int Setting(const char * name)
@@ -85,6 +95,9 @@ int main(void)
         cl.frame.serverframe = 11;
         Frame(5020, 5030);
         assert(frames[i] == 2 && milliseconds[i] == 30);
+        assert(totals[i][BENCH_WORLD] == 2000);
+        assert(totals[i][BENCH_VERTICES] == 2ULL * INT_MAX);
+        assert(statReads == (i + 1) * 2);
         assert(CL_BenchmarkDemoCompleted());
         assert(CL_BenchmarkDemoCompleted()); /* duplicate EOF queues once */
         assert(!strcmp(queued, "benchmark_next\n"));
@@ -95,7 +108,11 @@ int main(void)
     assert(!active && values[0] == 0 && values[5] == 1 && values[6] == 1 && values[7] == 3);
     assert(strstr(queued, "benchmark_results"));
     assert(!CL_BenchmarkDemoCompleted());
+    CL_BenchmarkTogglePage();
+    CL_BenchmarkDraw();
+    assert(detailPage == 1);
     CL_BenchmarkStart();
+    assert(detailPage == 0 && totals[0][BENCH_WORLD] == 0);
     CL_BenchmarkCancel();
     NextRun();
     assert(!active && values[0] == 0 && values[5] == 1 && values[6] == 1 && values[7] == 3);
@@ -104,7 +121,7 @@ int main(void)
     NextRun(); /* empty/corrupt demo cannot be reported as complete */
     assert(!active && strstr(status, "failed"));
     CL_BenchmarkDraw();
-    assert(fills == 1);
+    assert(fills == 2);
     puts("Benchmark lifecycle, loading exclusion, cancellation and restoration PASS");
     return 0;
 }

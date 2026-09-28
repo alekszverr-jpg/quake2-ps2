@@ -28,6 +28,21 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
+## Validated Alpha.79 baseline and Alpha.80 next step
+
+User screenshot confirms all three passes complete on Alpha.79 with identical
+688 frames, IDs 195..882; 18.35/18.36/18.33 seconds; 37.49/37.48/37.53 FPS.
+Combined 37.50 FPS / 26.67 ms, range about 0.13%. The black results background
+is correct. Exact hardware/emulator settings have not been recorded; compare
+on the same setup. This validates the benchmark flow, not the third-map OOM fix.
+
+Alpha.80 adds Left/Right renderer details with per-pass averages from existing
+counters, sampled only after measured frames. Includes HUD/final waits; wait
+components overlap world/entity times. Uses fixed-size 64-bit totals. The next
+user run should provide BOTH pages: compare FPS with 37.50 to assess sampling
+cost, then use world/entity/texture/VRAM costs to choose a concrete optimization.
+No renderer speedup is claimed in Alpha.80. Three passes/no warm-up unchanged.
+
 ## Alpha.79 loading-plaque correction
 
 Alpha.78 user report: pass one finishes (688 frames / 18.37s / 37.52 FPS),

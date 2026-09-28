@@ -10,6 +10,7 @@ void CL_BenchmarkServerData(void);
 void CL_BenchmarkBeginFrame(void);
 void CL_BenchmarkEndFrame(void);
 void CL_BenchmarkDraw(void);
+void CL_BenchmarkTogglePage(void);
 void M_BenchmarkResults(void);
 
 #endif

@@ -6,6 +6,21 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.80 - 2026-09-28 (local test build)
+
+- Add a renderer-details results page to the benchmark (Left/Right). Per-pass
+  averages include world/entity/setup/particle times, VU and GS wait timings,
+  texture uploads/reloads/evictions, VRAM synchronizations and geometry counts.
+- Read existing renderer counters after completed measured frames, including
+  HUD uploads/final waits, and accumulate in fixed-size 64-bit totals. No frame
+  history allocation or per-frame log output. Waits overlap phase times and
+  must not be summed as disjoint costs. Timing fields require the PROFILE build.
+- Host tests verify measured-only sampling, accumulation beyond signed 32-bit,
+  reset between tests and details-page navigation. Runtime measurement pending.
+- User validated Alpha.79: all three passes use 688 frames (195..882),
+  37.49/37.48/37.53 FPS, combined 37.50 FPS / 26.67 ms. This is the pre-details
+  baseline for the user's setup; exact hardware/settings were not recorded.
+
 ## 0.1.0-alpha.79 - 2026-09-27 (local test build)
 
 - Fix repeated benchmark playback remaining behind LOADING after pass one.

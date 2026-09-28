@@ -2265,6 +2265,11 @@ static void TestMapFunc(void * unused)
 
 static const char * BenchmarkResultsKey(int key)
 {
+    if (key == K_LEFTARROW || key == K_RIGHTARROW)
+    {
+        CL_BenchmarkTogglePage();
+        return menu_move_sound;
+    }
     if (key == K_ESCAPE || key == K_ENTER)
     {
         M_ForceMenuOff();

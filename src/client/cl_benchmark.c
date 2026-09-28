@@ -1,11 +1,14 @@
 #include "client.h"
 #include "benchmark.h"
+#include "benchmark_stats.h"
 
 enum { BENCH_RUNS = 3 };
 static int active, pending, run, sampling, first, last;
 static int frames[BENCH_RUNS], milliseconds[BENCH_RUNS];
 static int ready, previousFrame;
 static int firstFrame[BENCH_RUNS], lastFrame[BENCH_RUNS];
+static unsigned long long totals[BENCH_RUNS][BENCH_STATS_COUNT];
+static int detailPage;
 static char status[80] = "Select benchmark to run demo1 three times";
 static const char * const settings[] = {
     "timedemo", "paused", "ps2_show_fps", "ps2_show_memstats",
@@ -69,6 +72,8 @@ void CL_BenchmarkStart(void)
     unsigned i;
     if (active)
         return;
+    detailPage = 0;
+    memset(totals, 0, sizeof(totals));
     /* Check through the virtual filesystem: the stock demo lives in pak0. */
     if (FS_FOpenFile("demos/demo1.dm2", &demo) <= 0 || !demo)
     {
@@ -139,6 +144,7 @@ void CL_BenchmarkBeginFrame(void)
 
 void CL_BenchmarkEndFrame(void)
 {
+    int values[BENCH_STATS_COUNT], i;
     if (!sampling || !active)
         return;
     last = Sys_Milliseconds();
@@ -146,6 +152,10 @@ void CL_BenchmarkEndFrame(void)
     lastFrame[run] = previousFrame = cl.frame.serverframe;
     ++frames[run];
     milliseconds[run] = last - first;
+    PS2_ReadBenchmarkStats(values);
+    for (i = 0; i < BENCH_STATS_COUNT; ++i)
+        if (values[i] > 0)
+            totals[run][i] += (unsigned)values[i];
     sampling = 0;
 }
 
@@ -163,7 +173,33 @@ void CL_BenchmarkDraw(void)
     int i, totalFrames = 0, totalTime = 0;
     char text[80];
     re.DrawFill(0, 0, viddef.width, viddef.height, 0);
-    Line(25, "QUAKE II - BENCHMARK Alpha.79");
+    Line(25, "QUAKE II - BENCHMARK Alpha.80");
+    if (detailPage)
+    {
+        static const char * labels[BENCH_STATS_COUNT] = {
+            "World ms", "Entities ms", "Setup ms", "Particles ms",
+            "VUwait ms", "TexDMA ms", "VRAMwait ms", "Uploads", "Reloads",
+            "Evictions", "VRAMsync", "VU vertices", "Triangles"
+        };
+        Line(43, "Averages per measured frame (incl HUD)");
+        Line(59, "Metric          Run1    Run2    Run3");
+        for (i = 0; i < BENCH_STATS_COUNT; ++i)
+        {
+            double average[3];
+            int j;
+            for (j = 0; j < BENCH_RUNS; ++j)
+                average[j] = frames[j] ? (double)totals[j][i] / frames[j] : 0;
+            if (i < BENCH_UPLOADS)
+                for (j = 0; j < BENCH_RUNS; ++j) average[j] /= 1000.0;
+            Com_sprintf(text, sizeof(text), "%-12s %7.2f %7.2f %7.2f", labels[i],
+                        average[0], average[1], average[2]);
+            Line(73 + i * 9, text);
+        }
+        Line(198, "Waits overlap phases; do not add them.");
+        Line(211, "Left/Right: FPS page");
+        Line(224, "Back: return to menu");
+        return;
+    }
     Line(45, status);
     Line(66, "Run    Frames   Seconds     FPS");
     for (i = 0; i < BENCH_RUNS; ++i)
@@ -190,8 +226,13 @@ void CL_BenchmarkDraw(void)
         Line(166, text);
     }
     Line(186, "Loading excluded; no extra warm-up.");
-    Line(200, "Compare same data and video settings.");
+    Line(200, "Left/Right: renderer details");
     Line(220, "Back: return to menu");
+}
+
+void CL_BenchmarkTogglePage(void)
+{
+    detailPage = !detailPage;
 }
 
 void CL_BenchmarkInit(void)
