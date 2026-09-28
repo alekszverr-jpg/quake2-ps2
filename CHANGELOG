@@ -14,7 +14,9 @@ Development priorities and completion criteria are tracked in
   packing function, alpha calculation and per-corner texture coordinates remain.
 - Reuse the existing colour scratch storage via a tagged-by-render-path union;
   a size assertion preserves the 32-byte vertex footprint. No persistent cache
-  or additional heap allocation. Performance and visual validation pending.
+  or additional heap allocation. CI `36375855092` passed host sanitizer tests
+  and PROFILE compilation; both local ELF copies were hash-verified.
+  Performance and visual validation pending.
 - Alpha.80 user baseline: 688 frames (195..882) on all passes, combined 37.48 FPS
   / 26.68 ms; world 11.70 ms, entities 9.20 ms, about 20 texture uploads/frame.
   The entity phase includes brush/sprite work too; no speedup is assumed yet.
