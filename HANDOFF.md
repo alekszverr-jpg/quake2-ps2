@@ -28,6 +28,23 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
+## Alpha.80 measured baseline and Alpha.81 candidate
+
+User supplied both Alpha.80 pages: 688 frames/195..882 each; 37.48/37.50/37.44
+FPS, combined 37.48 FPS / 26.68 ms. World 11.70/11.70/11.71 ms; entities
+9.21/9.20/9.20 ms; setup .30, particles .47, VUwait .13, TexDMA .23, VRAMwait
+.16 ms. Uploads 19.83/19.64/20.43, reloads 19.62/19.45/20.23, evictions
+19.80/19.60/20.38, syncs 5.55/5.57/5.62. Vertices about 15807; tris about5269.
+Alpha.80 summary overhead is below this run's variation versus Alpha.79.
+
+Alpha.81 candidate only moves non-weapon MD2 PackFloatColor from indexed
+corners into unique-vertex preparation. Uses the same function and alpha,
+keeps float colour weapon clipping and skin seams untouched. A union preserves
+32-byte scratch layout; no heap/cache growth. Need both benchmark pages and
+visual checks of enemy/pickup lighting, translucent entities and view weapons.
+Compare to 37.48 FPS and entity 9.20 ms, keeping frames/ranges and setup fixed.
+Do not claim improvement before measured results.
+
 ## Validated Alpha.79 baseline and Alpha.80 next step
 
 User screenshot confirms all three passes complete on Alpha.79 with identical

@@ -143,8 +143,16 @@ static int s_scratchVertCount = 0;
 struct alignas(16) PreparedAliasVertex
 {
     math::Vec4 pos;
-    math::Vec4 color;
+    // Weapons need float colours for clipping interpolation. Other MD2s go
+    // straight to VU1, so pack once per unique vertex, not per triangle corner.
+    union
+    {
+        math::Vec4 color;
+        u32 packedColor;
+    };
 };
+static_assert(sizeof(PreparedAliasVertex) == 32,
+              "MD2 colour reuse must not grow the scratch buffer");
 alignas(16) static PreparedAliasVertex s_preparedAliasVerts[MAX_VERTS];
 
 // Performance counters for the frame, reset by RenderFrame and read through
@@ -2411,9 +2419,13 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model,
                     + static_cast<float>(v.v[2])  * frontScale[2],
             1.0f
         };
-        out.color =
+        math::Vec4 color =
             AliasVertexColor(modelLight, shadeVector, v.lightnormalindex);
-        out.color.w = entityAlpha * 128.0f;
+        color.w = entityAlpha * 128.0f;
+        if (clipViewWeapon)
+            out.color = color;
+        else
+            out.packedColor = PackFloatColor(color);
     }
     PS2_STAT_ADD(aliasUniqueVerts, md2->num_xyz);
     PS2_STAT_ADD(aliasCorners, md2->num_tris * 3);
@@ -2482,7 +2494,7 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model,
                 out.y = prepared.pos.y;
                 out.z = prepared.pos.z;
                 out.w = 1.0f;
-                out.rgba = PackFloatColor(prepared.color);
+                out.rgba = prepared.packedColor;
                 out.s = (static_cast<float>(st.s) + 0.5f) * invGsSkinW;
                 out.t = (static_cast<float>(st.t) + 0.5f) * invGsSkinH;
                 out.q = 1.0f;

@@ -6,6 +6,19 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.81 - 2026-09-28 (local test build)
+
+- Pack non-weapon MD2 vertex colours once per unique animated vertex instead
+  of repeating the identical conversion for every indexed triangle corner.
+  Weapon clipping retains floating-point colours for interpolation; the same
+  packing function, alpha calculation and per-corner texture coordinates remain.
+- Reuse the existing colour scratch storage via a tagged-by-render-path union;
+  a size assertion preserves the 32-byte vertex footprint. No persistent cache
+  or additional heap allocation. Performance and visual validation pending.
+- Alpha.80 user baseline: 688 frames (195..882) on all passes, combined 37.48 FPS
+  / 26.68 ms; world 11.70 ms, entities 9.20 ms, about 20 texture uploads/frame.
+  The entity phase includes brush/sprite work too; no speedup is assumed yet.
+
 ## 0.1.0-alpha.80 - 2026-09-28 (local test build)
 
 - Add a renderer-details results page to the benchmark (Left/Right). Per-pass
