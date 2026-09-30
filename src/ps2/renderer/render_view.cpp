@@ -2959,6 +2959,26 @@ void RenderWorldModel(const refdef_t & viewDef)
     DrawTextureChains(s_viewProjMatrix);
 }
 
+u8 ViewBlendByte(float value)
+{
+    value = std::max(0.0f, std::min(value, 1.0f));
+    return static_cast<u8>(value * 255.0f + 0.5f);
+}
+
+void RenderViewBlend(const refdef_t & viewDef)
+{
+    static const cvar_t * polyBlend = Cvar_Get("gl_polyblend", "1", 0);
+    if (polyBlend->value == 0.0f || viewDef.blend[3] <= 0.0f ||
+        (viewDef.rdflags & RDF_NOWORLDMODEL) != 0) return;
+
+    // Stock R_PolyBlend uses the server-composed blend (water/slime/lava,
+    // damage, pickups and powerups). Queue it after 3D and before the HUD.
+    // FillRect takes ordinary byte alpha and performs the GS 0..128 mapping.
+    gs::FillRect(viewDef.x, viewDef.y, viewDef.width, viewDef.height,
+                 ViewBlendByte(viewDef.blend[0]), ViewBlendByte(viewDef.blend[1]),
+                 ViewBlendByte(viewDef.blend[2]), ViewBlendByte(viewDef.blend[3]));
+}
+
 } // namespace
 
 // ------------------------------------------------------------------------------------------------
@@ -3072,6 +3092,8 @@ void RenderFrame(const refdef_t & viewDef)
 #if PS2_PROFILE
     vram::SetUploadPhase(vram::UploadPhase::Other2D);
 #endif
+
+    RenderViewBlend(viewDef);
 
     // Later milestones continue here: remaining translucent entity variants.
 }

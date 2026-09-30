@@ -49,9 +49,10 @@ enough for normal gameplay.
 - [x] MD2 vertex lighting using Quake II normal tables
 - [x] Animated light styles
 - [x] Dynamic entity lights
-- [~] Dynamic lights on opaque BSP and moving brush surfaces (Alpha.88)
-- [~] RF_BEAM laser tubes with palette colour and alpha (Alpha.88)
+- [x] Dynamic world lighting: user confirmed projectile illumination on Alpha.88
+- [x] RF_BEAM laser tubes: user confirmed visibility on Alpha.88
 - [~] Underwater view distortion (Alpha.88)
+- [~] Stock water/slime/lava, damage and pickup view blend (Alpha.89)
 - [~] Sprite entities
 - [x] Particles
 - [x] Opaque brush entities such as moving doors and platforms

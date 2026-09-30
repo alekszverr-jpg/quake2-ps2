@@ -6,6 +6,20 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.89 - 2026-09-30 (local test build)
+
+- Restore the missing R_PolyBlend equivalent: draw the game-composed
+  refdef.blend over the 3D viewport after world/weapon submission and before
+  HUD/console. This restores the stock water/slime/lava tint and damage,
+  pickup and powerup colour flashes. No framebuffer copy or new texture/cache.
+- Honour gl_polyblend and clear blend alpha when cl_add_blend is disabled;
+  otherwise the existing RGB-only clear would leave a black overlay.
+- Host production-body tests cover stock water colour/alpha, reduced viewport,
+  zero alpha, disabled blend, menu exclusion and byte clamping. Visual/runtime
+  validation of the overlay remains required.
+- User confirmed projectile illumination works and lasers are now visible on
+  Alpha.88; underwater feedback identified the still-missing overlay.
+
 ## 0.1.0-alpha.88 - 2026-09-30 (local test build)
 
 - Restore underwater view distortion using opposing animated horizontal and
@@ -29,7 +43,8 @@ Development priorities and completion criteria are tracked in
   hardware/all-weapons stress coverage.
 - CI `36759595668` passed all sanitizer checks and PROFILE compilation for
   `0cf3812`. Both local testing ELF copies match the artifact. Runtime effect
-  correctness and performance have not yet been confirmed by the user.
+  correctness was subsequently confirmed for projectile lights and laser
+  visibility. Underwater overlay and benchmark performance remain pending.
 
 ## 0.1.0-alpha.87 - 2026-09-30 (local test build)
 

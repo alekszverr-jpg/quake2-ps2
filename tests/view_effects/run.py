@@ -9,7 +9,8 @@ out = root / "build/view-effects-host"
 out.mkdir(parents=True, exist_ok=True)
 source = (root / "src/ps2/renderer/render_view.cpp").read_text()
 functions = []
-for signature in ["u32 AddWorldLights", "void SubmitDynamicallyLitTriangle"]:
+for signature in ["u32 AddWorldLights", "void SubmitDynamicallyLitTriangle",
+                  "u8 ViewBlendByte", "void RenderViewBlend"]:
     match = re.search(r"^" + re.escape(signature) + r"\(.*?^\}", source, re.M | re.S)
     if not match:
         raise RuntimeError("Cannot extract " + signature)

@@ -29,6 +29,16 @@ checkpoint does not advance `VERSION`.
 
 ## Alpha.87 campaign archive repair accepted
 
+Alpha.88 feedback: user confirmed projectile lights work normally and lasers
+are visible. Underwater appearance still lacks an overlay. Original local
+ref_gl/gl_rmain.c R_PolyBlend draws v_blend after 3D; PS2 RenderFrame ignored
+refdef.blend entirely. Alpha.89 adds the composed view tint using existing
+gs::FillRect after vu1::Flush and before client HUD/console. The stock game
+already supplies water RGB (0.5,0.3,0.2), alpha 0.4, and slime/lava/damage/
+pickup/powerup blends. Do not replace these with a hard-coded blue water tint.
+Honour gl_polyblend and cl_add_blend (clear alpha as well as RGB). Runtime
+target: water entry/exit, HUD unaffected, damage/pickup flashes fade normally.
+
 2026-09-30 follow-up: user tested through ware1 without crashes. Three renderer
 gaps remain: underwater view distortion, projectile light on world surfaces,
 and invisible RF_BEAM lasers. Alpha.88 implements these for runtime validation.

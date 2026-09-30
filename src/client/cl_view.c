@@ -547,6 +547,7 @@ void V_RenderView(float stereo_separation)
         if (!cl_add_blend->value)
         {
             VectorClear(cl.refdef.blend);
+            cl.refdef.blend[3] = 0;
         }
 
         cl.refdef.num_entities = r_numentities;

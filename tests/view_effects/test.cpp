@@ -4,6 +4,7 @@
 #include <cstdio>
 
 using u32 = std::uint32_t;
+using u8 = std::uint8_t;
 namespace effects = ps2::view::effects;
 namespace math {
 struct Vec3 { float x, y, z; };
@@ -24,6 +25,21 @@ static int s_worldLightCount = 0;
 static math::Vec3 s_worldLightOrigins[32];
 static u32 s_surfaceLightMask = 0;
 static int triangles, brightVertices;
+struct cvar_t { float value; };
+static cvar_t polyBlend = {1};
+const cvar_t * Cvar_Get(const char *, const char *, int) { return &polyBlend; }
+constexpr int RDF_NOWORLDMODEL = 1;
+struct refdef_t { int x, y, width, height, rdflags; float blend[4]; };
+namespace gs {
+static int fills, rect[4];
+static u8 color[4];
+void FillRect(int x, int y, int w, int h, u8 r, u8 g, u8 b, u8 a)
+{
+    ++fills;
+    rect[0] = x; rect[1] = y; rect[2] = w; rect[3] = h;
+    color[0] = r; color[1] = g; color[2] = b; color[3] = a;
+}
+}
 u32 AddWorldLights(u32 color, const math::Vec4 & point);
 void SetClipDistances(ClipVertex &, const math::Mat4 &) {}
 void SubmitWorldTriangle(const ClipVertex (&corners)[3], const math::Mat4 &,
@@ -93,5 +109,20 @@ int main()
     assert(s_surfaceLightMask == (1u << 31));
     s_surfaceLightMask = 0;
     assert(AddWorldLights(0x80404040u, {}) == 0x80404040u);
+
+    // Use the stock water blend and a reduced viewport: tint only the 3D view.
+    refdef_t view = { 10,20,320,240,0, {0.5f,0.3f,0.2f,0.4f} };
+    RenderViewBlend(view);
+    assert(gs::fills == 1 && gs::rect[0] == 10 && gs::rect[1] == 20);
+    assert(gs::rect[2] == 320 && gs::rect[3] == 240);
+    assert(gs::color[0] == 128 && gs::color[1] == 77 && gs::color[2] == 51 && gs::color[3] == 102);
+    view.blend[3] = 0;
+    RenderViewBlend(view);
+    view.blend[3] = 0.5f; polyBlend.value = 0;
+    RenderViewBlend(view);
+    polyBlend.value = 1; view.rdflags = RDF_NOWORLDMODEL;
+    RenderViewBlend(view);
+    assert(gs::fills == 1);
+    assert(ViewBlendByte(-0.1f) == 0 && ViewBlendByte(1.5f) == 255);
     std::puts("View effects: projection, beam geometry, RGB falloff and bounded dynamic tessellation passed");
 }
