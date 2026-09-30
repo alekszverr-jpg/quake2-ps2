@@ -8,27 +8,45 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.83 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.84 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.83` (PROFILE CI passed; world clip preparation runtime test pending)
-- Current implementation commit: `3692379`
-  (`Defer full world clip records until boundary clipping is needed`)
+- Current source/test version: `0.1.0-alpha.84` (PROFILE CI passed; long-play map return test pending)
+- Current implementation commit: `c68826f`
+  (`Release old level models and textures before collision BSP load`)
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.83 local PROFILE ELF SHA-256 (7,595,024 bytes):
-  `C78F94E9963FFFD1D2E0DCA25986790F5F951AEC3B88C745B3D614F18C0BDA68`
-- CI `36673534736` passed host tests (BSP/VRAM/TGA/benchmark with ASan/UBSan)
-  and the PROFILE build for `3692379`.
+- Alpha.84 local PROFILE ELF SHA-256 (7,595,760 bytes):
+  `8F24101AE70459BF637B06AF659022F8779F503989B2C374E5FFECE689182626`
+- CI `36675635365` passed host tests (BSP/VRAM/TGA/benchmark/level purge with ASan/UBSan)
+  and the PROFILE build for `c68826f`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.82 accepted baseline and Alpha.83 candidate
+## Alpha.84 transition fix and accepted Alpha.83 baseline
+
+User reported third-to-second map return failure: Quake allocation 2,076,404
+bytes, free 7,116,792, largest chunk 828,032. Mdl_World was already zero, but
+alias models (2.78 MB) and textures (4.40 MB) survived the early server purge.
+Alpha.84 extends PS2_PurgeLevelRendererMemory to release all models and
+nonpersistent textures before CM_LoadMap's full BSP file read. Lighting cache
+clears before world ownership; stale 3D submissions remain guarded until
+client EndRegistration. Pics/built-ins retain their established lifetime.
+Host test checks actual purge bodies/order and repeated model purge; it does
+not reproduce the retail EE fragmented heap. Require long exploration and
+the 1 -> 2 -> 3 -> 2 sequence, plus repeated benchmark and normal gameplay.
+No campaign-wide memory stability claim yet.
+
+Alpha.83 user confirmed visuals normal. Three passes 688 frames/195..882;
+45.74/45.74/45.73 FPS, combined 45.73 FPS / 21.87 ms. World 8.46/8.47/8.45 ms,
+entities 7.67/7.66/7.67. Accepted performance baseline.
+
+## Alpha.82 baseline and Alpha.83 implementation
 
 Alpha.82 user confirmed no observed visual issues. Three passes 688 frames,
 195..882; 43.77/43.82/43.76 FPS, combined 43.78 FPS / 22.84 ms. World

@@ -17,6 +17,8 @@ Development priorities and completion criteria are tracked in
   allocation failed with 7,116,792 bytes free but an 828,032-byte largest chunk.
   Old world had been freed; 2.78 MB of alias models and 4.40 MB of textures
   remained. Long-play transition validation is still required.
+- CI `36675635365` passed all host sanitizer checks and PROFILE compilation;
+  both local root ELF copies match the downloaded artifact's SHA-256.
 - Alpha.83 user confirmed normal visuals: 45.73 FPS / 21.87 ms, world about
   8.46 ms and entities 7.67 ms; all three passes 688 frames (195..882).
 
