@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // The PS2 client and server are linked into one ELF. Release the previous
 // renderer BSP before CM_LoadMap needs a full-file buffer for the next map.
 extern void PS2_PurgeLevelRendererMemory(void);
+extern void S_PurgeLevelSounds(void);
 #endif
 
 server_static_t svs; // persistant server info
@@ -249,6 +250,7 @@ void SV_SpawnServer(char * server, char * spawnpoint, server_state_t serverstate
 
 #ifdef PS2_QUAKE
     PS2_PurgeLevelRendererMemory();
+    S_PurgeLevelSounds();
 #endif
 
     if (serverstate != ss_game)

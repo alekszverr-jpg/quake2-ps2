@@ -6,6 +6,24 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.85 - 2026-09-30 (local test build)
+
+- Implement PS2 save-directory creation and file enumeration through POSIX
+  IO/newlib. Previously these platform functions were empty stubs: campaign
+  level archives could not be created, copied or wiped reliably. The existing
+  game/server save and restore code now has its filesystem operations, keeping
+  killed enemies and level state when returning within a unit. Requires a
+  writable game-data directory and a fresh campaign for previously lost state.
+- Stop active/queued sounds and free cached PCM before collision BSP loading;
+  keep stable sound slots/names for normal registration/reloading. Also free
+  owned alias sound names when their registrations expire. Targets the latest
+  third-to-fourth map fragmented-heap failure (274,768-byte Quake request;
+  15,169,784 free, largest chunk 235,968). Exact allocating asset is unconfirmed.
+- Host regression exercises real directory creation, archive deletion and
+  pre-map sound purge bodies, wildcard/attribute filtering and repeat purge.
+  Runtime state restoration and third-to-fourth transition still need testing.
+- User confirmed Alpha.84 fixed the third-to-second return.
+
 ## 0.1.0-alpha.84 - 2026-09-30 (local test build)
 
 - Free old level alias/sprite models and nonpersistent textures before the

@@ -1,14 +1,15 @@
 /* ================================================================================================
  * File: sys.cpp
  * Brief: Sys_* platform seam for the PS2 - timing, fatal-error handling, console
- *        output and the (static) game-module hookup. Filesystem enumeration and
- *        console input are not available on the target and are stubbed.
+ *        output, save filesystem operations and the static game-module hookup.
+ *        Interactive console input remains unavailable on the target.
  *
  * This source code is released under the GNU GPL v2 license.
  * ================================================================================================ */
 
 #include "ps2/common.h"
 #include "ps2/debug/scr_print.h"
+#include "ps2/system/file_search.h"
 
 #include <cstdio>
 #include <cstdarg>
@@ -132,20 +133,23 @@ void Sys_AppActivate() {}
 void Sys_CopyProtect() {}
 char * Sys_GetClipboardData() { return nullptr; }
 
-void Sys_Mkdir(const char * path) { (void)path; }
+void Sys_Mkdir(const char * path)
+{
+    mkdir(path, 0777);
+}
+
+static ps2::sys::FileSearch s_fileSearch;
 
 char * Sys_FindFirst(const char * path, unsigned musthave, unsigned canthave)
 {
-    (void)path; (void)musthave; (void)canthave;
-    return nullptr;
+    return s_fileSearch.First(path, musthave, canthave);
 }
 
 char * Sys_FindNext(unsigned musthave, unsigned canthave)
 {
-    (void)musthave; (void)canthave;
-    return nullptr;
+    return s_fileSearch.Next(musthave, canthave);
 }
 
-void Sys_FindClose() {}
+void Sys_FindClose() { s_fileSearch.Close(); }
 
 } // extern "C"

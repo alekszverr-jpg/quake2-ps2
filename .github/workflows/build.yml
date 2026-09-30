@@ -48,6 +48,9 @@ jobs:
       - name: Check pre-BSP level purge on host
         run: python3 tests/level_purge/run.py
 
+      - name: Check transition filesystem and sound purge on host
+        run: python3 tests/transition_io/run.py
+
       - name: Download PS2DEV prebuilt toolchain
         run: |
           mkdir -p "$PS2DEV"

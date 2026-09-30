@@ -286,6 +286,24 @@ void S_BeginRegistration(void)
     s_registering = true;
 }
 
+#ifdef PS2_QUAKE
+// Called before collision BSP IO, while the old client frame still exists.
+// Keep stable sfx slots/names; registration reloads their PCM on the next map.
+void S_PurgeLevelSounds(void)
+{
+    int i;
+    S_StopAllSounds(); // Clear active and queued users before freeing PCM.
+    for (i = 0; i < num_sfx; ++i)
+    {
+        if (known_sfx[i].cache)
+        {
+            Z_Free(known_sfx[i].cache);
+            known_sfx[i].cache = NULL;
+        }
+    }
+}
+#endif
+
 /*
 ==================
 S_RegisterSound
@@ -329,6 +347,8 @@ void S_EndRegistration(void)
         {                           // don't need this sound
             if (sfx->cache)         // it is possible to have a leftover
                 Z_Free(sfx->cache); // from a server that didn't finish loading
+            if (sfx->truename)
+                Z_Free(sfx->truename);
             memset(sfx, 0, sizeof(*sfx));
         }
         else
