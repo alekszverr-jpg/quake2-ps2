@@ -21,6 +21,9 @@ Development priorities and completion criteria are tracked in
   Alpha.88; underwater feedback identified the still-missing overlay.
 - CI `36761237899` passed all host sanitizer checks and PROFILE compilation
   for `27b428c`; both local ELF copies match the downloaded build artifact.
+- User accepted underwater appearance and damage flashes. Source comparison
+  recorded remaining colour-shell, ordinary flowing-texture and optional
+  projected-shadow omissions in ROADMAP; no further code/build change.
 
 ## 0.1.0-alpha.88 - 2026-09-30 (local test build)
 

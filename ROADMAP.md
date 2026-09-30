@@ -51,8 +51,11 @@ enough for normal gameplay.
 - [x] Dynamic entity lights
 - [x] Dynamic world lighting: user confirmed projectile illumination on Alpha.88
 - [x] RF_BEAM laser tubes: user confirmed visibility on Alpha.88
-- [~] Underwater view distortion (Alpha.88)
-- [~] Stock water/slime/lava, damage and pickup view blend (Alpha.89)
+- [x] Underwater appearance and damage colour blend: user accepted Alpha.89
+- [~] Separate slime/lava, pickup and powerup blend validation
+- [ ] MD2 colour shells (RF_SHELL_*), including powerup/protection effects
+- [ ] SURF_FLOWING texture scroll on non-turbulent opaque/transparent surfaces
+- [ ] Optional ref_gl projected model shadows (gl_shadows)
 - [~] Sprite entities
 - [x] Particles
 - [x] Opaque brush entities such as moving doors and platforms

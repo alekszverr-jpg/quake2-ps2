@@ -13,7 +13,7 @@ before changing renderer, audio or memory-management code.
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.89` (PROFILE CI passed; view overlay awaits user runtime testing)
+- Current source/test version: `0.1.0-alpha.89` (PROFILE CI passed; user accepted underwater overlay and damage flashes)
 - Current implementation commit: `27b428c`
   (`Restore stock viewport colour blend after 3D rendering`)
 - Current published release:
@@ -28,6 +28,18 @@ Local test builds may advance; no GitHub release is currently requested. This ha
 checkpoint does not advance `VERSION`.
 
 ## Alpha.87 campaign archive repair accepted
+
+2026-09-30 Alpha.89 feedback: user says everything works, including damage
+colour flashes; attached underwater view shows the composed water tint.
+Accept water appearance/damage flash on this setup. Separate lava/slime,
+pickup/powerup, performance and wider hardware validation remain open.
+Read-only comparison against local stock ref_gl identified further omissions:
+RF_SHELL_* flags are emitted by cl_ents but not handled in the MD2 renderer;
+SURF_FLOWING scroll exists only in DrawTurbulentSurface, not ordinary opaque
+or translucent faces; optional gl_shadows projected model pass is absent.
+Translucent depth writes still differ from stock ref_gl. Music is intentionally
+pending (Makefile builds null/cd_null.c). Recommend shells and ordinary flowing
+textures before optional shadows; no renderer implementation made in this audit.
 
 Alpha.88 feedback: user confirmed projectile lights work normally and lasers
 are visible. Underwater appearance still lacks an overlay. Original local
