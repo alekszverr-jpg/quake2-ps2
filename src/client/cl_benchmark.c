@@ -173,7 +173,7 @@ void CL_BenchmarkDraw(void)
     int i, totalFrames = 0, totalTime = 0;
     char text[80];
     re.DrawFill(0, 0, viddef.width, viddef.height, 0);
-    Line(25, "QUAKE II - BENCHMARK Alpha.81");
+    Line(25, "QUAKE II - BENCHMARK Alpha.82");
     if (detailPage)
     {
         static const char * labels[BENCH_STATS_COUNT] = {

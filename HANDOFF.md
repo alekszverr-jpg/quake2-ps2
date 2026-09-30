@@ -28,6 +28,21 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
+## Alpha.81 result and Alpha.82 world candidate
+
+Alpha.81 user screenshots: 688 frames/195..882 each; 39.30/39.27/39.26 FPS,
+combined 39.28 FPS / 25.46 ms. World 11.73/11.73/11.72 ms, entities
+7.80/7.80/7.81 ms, geometry essentially unchanged. MD2 packing candidate
+has measured benefit (~4.8% FPS), but explicit visual colour confirmation is
+still missing. Same-hardware/settings comparison is assumed, not recorded.
+
+Alpha.82 bypasses cached-world colour unpack/repack only for triangles where
+all original six clip distances are >=0. Directly emits cached packed colour;
+partially clipped triangles keep the old interpolation and submission path.
+Scratch size and persistent caches unchanged. Need both benchmark pages,
+same 688 frames/range, and visual checks of wall lighting/camera edge movement,
+crack seals, doors, water/glass and weapons. Compare 39.28 FPS/world11.73ms.
+
 ## Alpha.80 measured baseline and Alpha.81 candidate
 
 User supplied both Alpha.80 pages: 688 frames/195..882 each; 37.48/37.50/37.44

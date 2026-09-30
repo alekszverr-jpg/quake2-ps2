@@ -6,6 +6,18 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.82 - 2026-09-30 (local test build)
+
+- Submit fully-inside cached BSP lighting triangles with their existing packed
+  GS colours, avoiding three float colour unpack/repack cycles per triangle.
+  Uses the same six clip distances and >=0 classification, scratch batching,
+  texture/matrix and triangle counters. Boundary triangles keep colour
+  interpolation through the ordinary clipper; crack-seal path unchanged.
+- No heap or cache growth. Runtime performance and edge/lighting checks pending.
+- Alpha.81 user baseline: all passes 688 frames (195..882), combined 39.28 FPS
+  / 25.46 ms; entities 7.80 ms, world 11.73 ms. The MD2 optimisation improved
+  FPS about 4.8% versus Alpha.80 on the user's setup; colour validation pending.
+
 ## 0.1.0-alpha.81 - 2026-09-28 (local test build)
 
 - Pack non-weapon MD2 vertex colours once per unique animated vertex instead

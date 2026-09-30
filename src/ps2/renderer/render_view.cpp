@@ -939,17 +939,22 @@ inline u32 PackFloatColor(const math::Vec4 & color)
         static_cast<u32>(alpha + 0.5f));
 }
 
-inline void EmitScratchVertex(const ClipVertex & v)
+inline void EmitScratchVertex(const ClipVertex & v, u32 packedColor)
 {
     vu1::DrawVertex & dst = s_scratchVerts[s_scratchVertCount++];
     dst.x    = v.pos.x;
     dst.y    = v.pos.y;
     dst.z    = v.pos.z;
     dst.w    = 1.0f;
-    dst.rgba = PackFloatColor(v.color);
+    dst.rgba = packedColor;
     dst.s    = v.st.x;
     dst.t    = v.st.y;
     dst.q    = 1.0f;
+}
+
+inline void EmitScratchVertex(const ClipVertex & v)
+{
+    EmitScratchVertex(v, PackFloatColor(v.color));
 }
 
 constexpr float kLightmapAtlasSize = 128.0f;
@@ -1719,16 +1724,30 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
         for (int first = 0; first < drawVertexCount; first += 3)
         {
             ClipVertex corners[3] = {};
+            bool fullyInside = true;
             for (int v = 0; v < 3; ++v)
             {
                 const CachedLitVertex & src = drawVertices[first + v];
                 ClipVertex & corner = corners[v];
                 corner.pos = { src.x, src.y, src.z, 1.0f };
                 corner.st = { src.s, src.t, 0.0f, 0.0f };
-                UnpackCachedColor(corner.color, src.packedColor);
-
                 SetClipDistances(corner, mvp);
+                for (int plane = 0; plane < kNumClipPlanes; ++plane)
+                    fullyInside &= (corner.d.f[plane] >= 0.0f);
             }
+            // Cached colours are already rounded to GS bytes. Interior
+            // triangles need no colour interpolation or unpack/repack cycle.
+            if (fullyInside)
+            {
+                if (s_scratchVertCount + 3 > kScratchMaxVerts)
+                    FlushScratch(mvp, texture);
+                for (int v = 0; v < 3; ++v)
+                    EmitScratchVertex(corners[v], drawVertices[first + v].packedColor);
+                PS2_STAT_INC(trisDrawn);
+                continue;
+            }
+            for (int v = 0; v < 3; ++v)
+                UnpackCachedColor(corners[v].color, drawVertices[first + v].packedColor);
             SubmitWorldTriangle(corners, mvp, texture);
         }
     }
