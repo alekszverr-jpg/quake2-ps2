@@ -1298,16 +1298,23 @@ void ResolveSkyTextures()
     s_skyTexturesResolved = true;
 }
 
+void SetClipDistances(ClipDists & distances, const math::Vec4 & position,
+                      const math::Mat4 & mvp)
+{
+    const math::Vec4 clip = math::Transform(position, mvp);
+    const float gw = vu1::kGuardBandNdcLimit * clip.w;
+    distances.f[0] = (clip.w - clip.z) - kClipEpsilon;
+    distances.f[1] = (clip.w + clip.z) - kClipEpsilon;
+    distances.f[2] = (gw - clip.x) - kClipEpsilon;
+    distances.f[3] = (gw + clip.x) - kClipEpsilon;
+    distances.f[4] = (gw - clip.y) - kClipEpsilon;
+    distances.f[5] = (gw + clip.y) - kClipEpsilon;
+    distances.f[6] = distances.f[7] = 0.0f;
+}
+
 void SetClipDistances(ClipVertex & vertex, const math::Mat4 & mvp)
 {
-    const math::Vec4 clip = math::Transform(vertex.pos, mvp);
-    const float gw = vu1::kGuardBandNdcLimit * clip.w;
-    vertex.d.f[0] = (clip.w - clip.z) - kClipEpsilon;
-    vertex.d.f[1] = (clip.w + clip.z) - kClipEpsilon;
-    vertex.d.f[2] = (gw - clip.x) - kClipEpsilon;
-    vertex.d.f[3] = (gw + clip.x) - kClipEpsilon;
-    vertex.d.f[4] = (gw - clip.y) - kClipEpsilon;
-    vertex.d.f[5] = (gw + clip.y) - kClipEpsilon;
+    SetClipDistances(vertex.d, vertex.pos, mvp);
 }
 
 ClipVertex MakeSkyVertex(float s, float t, int axis, const refdef_t & viewDef,
@@ -1723,17 +1730,17 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
 
         for (int first = 0; first < drawVertexCount; first += 3)
         {
-            ClipVertex corners[3] = {};
+            // Interior triangles only need plane distances. Defer the full
+            // interpolation records (288 bytes) until clipping is required.
+            ClipDists distances[3];
             bool fullyInside = true;
             for (int v = 0; v < 3; ++v)
             {
                 const CachedLitVertex & src = drawVertices[first + v];
-                ClipVertex & corner = corners[v];
-                corner.pos = { src.x, src.y, src.z, 1.0f };
-                corner.st = { src.s, src.t, 0.0f, 0.0f };
-                SetClipDistances(corner, mvp);
+                const math::Vec4 position = { src.x, src.y, src.z, 1.0f };
+                SetClipDistances(distances[v], position, mvp);
                 for (int plane = 0; plane < kNumClipPlanes; ++plane)
-                    fullyInside &= (corner.d.f[plane] >= 0.0f);
+                    fullyInside &= (distances[v].f[plane] >= 0.0f);
             }
             // Cached colours are already rounded to GS bytes. Interior
             // triangles need no colour interpolation or unpack/repack cycle.
@@ -1742,12 +1749,25 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
                 if (s_scratchVertCount + 3 > kScratchMaxVerts)
                     FlushScratch(mvp, texture);
                 for (int v = 0; v < 3; ++v)
-                    EmitScratchVertex(corners[v], drawVertices[first + v].packedColor);
+                {
+                    const CachedLitVertex & src = drawVertices[first + v];
+                    vu1::DrawVertex & dst = s_scratchVerts[s_scratchVertCount++];
+                    dst.x = src.x; dst.y = src.y; dst.z = src.z; dst.w = 1.0f;
+                    dst.rgba = src.packedColor;
+                    dst.s = src.s; dst.t = src.t; dst.q = 1.0f;
+                }
                 PS2_STAT_INC(trisDrawn);
                 continue;
             }
+            ClipVertex corners[3] = {};
             for (int v = 0; v < 3; ++v)
-                UnpackCachedColor(corners[v].color, drawVertices[first + v].packedColor);
+            {
+                const CachedLitVertex & src = drawVertices[first + v];
+                corners[v].pos = { src.x, src.y, src.z, 1.0f };
+                corners[v].st = { src.s, src.t, 0.0f, 0.0f };
+                corners[v].d = distances[v];
+                UnpackCachedColor(corners[v].color, src.packedColor);
+            }
             SubmitWorldTriangle(corners, mvp, texture);
         }
     }

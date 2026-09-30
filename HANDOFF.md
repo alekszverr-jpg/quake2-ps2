@@ -28,6 +28,20 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
+## Alpha.82 accepted baseline and Alpha.83 candidate
+
+Alpha.82 user confirmed no observed visual issues. Three passes 688 frames,
+195..882; 43.77/43.82/43.76 FPS, combined 43.78 FPS / 22.84 ms. World
+9.40/9.38/9.40 ms, entities7.70/7.69/7.70. This is the next comparison baseline.
+
+Alpha.83 defers full ClipVertex preparation for cached world triangles until
+clipping is needed. The interior path computes distances from the same Vec4
+positions, tests the same planes and writes cached fields straight to scratch.
+Fallback uses zero-initialized records plus copied distances (spare lanes now
+explicitly zero). No memory/cache growth. Need both benchmark pages and visual
+checks at walls/edges, moving brush models, water/glass and crack seals.
+The old third-map OOM still needs a separate long-playthrough validation.
+
 ## Alpha.81 result and Alpha.82 world candidate
 
 Alpha.81 user screenshots: 688 frames/195..882 each; 39.30/39.27/39.26 FPS,

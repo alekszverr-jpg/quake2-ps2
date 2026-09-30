@@ -6,6 +6,17 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.83 - 2026-09-30 (local test build)
+
+- Prepare only six clip distances (with initialized spare SIMD lanes) for
+  cached world triangles. Fully-inside triangles copy cached fields directly
+  to VU scratch; full 96-byte interpolation records are constructed only for
+  the fallback clipper. Reuse the calculated distances in that fallback.
+- Same transform, epsilon, plane classification, geometry, packed colours and
+  batch limits. No persistent cache or heap growth. Runtime validation pending.
+- Alpha.82 user verified visuals and measured 43.78 FPS / 22.84 ms; all passes
+  688 frames (195..882), world about 9.39 ms, entities 7.70 ms. New baseline.
+
 ## 0.1.0-alpha.82 - 2026-09-30 (local test build)
 
 - Submit fully-inside cached BSP lighting triangles with their existing packed
