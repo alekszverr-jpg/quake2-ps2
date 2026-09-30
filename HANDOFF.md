@@ -8,19 +8,19 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.87 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.88 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.87` (PROFILE CI passed; user confirmed campaign restoration works)
-- Current implementation commit: `5ec622b`
-  (`Use SDK-matched host IO and repair empty save path directories`)
+- Current source/test version: `0.1.0-alpha.88` (PROFILE CI passed; visual effects await user runtime testing)
+- Current implementation commit: `0cf3812`
+  (`Restore underwater projection, beam entities and dynamic BSP lights`)
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.87 local PROFILE ELF SHA-256 (7,677,508 bytes):
-  `F461A18DF7E3D50D9E10084DD2D230DAE38159AE0E7DA4D6B5793F358545176E`
-- CI `36717136661` passed all host sanitizer tests and PROFILE build for `5ec622b`.
+- Alpha.88 local PROFILE ELF SHA-256 (7,706,976 bytes):
+  `3ED97DDCFE60152C506475DE2EA4C651998C1D5926F3FCF363CC796847C863BD`
+- CI `36759595668` passed all host sanitizer tests and PROFILE build for `0cf3812`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 

@@ -27,6 +27,9 @@ Development priorities and completion criteria are tracked in
 - User reports reaching ware1 on Alpha.87 without crashes, with campaign
   restoration working. This is bounded campaign confirmation, not exhaustive
   hardware/all-weapons stress coverage.
+- CI `36759595668` passed all sanitizer checks and PROFILE compilation for
+  `0cf3812`. Both local testing ELF copies match the artifact. Runtime effect
+  correctness and performance have not yet been confirmed by the user.
 
 ## 0.1.0-alpha.87 - 2026-09-30 (local test build)
 
