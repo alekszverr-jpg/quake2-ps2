@@ -76,6 +76,7 @@ public:
 
     void BeginRegistration(const char * mapName);
     void EndRegistration();
+    void PurgeLevelModels();
     void PurgeWorldModel();
 
     const ModelInstance * Find(const char * name);
@@ -346,10 +347,15 @@ void ModelCache::BeginRegistration(const char * const mapName)
     // obsolete models (warehouse needs one contiguous 6.3 MB BSP hunk).
     // The ref layer suppresses 3D frames during this interval, so old model
     // pointers cannot be submitted after they are released here.
-    ++m_regSequence;
-    PurgeWorldModel();
-    EndRegistration();
+    PurgeLevelModels();
     LoadWorldModel(mapName);
+}
+
+void ModelCache::PurgeLevelModels()
+{
+    ++m_regSequence;
+    PurgeWorldModel(); // Also invalidates the non-owning inline model slots.
+    EndRegistration();
 }
 
 void ModelCache::LoadWorldModel(const char * const mapName)
@@ -679,6 +685,11 @@ void EndRegistration()
 void PurgeWorldModel()
 {
     s_cache.PurgeWorldModel();
+}
+
+void PurgeLevelModels()
+{
+    s_cache.PurgeLevelModels();
 }
 
 const ModelInstance * Find(const char * name)

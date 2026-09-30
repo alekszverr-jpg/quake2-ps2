@@ -6,6 +6,20 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.84 - 2026-09-30 (local test build)
+
+- Free old level alias/sprite models and nonpersistent textures before the
+  server reads the next collision BSP, instead of waiting for client refresh.
+  Keep Pics/built-ins for menus and loading; suppress stale 3D submissions
+  until registration completes. Host regression checks purge order and the
+  repeated server/client model purge.
+- Targets the user's third-to-second map failure: a 2,076,404-byte Quake
+  allocation failed with 7,116,792 bytes free but an 828,032-byte largest chunk.
+  Old world had been freed; 2.78 MB of alias models and 4.40 MB of textures
+  remained. Long-play transition validation is still required.
+- Alpha.83 user confirmed normal visuals: 45.73 FPS / 21.87 ms, world about
+  8.46 ms and entities 7.67 ms; all three passes 688 frames (195..882).
+
 ## 0.1.0-alpha.83 - 2026-09-30 (local test build)
 
 - Prepare only six clip distances (with initialized spare SIMD lanes) for

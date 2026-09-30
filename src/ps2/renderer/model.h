@@ -351,6 +351,9 @@ void EndRegistration();
 // CM_LoadMap allocates a full-file buffer for the new BSP.
 void PurgeWorldModel();
 
+// Release every level model before the server reads the next collision BSP.
+void PurgeLevelModels();
+
 const ModelInstance * Find(const char * name);
 
 // The world map loaded by the last BeginRegistration; null before any map load.

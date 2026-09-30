@@ -433,9 +433,15 @@ void PS2_EndRegistration()
 // allocation and exhaust the EE heap.
 extern "C" void PS2_PurgeLevelRendererMemory()
 {
+    // Loading updates must not submit stale client model/texture pointers.
+    // Keep this guard until the new client refresh completes registration.
+    s_registrationActive = true;
     // Cache entries point into the world hunk, so they must be released first.
     ps2::view::BeginRegistration();
-    ps2::mod::PurgeWorldModel();
+    ps2::mod::PurgeLevelModels();
+    // Preserve Pics and built-ins for the loading plaque and menus, but free
+    // walls, skins, sprites and sky before CM_LoadMap allocates its file buffer.
+    ps2::tex::BeginRegistration();
 }
 
 void PS2_SetSky(const char * name, float rotate, vec3_t axis)

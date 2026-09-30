@@ -45,6 +45,9 @@ jobs:
         run: |
           python3 tests/benchmark/run.py
 
+      - name: Check pre-BSP level purge on host
+        run: python3 tests/level_purge/run.py
+
       - name: Download PS2DEV prebuilt toolchain
         run: |
           mkdir -p "$PS2DEV"
