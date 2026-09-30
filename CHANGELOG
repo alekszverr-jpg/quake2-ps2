@@ -6,6 +6,28 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.88 - 2026-09-30 (local test build)
+
+- Restore underwater view distortion using opposing animated horizontal and
+  vertical FOV changes. World, weapon and culling use the same projection;
+  normal above-water projection is unchanged. This is view warping, not blur.
+- Apply current projectile/dynamic lights to opaque world and inline brush
+  vertices without invalidating static lighting caches. Transient longest-edge
+  subdivision near a light makes flashes visible inside large flat faces;
+  bounded at seven splits, with sphere/bounds pruning and no heap allocation.
+  Vertex lighting approximates the original per-lightmap dynamic illumination.
+- Render model-less RF_BEAM entities as six-sided tubes, using endpoints,
+  frame diameter, palette colour and alpha. Clip against all six guard planes
+  and draw after translucent BSP, before particles. A 256-byte builtin neutral
+  texture supplies solid beam coverage. Existing translucent depth behaviour
+  is retained; visual/runtime and benchmark comparison remain required.
+- Add host regressions for FOV animation, beam axes/degenerate endpoints,
+  RGB falloff/clamping, 32nd-light mask handling, interior illumination of a
+  large face, distant-light pruning and bounded subdivision.
+- User reports reaching ware1 on Alpha.87 without crashes, with campaign
+  restoration working. This is bounded campaign confirmation, not exhaustive
+  hardware/all-weapons stress coverage.
+
 ## 0.1.0-alpha.87 - 2026-09-30 (local test build)
 
 - Switch emulator host IO to SDK-matched iomanX/fileXio without an IOP reset,

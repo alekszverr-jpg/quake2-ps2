@@ -164,5 +164,6 @@ const Texture & DebugPaletteTexture();
 
 // Original Quake II 8x8 dot texture used by the 3D particle pass.
 const Texture & ParticleTexture();
+const Texture & BeamTexture();
 
 } // namespace ps2::tex

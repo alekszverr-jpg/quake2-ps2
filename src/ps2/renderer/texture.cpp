@@ -208,6 +208,13 @@ const u32 * MakeParticlePattern()
 
 // Owns the texture pool and the name lookup. Internal singleton (s_cache);
 // the module API below is the public face.
+const u32 * MakeBeamPattern()
+{
+    alignas(128) static u32 pixels[8 * 8];
+    for (u32 & pixel : pixels) pixel = 0x80808080u;
+    return pixels;
+}
+
 class TextureCache final
 {
 public:
@@ -520,6 +527,7 @@ void TextureCache::Init()
         { "pics/inventory.pcx", inventory_data,        inventory_width, inventory_height, PixelFormat::Palette8, TexComponents::RGB  },
         { "pics/help.pcx",      help_data,             help_width,      help_height,      PixelFormat::Palette8, TexComponents::RGB  },
         { "pics/particle.pcx",  MakeParticlePattern(), 8,               8,                PixelFormat::RGBA32,   TexComponents::RGBA },
+        { "pics/beam.pcx",      MakeBeamPattern(),     8,               8,                PixelFormat::RGBA32,   TexComponents::RGBA },
         { "pics/debug0.pcx",    MakeCheckerPattern(0), kCheckerDim,     kCheckerDim,      PixelFormat::RGB16,    TexComponents::RGB  },
         { "pics/debug1.pcx",    MakeCheckerPattern(1), kCheckerDim,     kCheckerDim,      PixelFormat::RGB16,    TexComponents::RGB  },
         { "pics/debug2.pcx",    MakeCheckerPattern(2), kCheckerDim,     kCheckerDim,      PixelFormat::RGB16,    TexComponents::RGB  },
@@ -596,6 +604,13 @@ const Texture & DebugPaletteTexture()
 const Texture & ParticleTexture()
 {
     const Texture * texture = s_cache.Find("particle", ImageType::Pic);
+    PS2_Assert(texture != nullptr);
+    return *texture;
+}
+
+const Texture & BeamTexture()
+{
+    const Texture * texture = s_cache.Find("beam", ImageType::Pic);
     PS2_Assert(texture != nullptr);
     return *texture;
 }

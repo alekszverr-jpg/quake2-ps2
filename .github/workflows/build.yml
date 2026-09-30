@@ -54,6 +54,9 @@ jobs:
       - name: Check memory-pressure cache reclamation on host
         run: python3 tests/memory_reclaim/run.py
 
+      - name: Check underwater view, beams and dynamic world lighting on host
+        run: python3 tests/view_effects/run.py
+
       - name: Download PS2DEV prebuilt toolchain
         run: |
           mkdir -p "$PS2DEV"

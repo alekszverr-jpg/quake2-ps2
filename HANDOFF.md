@@ -29,6 +29,16 @@ checkpoint does not advance `VERSION`.
 
 ## Alpha.87 campaign archive repair accepted
 
+2026-09-30 follow-up: user tested through ware1 without crashes. Three renderer
+gaps remain: underwater view distortion, projectile light on world surfaces,
+and invisible RF_BEAM lasers. Alpha.88 implements these for runtime validation.
+No new heap cache is introduced. Dynamic lighting is applied at submission,
+with local brush light origins and transient bounded subdivision; static caches
+remain reusable. Beams use a builtin 8x8 neutral texture and the existing six-
+plane clip/alpha path after BSP transparency. Underwater FOV warps the world,
+weapon and frustum together. Run matching demo1 benchmark and visually verify
+submerge/emerge, blaster near walls/doors, lasers from both sides/near camera.
+
 2026-09-30: user replied "Проверил, работает" to the Alpha.87 campaign
 restoration test request. Treat the reported restoration issue as fixed on
 the user's setup. No detailed route or separate flyer count was supplied;

@@ -21,6 +21,7 @@
 
 #include "ps2/common.h"
 #include "ps2/renderer/render_view.h"
+#include "ps2/renderer/view_effects.h"
 #include "ps2/renderer/texture.h"
 #include "ps2/renderer/model.h"
 #include "ps2/renderer/vu1.h"
@@ -87,6 +88,13 @@ static cplane_t s_frustum[4] = {};
 // Wall texture animation frame (viewDef.time * 2, as in ref_gl).
 static int s_textureAnimFrame = 0;
 static float s_viewTime = 0.0f;
+
+// Dynamic light positions are changed to model space while drawing inline BSP.
+// Static cached lighting remains independent of these short-lived lights.
+static const dlight_t * s_worldLights = nullptr;
+static int s_worldLightCount = 0;
+static math::Vec3 s_worldLightOrigins[MAX_DLIGHTS];
+static u32 s_surfaceLightMask = 0;
 
 // Adaptive BSP-lighting controls, refreshed from archived cvars each frame.
 // Large triangles are probed at most this many lightmap cells apart; within
@@ -355,6 +363,26 @@ void SetupFrame(const refdef_t & viewDef)
     s_textureAnimFrame = static_cast<int>(viewDef.time * 2.0f);
     s_viewTime = viewDef.time;
 
+    s_worldLights = viewDef.dlights;
+    s_worldLightCount = s_worldLights != nullptr
+        ? std::max(0, std::min(viewDef.num_dlights, MAX_DLIGHTS)) : 0;
+    s_surfaceLightMask = 0;
+    for (int i = 0; i < s_worldLightCount; ++i)
+    {
+        s_worldLightOrigins[i] = {
+            s_worldLights[i].origin[0], s_worldLights[i].origin[1],
+            s_worldLights[i].origin[2]
+        };
+    }
+
+    refdef_t projectionView = viewDef;
+    if ((viewDef.rdflags & RDF_UNDERWATER) != 0)
+        effects::UnderwaterFov(viewDef.time, projectionView.fov_x, projectionView.fov_y);
+    const float aspect = (viewDef.rdflags & RDF_UNDERWATER) != 0
+        ? std::tan(math::DegToRad(projectionView.fov_x) * 0.5f) /
+          std::tan(math::DegToRad(projectionView.fov_y) * 0.5f)
+        : static_cast<float>(viewDef.width) / static_cast<float>(viewDef.height);
+
     // Camera basis vectors from the view angles.
     AngleVectors(viewDef.viewangles, s_forwardVec, s_rightVec, s_upVec);
 
@@ -364,8 +392,7 @@ void SetupFrame(const refdef_t & viewDef)
 
     const math::Mat4 view = math::LookAt(eye, target, up);
     const math::Mat4 proj = math::PerspectiveProjection(
-        math::DegToRad(viewDef.fov_y),
-        static_cast<float>(viewDef.width) / static_cast<float>(viewDef.height),
+        math::DegToRad(projectionView.fov_y), aspect,
         static_cast<float>(gs::Width()), static_cast<float>(gs::Height()),
         kZNear, kZFar);
 
@@ -376,8 +403,7 @@ void SetupFrame(const refdef_t & viewDef)
     // ref_gl's RF_DEPTHHACK by remapping the complete weapon depth interval to
     // the nearest 30% of our reversed GS range: ndc z' = 0.3*z + 0.7*w.
     const math::Mat4 weaponProj = math::PerspectiveProjection(
-        math::DegToRad(viewDef.fov_y),
-        static_cast<float>(viewDef.width) / static_cast<float>(viewDef.height),
+        math::DegToRad(projectionView.fov_y), aspect,
         static_cast<float>(gs::Width()), static_cast<float>(gs::Height()),
         kWeaponZNear, kZFar);
     math::Mat4 weaponDepthRange = math::Identity();
@@ -385,7 +411,7 @@ void SetupFrame(const refdef_t & viewDef)
     weaponDepthRange.m[3][2] = 0.7f;
     s_weaponViewProjMatrix = view * weaponProj * weaponDepthRange;
 
-    SetUpFrustum(viewDef);
+    SetUpFrustum(projectionView);
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -942,6 +968,36 @@ inline u32 PackFloatColor(const math::Vec4 & color)
         static_cast<u32>(alpha + 0.5f));
 }
 
+u32 AddWorldLights(u32 packedColor, const math::Vec4 & position)
+{
+    for (int i = 0; i < s_worldLightCount; ++i)
+    {
+        if ((s_surfaceLightMask & (1u << i)) == 0) continue;
+        const math::Vec3 & origin = s_worldLightOrigins[i];
+        const float x = position.x - origin.x;
+        const float y = position.y - origin.y;
+        const float z = position.z - origin.z;
+        packedColor = effects::AddLight(packedColor, x*x + y*y + z*z,
+                                        s_worldLights[i].intensity,
+                                        s_worldLights[i].color);
+    }
+    return packedColor;
+}
+
+void SelectSurfaceLights(const mod::ModelSurface & surface)
+{
+    s_surfaceLightMask = 0;
+    const cplane_t & plane = *surface.plane;
+    for (int i = 0; i < s_worldLightCount; ++i)
+    {
+        const math::Vec3 & origin = s_worldLightOrigins[i];
+        const float distance = origin.x * plane.normal[0] +
+            origin.y * plane.normal[1] + origin.z * plane.normal[2] - plane.dist;
+        if (std::fabs(distance) < s_worldLights[i].intensity)
+            s_surfaceLightMask |= 1u << i;
+    }
+}
+
 inline void EmitScratchVertex(const ClipVertex & v, u32 packedColor)
 {
     vu1::DrawVertex & dst = s_scratchVerts[s_scratchVertCount++];
@@ -949,7 +1005,7 @@ inline void EmitScratchVertex(const ClipVertex & v, u32 packedColor)
     dst.y    = v.pos.y;
     dst.z    = v.pos.z;
     dst.w    = 1.0f;
-    dst.rgba = packedColor;
+    dst.rgba = s_surfaceLightMask != 0 ? AddWorldLights(packedColor, v.pos) : packedColor;
     dst.s    = v.st.x;
     dst.t    = v.st.y;
     dst.q    = 1.0f;
@@ -1118,6 +1174,73 @@ void SubmitWorldTriangle(const ClipVertex (&corners)[3], const math::Mat4 & mvp,
         EmitScratchVertex(in[v + 1]);
     }
     PS2_STAT_ADD(trisDrawn, count - 2);
+}
+
+// A flat static-light face may have only three cached vertices. Subdivide
+// transiently near a dynamic light so a flash in the middle is not missed.
+// Bounding-box pruning and a fixed recursion cap bound both work and stack;
+// these vertices never enter the persistent lighting cache.
+void SubmitDynamicallyLitTriangle(const ClipVertex (&corners)[3],
+                                  const math::Mat4 & mvp,
+                                  const tex::Texture & texture, int depth = 0)
+{
+    const u32 surfaceMask = s_surfaceLightMask;
+    u32 triangleMask = 0;
+    float mins[3] = { corners[0].pos.x, corners[0].pos.y, corners[0].pos.z };
+    float maxs[3] = { mins[0], mins[1], mins[2] };
+    for (int v = 1; v < 3; ++v)
+    {
+        const float point[3] = { corners[v].pos.x, corners[v].pos.y, corners[v].pos.z };
+        for (int axis = 0; axis < 3; ++axis)
+        {
+            mins[axis] = std::min(mins[axis], point[axis]);
+            maxs[axis] = std::max(maxs[axis], point[axis]);
+        }
+    }
+    for (int light = 0; light < s_worldLightCount; ++light)
+    {
+        if ((surfaceMask & (1u << light)) == 0) continue;
+        const float origin[3] = { s_worldLightOrigins[light].x,
+            s_worldLightOrigins[light].y, s_worldLightOrigins[light].z };
+        float squaredDistance = 0.0f;
+        for (int axis = 0; axis < 3; ++axis)
+        {
+            const float nearest = std::max(mins[axis], std::min(maxs[axis], origin[axis]));
+            const float delta = origin[axis] - nearest;
+            squaredDistance += delta * delta;
+        }
+        const float radius = s_worldLights[light].intensity;
+        if (squaredDistance < radius * radius) triangleMask |= 1u << light;
+    }
+    s_surfaceLightMask = triangleMask;
+    int longest = 0;
+    float longestSquared = 0.0f;
+    for (int edge = 0; edge < 3; ++edge)
+    {
+        const math::Vec4 & a = corners[edge].pos;
+        const math::Vec4 & b = corners[(edge + 1) % 3].pos;
+        const float x = a.x - b.x, y = a.y - b.y, z = a.z - b.z;
+        const float squared = x*x + y*y + z*z;
+        if (squared > longestSquared) { longest = edge; longestSquared = squared; }
+    }
+    if (triangleMask != 0 && longestSquared > 64.0f * 64.0f && depth < 7)
+    {
+        const int next = (longest + 1) % 3, other = (longest + 2) % 3;
+        ClipVertex midpoint = {};
+        math::LerpTo(midpoint.pos, corners[longest].pos, corners[next].pos, 0.5f);
+        math::LerpTo(midpoint.st, corners[longest].st, corners[next].st, 0.5f);
+        math::LerpTo(midpoint.color, corners[longest].color, corners[next].color, 0.5f);
+        SetClipDistances(midpoint, mvp);
+        const ClipVertex first[3] = { corners[longest], midpoint, corners[other] };
+        const ClipVertex second[3] = { midpoint, corners[next], corners[other] };
+        SubmitDynamicallyLitTriangle(first, mvp, texture, depth + 1);
+        SubmitDynamicallyLitTriangle(second, mvp, texture, depth + 1);
+    }
+    else
+    {
+        SubmitWorldTriangle(corners, mvp, texture);
+    }
+    s_surfaceLightMask = surfaceMask;
 }
 
 void DrawTranslucentSurface(const mod::ModelSurface & surface,
@@ -1747,7 +1870,7 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
             }
             // Cached colours are already rounded to GS bytes. Interior
             // triangles need no colour interpolation or unpack/repack cycle.
-            if (fullyInside)
+            if (fullyInside && s_surfaceLightMask == 0)
             {
                 if (s_scratchVertCount + 3 > kScratchMaxVerts)
                     FlushScratch(mvp, texture);
@@ -1771,7 +1894,10 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
                 corners[v].d = distances[v];
                 UnpackCachedColor(corners[v].color, src.packedColor);
             }
-            SubmitWorldTriangle(corners, mvp, texture);
+            if (s_surfaceLightMask != 0)
+                SubmitDynamicallyLitTriangle(corners, mvp, texture);
+            else
+                SubmitWorldTriangle(corners, mvp, texture);
         }
     }
 }
@@ -1906,6 +2032,7 @@ void DrawTextureChains(const math::Mat4 & mvp)
 
         for (const mod::ModelSurface * surf = texture->textureChain; surf != nullptr; surf = surf->textureChain)
         {
+            SelectSurfaceLights(*surf);
             const u32 topologyKey = LitTriangleTopologyKey(*surf);
             const u32 colorKey = LitTriangleColorKey(*surf);
             for (const mod::ModelPoly * poly = surf->polys; poly != nullptr; poly = poly->next)
@@ -1924,6 +2051,7 @@ void DrawTextureChains(const math::Mat4 & mvp)
         for (const mod::ModelSurface * surf = texture->textureChain;
              surf != nullptr; surf = surf->textureChain)
         {
+            SelectSurfaceLights(*surf);
             const u32 topologyKey = LitTriangleTopologyKey(*surf);
             for (const mod::ModelPoly * poly = surf->polys;
                  poly != nullptr; poly = poly->next)
@@ -1941,6 +2069,7 @@ void DrawTextureChains(const math::Mat4 & mvp)
     }
     vram::EndPlannedTextureUses();
     s_chainTextureCount = 0;
+    s_surfaceLightMask = 0;
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -2087,7 +2216,17 @@ void DrawBrushModel(const entity_t & entity, const mod::ModelInstance & model,
         ChainOpaqueSurface(*surface, entity.frame);
     }
 
+    math::Vec3 worldOrigins[MAX_DLIGHTS];
+    for (int i = 0; i < s_worldLightCount; ++i)
+    {
+        worldOrigins[i] = s_worldLightOrigins[i];
+        refdef_t lightView = {};
+        VectorCopy(s_worldLights[i].origin, lightView.vieworg);
+        s_worldLightOrigins[i] = BrushCameraLocal(entity, lightView);
+    }
     DrawTextureChains(mvp);
+    for (int i = 0; i < s_worldLightCount; ++i)
+        s_worldLightOrigins[i] = worldOrigins[i];
 
     // Inline models (doors, windows and other moving BSP geometry) have their
     // own model matrix and cannot use the world alpha chain. Match ref_gl's
@@ -2659,6 +2798,46 @@ void RenderEntities(const refdef_t & viewDef)
     }
 }
 
+void RenderBeams(const refdef_t & viewDef)
+{
+    static const cvar_t * skipEntities = Cvar_Get("ps2_skip_entities", "0", 0);
+    if (skipEntities->value != 0.0f || viewDef.entities == nullptr) return;
+    const tex::Texture & texture = tex::BeamTexture();
+    PS2_Assert(s_scratchVertCount == 0 && s_surfaceLightMask == 0);
+    for (int i = 0; i < viewDef.num_entities; ++i)
+    {
+        const entity_t & entity = viewDef.entities[i];
+        if ((entity.flags & RF_BEAM) == 0 || (entity.flags & RF_VIEWERMODEL) != 0 ||
+            entity.alpha <= 0.0f) continue;
+        float points[12][3];
+        if (!effects::BeamRing(entity.origin, entity.oldorigin, entity.frame, points)) continue;
+        const u32 palette = global_palette[entity.skinnum & 255];
+        const math::Vec4 color = {
+            static_cast<float>(palette & 255u),
+            static_cast<float>((palette >> 8) & 255u),
+            static_cast<float>((palette >> 16) & 255u),
+            std::min(entity.alpha, 1.0f) * 128.0f
+        };
+        ClipVertex ring[12] = {};
+        for (int point = 0; point < 12; ++point)
+        {
+            ring[point].pos = { points[point][0], points[point][1], points[point][2], 1.0f };
+            ring[point].st = { 0.5f, 0.5f, 0.0f, 0.0f };
+            ring[point].color = color;
+            SetClipDistances(ring[point], s_viewProjMatrix);
+        }
+        for (int side = 0; side < 6; ++side)
+        {
+            const int next = (side + 1) % 6;
+            const ClipVertex first[3] = { ring[side], ring[side + 6], ring[next] };
+            const ClipVertex second[3] = { ring[next], ring[side + 6], ring[next + 6] };
+            SubmitWorldTriangle(first, s_viewProjMatrix, texture, true);
+            SubmitWorldTriangle(second, s_viewProjMatrix, texture, true);
+        }
+    }
+    FlushScratch(s_viewProjMatrix, texture, true);
+}
+
 void RenderParticles(const refdef_t & viewDef)
 {
     if (viewDef.particles == nullptr || viewDef.num_particles <= 0)
@@ -2872,6 +3051,7 @@ void RenderFrame(const refdef_t & viewDef)
     vram::SetUploadPhase(vram::UploadPhase::Alpha);
 #endif
     DrawAlphaSurfaces();
+    RenderBeams(viewDef);
 #if PS2_PROFILE
     phaseStart = timing::Now();
     vram::SetUploadPhase(vram::UploadPhase::Particles);
