@@ -469,6 +469,10 @@ void WriteGame(char * filename, qboolean autosave)
     if (!autosave)
         SaveClientData();
 
+#ifdef PS2_QUAKE
+    if (Sys_PrepareSaveFile(filename) != 0)
+        gi.error("Save path is a nonempty directory: %s", filename);
+#endif
     f = fopen(filename, "wb");
     if (!f)
         gi.error("Couldn't open %s", filename);
@@ -632,6 +636,10 @@ void WriteLevel(char * filename)
     FILE * f;
     void * base;
 
+#ifdef PS2_QUAKE
+    if (Sys_PrepareSaveFile(filename) != 0)
+        gi.error("Save path is a nonempty directory: %s", filename);
+#endif
     f = fopen(filename, "wb");
     if (!f)
         gi.error("Couldn't open %s", filename);

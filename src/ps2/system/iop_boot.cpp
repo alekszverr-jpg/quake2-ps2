@@ -110,6 +110,15 @@ const char * DetectBasePathAndBootIop()
     {
         if (CanOpen(candidate.probePath))
         {
+            // Do not leave save writes/removes on the ROM fileio RPC backend.
+            // Use the same SDK-matched iomanX/fileXio protocol as USB, while
+            // retaining the emulator host device and avoiding an IOP reset.
+            SifInitRpc(0);
+            sbv_patch_enable_lmb();
+            sbv_patch_disable_prefix_check();
+            ExecIopModule("iomanX", iomanX_irx, size_iomanX_irx);
+            ExecIopModule("fileXio", fileXio_irx, size_fileXio_irx);
+            fileXioInit();
             std::printf("IOP boot: game data on %s/baseq2 (emulator host filesystem).\n", candidate.basePath);
             return candidate.basePath;
         }

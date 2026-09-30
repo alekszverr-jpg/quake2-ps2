@@ -200,6 +200,14 @@ void CopyFile(char * src, char * dst)
     f1 = fopen(src, "rb");
     if (!f1)
         return;
+#ifdef PS2_QUAKE
+    if (Sys_PrepareSaveFile(dst) != 0)
+    {
+        fclose(f1);
+        Com_Error(ERR_DROP, "Save path is a nonempty directory: %s", dst);
+        return;
+    }
+#endif
     f2 = fopen(dst, "wb");
     if (!f2)
     {
@@ -281,6 +289,10 @@ void SV_WriteLevelFile(void)
     Com_DPrintf("SV_WriteLevelFile()\n");
 
     Com_sprintf(name, sizeof(name), "%s/save/current/%s.sv2", FS_Gamedir(), sv.name);
+#ifdef PS2_QUAKE
+    if (Sys_PrepareSaveFile(name) != 0)
+        Com_Error(ERR_DROP, "Save path is a nonempty directory: %s", name);
+#endif
     f = fopen(name, "wb");
     if (!f)
     {
@@ -341,6 +353,10 @@ void SV_WriteServerFile(qboolean autosave)
     Com_DPrintf("SV_WriteServerFile(%s)\n", autosave ? "true" : "false");
 
     Com_sprintf(name, sizeof(name), "%s/save/current/server.ssv", FS_Gamedir());
+#ifdef PS2_QUAKE
+    if (Sys_PrepareSaveFile(name) != 0)
+        Com_Error(ERR_DROP, "Save path is a nonempty directory: %s", name);
+#endif
     f = fopen(name, "wb");
     if (!f)
     {

@@ -4,6 +4,7 @@
 #include <cstring>
 #include <string>
 #include <filesystem>
+#include <unistd.h>
 #define MAX_OSPATH 256
 #define SFF_SUBDIR 8
 #define SFF_HIDDEN 2
@@ -49,12 +50,19 @@ int main(int argc, char ** argv) {
     Write(dir + "base1.sv2"); Write(dir + "server.ssv"); Write(dir + "game.ssv");
     Write(dir + "keep.txt");
     std::filesystem::create_directory(dir + "folder.sav");
+    assert(Sys_PrepareSaveFile((dir + "folder.sav").c_str()) == 0);
+    Write(dir + "folder.sav");
+    assert(Sys_PrepareSaveFile((dir + "folder.sav").c_str()) == 0);
+    std::filesystem::create_directory(dir + "nonempty.sav");
+    Write(dir + "nonempty.sav/keep.txt");
+    assert(Sys_PrepareSaveFile((dir + "nonempty.sav").c_str()) == -1);
+    assert(std::filesystem::exists(dir + "nonempty.sav/keep.txt"));
     Write(dir + ".hidden.sav");
     int count = 0;
     char * found = Sys_FindFirst((dir + "*.sav").c_str(), 0, SFF_SUBDIR | SFF_HIDDEN);
     while (found) { ++count; found = Sys_FindNext(0, SFF_SUBDIR | SFF_HIDDEN); }
-    Sys_FindClose(); assert(count == 2);
-    assert(!Sys_FindFirst((dir + "none*.sav").c_str(), 0, 0)); Sys_FindClose();
+    Sys_FindClose(); assert(count == 3);
+    assert(!Sys_FindFirst((dir + "absent*.sav").c_str(), 0, 0)); Sys_FindClose();
     SV_WipeSavegame("current");
     assert(!std::filesystem::exists(dir + "base1.sav"));
     assert(!std::filesystem::exists(dir + "base2.sav"));

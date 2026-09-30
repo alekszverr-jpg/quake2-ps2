@@ -6,6 +6,18 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.87 - 2026-09-30 (local test build)
+
+- Switch emulator host IO to SDK-matched iomanX/fileXio without an IOP reset,
+  as already used by USB. Targets save operations on the legacy ROM fileio
+  backend: user reports automatic empty directories named base1.sav/base2.sav
+  and .sv2 files, blocking later writes and campaign restoration.
+- Before writing level, game, server or copied save files, repair an empty
+  directory occupying that exact filename using rmdir. Nonempty directories
+  are preserved and reported as an error. No recursive deletion or save wipe
+  outside the existing engine lifecycle. Host tests cover repair, regular-file
+  preservation and refusal with contents. Emulator/runtime validation required.
+
 ## 0.1.0-alpha.86 - 2026-09-30 (local test build)
 
 - Retry a failed mandatory EE allocation once after freeing the optional BSP

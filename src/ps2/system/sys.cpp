@@ -15,6 +15,7 @@
 #include <cstdarg>
 #include <cstdlib>
 #include <ctime>
+#include <unistd.h>
 
 #include <kernel.h> // SleepThread
 
@@ -136,6 +137,18 @@ char * Sys_GetClipboardData() { return nullptr; }
 void Sys_Mkdir(const char * path)
 {
     mkdir(path, 0777);
+}
+
+int Sys_PrepareSaveFile(const char * path)
+{
+    struct stat info;
+    if (stat(path, &info) == 0 && S_ISDIR(info.st_mode))
+    {
+        // Repair only an empty directory occupying a save filename. rmdir
+        // refuses nonempty directories, preserving any contents.
+        if (rmdir(path) != 0) return -1;
+    }
+    return 0;
 }
 
 static ps2::sys::FileSearch s_fileSearch;

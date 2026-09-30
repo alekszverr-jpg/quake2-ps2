@@ -298,6 +298,9 @@ extern int curtime;
 
 int Sys_Milliseconds(void);
 void Sys_Mkdir(const char * path);
+#ifdef PS2_QUAKE
+int Sys_PrepareSaveFile(const char * path);
+#endif
 
 // directory searching
 #define SFF_ARCH   0x01
