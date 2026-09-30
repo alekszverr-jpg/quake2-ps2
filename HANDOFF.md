@@ -8,19 +8,19 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.88 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.89 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.88` (PROFILE CI passed; visual effects await user runtime testing)
-- Current implementation commit: `0cf3812`
-  (`Restore underwater projection, beam entities and dynamic BSP lights`)
+- Current source/test version: `0.1.0-alpha.89` (PROFILE CI passed; view overlay awaits user runtime testing)
+- Current implementation commit: `27b428c`
+  (`Restore stock viewport colour blend after 3D rendering`)
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.88 local PROFILE ELF SHA-256 (7,706,976 bytes):
-  `3ED97DDCFE60152C506475DE2EA4C651998C1D5926F3FCF363CC796847C863BD`
-- CI `36759595668` passed all host sanitizer tests and PROFILE build for `0cf3812`.
+- Alpha.89 local PROFILE ELF SHA-256 (7,708,820 bytes):
+  `90AE7ADE804B5D2600EA5EC9DD69406D24C8D0626CE69A645C3E3790427B6031`
+- CI `36761237899` passed all host sanitizer tests and PROFILE build for `27b428c`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
