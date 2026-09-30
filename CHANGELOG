@@ -13,7 +13,9 @@ Development priorities and completion criteria are tracked in
   to VU scratch; full 96-byte interpolation records are constructed only for
   the fallback clipper. Reuse the calculated distances in that fallback.
 - Same transform, epsilon, plane classification, geometry, packed colours and
-  batch limits. No persistent cache or heap growth. Runtime validation pending.
+  batch limits. No persistent cache or heap growth. CI `36673534736` passed
+  host sanitizer tests and PROFILE compilation; both local ELF copies were
+  hash-verified. Runtime validation pending.
 - Alpha.82 user verified visuals and measured 43.78 FPS / 22.84 ms; all passes
   688 frames (195..882), world about 9.39 ms, entities 7.70 ms. New baseline.
 
