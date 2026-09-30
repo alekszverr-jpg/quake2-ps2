@@ -17,6 +17,8 @@ Development priorities and completion criteria are tracked in
   are preserved and reported as an error. No recursive deletion or save wipe
   outside the existing engine lifecycle. Host tests cover repair, regular-file
   preservation and refusal with contents. Emulator/runtime validation required.
+- CI `36717136661` passed all sanitizer checks and PROFILE compilation; both
+  local ELF copies match the downloaded artifact. Campaign retest pending.
 
 ## 0.1.0-alpha.86 - 2026-09-30 (local test build)
 

@@ -8,25 +8,45 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.86 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.87 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.86` (PROFILE CI passed; third-map late-weapon OOM runtime test pending)
-- Current implementation commit: `91da524`
-  (`Reclaim optional lighting cache for late mandatory asset allocations`)
+- Current source/test version: `0.1.0-alpha.87` (PROFILE CI passed; host boot and campaign restoration tests pending)
+- Current implementation commit: `5ec622b`
+  (`Use SDK-matched host IO and repair empty save path directories`)
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.86 local PROFILE ELF SHA-256 (7,671,060 bytes):
-  `3E0148EA77EB73285EF299457C53DFCA8E4F92D242D3C0E0D735D39C02D74B1C`
-- CI `36713766051` attempt 2 passed host tests (including memory reclamation with ASan/UBSan)
-  and the PROFILE build for `91da524`; attempt 1 was infrastructure startup_failure.
+- Alpha.87 local PROFILE ELF SHA-256 (7,677,508 bytes):
+  `F461A18DF7E3D50D9E10084DD2D230DAE38159AE0E7DA4D6B5793F358545176E`
+- CI `36717136661` passed all host sanitizer tests and PROFILE build for `5ec622b`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
+
+## Alpha.87 campaign archive repair target
+
+User still sees fresh Base2 soldiers instead of dead enemies/bridge flyers on
+story return. Inspection now finds directories (not files) named base1.sav,
+base1.sv2, base2.sav/.sv2, base3.sav/.sv2, game.ssv and server.ssv under the
+testing project's save/current. User confirms they appeared automatically.
+Previously observed nonempty files do not prove current persistence. These
+directories prevent normal fopen writes; exact ROM/backend creation mechanism
+has not been captured.
+
+Alpha.87 switches host boot from legacy ROM fileio to SDK-matched embedded
+iomanX/fileXio, without resetting IOP, consistent with USB boot. Save writers
+(game/level/server/copy destination) call Sys_PrepareSaveFile: rmdir only if
+stat reports a directory at that exact filename. Empty directory repair is
+allowed; nonempty directories fail explicitly, never recursively deleted.
+Host fixture tests repair, preservation of existing regular files and refusal
+with contents. Existing user save directories are left untouched by the agent.
+Runtime still needs emulator host boot, new campaign 1 -> 2 -> 3 -> 2 -> 1,
+actual nonempty save files, killed enemies remaining dead and crosslevel
+bridge flyer activation. USB and long-session memory checks remain pending.
 
 ## Alpha.86 gameplay OOM target
 
@@ -36,6 +56,8 @@ World 6.59 MB, textures 4.50 MB, alias 2.88 MB, Quake 5.61 MB. Local PAK
 contains models/weapons/v_hyperb/skin.pcx of exactly 60,340 bytes, matching
 the request with a 16-byte PS2 Z header. This identifies a likely late weapon
 skin load, not a captured allocation stack.
+User clarified hyperblaster was given through cheats; this failure is a separate
+all-weapons stress case and does not establish a normal Base3 campaign OOM.
 
 Alpha.86 mandatory normal/aligned heap allocation retries once after an
 optional cache reclaimer reports freeing memory. Renderer registers callback
