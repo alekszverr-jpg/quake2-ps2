@@ -62,6 +62,17 @@ void operator delete[](void * p, std::size_t n, std::align_val_t) noexcept { PS2
 // ------------------------------------------------------------------------------------------------
 
 static PS2MemStats s_memTagCounts[MEMTAG_COUNT] = {};
+static PS2MemoryReclaimer s_memoryReclaimer = nullptr;
+static bool s_reclaimingMemory = false;
+
+static bool ReclaimOptionalMemory()
+{
+    if (s_memoryReclaimer == nullptr || s_reclaimingMemory) return false;
+    s_reclaimingMemory = true;
+    const bool freed = s_memoryReclaimer() != 0;
+    s_reclaimingMemory = false;
+    return freed;
+}
 
 // NOTE: These should match the PS2MemTag declaration order!
 static const char * const s_memTagNames[MEMTAG_COUNT] = {
@@ -96,10 +107,16 @@ static inline void AccountAlloc(PS2MemTag tag, size_t bytes)
 
 extern "C" {
 
+void PS2_SetMemoryReclaimer(PS2MemoryReclaimer callback)
+{
+    s_memoryReclaimer = callback;
+}
+
 void * PS2_MemAlloc(size_t sizeBytes, PS2MemTag tag)
 {
     const size_t n = (sizeBytes != 0u ? sizeBytes : 1u);
     void * p = dlmalloc(n);
+    if (p == nullptr && ReclaimOptionalMemory()) p = dlmalloc(n);
     if (p == nullptr)
     {
         Sys_Error("PS2_MemAlloc: failed to allocate %zu bytes (%s)\n"
@@ -113,6 +130,7 @@ void * PS2_MemAllocAligned(size_t alignment, size_t sizeBytes, PS2MemTag tag)
 {
     const size_t n = (sizeBytes != 0u ? sizeBytes : 1u);
     void * p = dlmemalign(alignment, n);
+    if (p == nullptr && ReclaimOptionalMemory()) p = dlmemalign(alignment, n);
     if (p == nullptr)
     {
         Sys_Error("PS2_MemAllocAligned: failed to allocate %zu bytes (align %zu, %s)\n"

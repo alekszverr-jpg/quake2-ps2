@@ -370,6 +370,7 @@ qboolean PS2_RefInit(void * hinstance, void * wndproc)
     ps2::tex::Init();
     ps2::vu1::Init();
     ps2::mod::Init();
+    PS2_SetMemoryReclaimer(ps2::view::ReclaimLightingCache);
 
 #if PS2_PROFILE
     // PROFILE keeps gamepad-controlled telemetry; RELEASE compiles it out.
@@ -394,7 +395,7 @@ qboolean PS2_RefInit(void * hinstance, void * wndproc)
     return true;
 }
 
-void PS2_RefShutdown() {}
+void PS2_RefShutdown() { PS2_SetMemoryReclaimer(nullptr); }
 void PS2_AppActivate(qboolean activate) { (void)activate; }
 
 // ------------------------------------------------------------------------------------------------

@@ -51,6 +51,9 @@ jobs:
       - name: Check transition filesystem and sound purge on host
         run: python3 tests/transition_io/run.py
 
+      - name: Check memory-pressure cache reclamation on host
+        run: python3 tests/memory_reclaim/run.py
+
       - name: Download PS2DEV prebuilt toolchain
         run: |
           mkdir -p "$PS2DEV"

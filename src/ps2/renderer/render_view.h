@@ -48,6 +48,8 @@ const DrawStats & GetDrawStats();
 // Resets the cached view clusters. Call when a new map loads
 // (PS2_BeginRegistration) so stale PVS state cannot leak across maps.
 void BeginRegistration();
+// Heap-pressure callback: only frees optional lighting between 3D frames.
+int ReclaimLightingCache();
 
 // Selects the six environment-map faces used by visible SURF_SKY surfaces.
 // Faces are loaded lazily on the first rendered frame, after the level-load

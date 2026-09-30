@@ -827,11 +827,14 @@ static std::vector<const mod::ModelTriangle *> s_cachedLitTriangles;
 static LitCacheChunk s_litCacheChunks[kLitCacheChunkCount] = {};
 static int s_litCacheChunkCount = 0;
 static int s_litCacheBytes = 0;
+static bool s_litCacheDisabled = false;
+static bool s_renderingFrame = false;
 static int s_litCacheFineSplits = 0;
 static int s_litBuildFineSplits = 0;
 
 CachedLitVertex * AllocateLitCacheVertices(const int vertexCount)
 {
+    if (s_litCacheDisabled) return nullptr;
     const int verticesPerChunk =
         kLitCacheChunkBytes / static_cast<int>(sizeof(CachedLitVertex));
     if (vertexCount <= 0 || vertexCount > verticesPerChunk)
@@ -2786,6 +2789,7 @@ void RenderWorldModel(const refdef_t & viewDef)
 void BeginRegistration()
 {
     ClearLitTriangleCaches();
+    s_litCacheDisabled = false;
 #if PS2_PROFILE
     s_drawStats = {};
 #endif
@@ -2802,8 +2806,23 @@ const DrawStats & GetDrawStats()
     return s_drawStats;
 }
 
+int ReclaimLightingCache()
+{
+    // Never invalidate cached vertices while traversal/submission uses them.
+    if (s_renderingFrame || s_litCacheChunkCount == 0) return 0;
+    ClearLitTriangleCaches();
+    // Keep the reclaimed space available to late weapons/skins for this map.
+    // The same tessellation is rendered from static scratch without retention.
+    s_litCacheDisabled = true;
+    return 1;
+}
+
 void RenderFrame(const refdef_t & viewDef)
 {
+    struct FrameGuard {
+        FrameGuard() { s_renderingFrame = true; }
+        ~FrameGuard() { s_renderingFrame = false; }
+    } guard;
     PS2_Assert(viewDef.width > 0 && viewDef.height > 0);
 
 #if PS2_PROFILE

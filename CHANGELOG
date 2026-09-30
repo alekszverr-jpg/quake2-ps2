@@ -6,6 +6,20 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.86 - 2026-09-30 (local test build)
+
+- Retry a failed mandatory EE allocation once after freeing the optional BSP
+  lighting cache, only between 3D frames. Invalidate all triangle cache pointers
+  before freeing chunks; keep retention disabled until next map registration.
+  Existing scratch tessellation preserves lighting/geometry at a potential CPU
+  cost on memory-constrained maps. Optional cache allocation never reclaims.
+- Targets the third-map gameplay OOM: Quake requested 60,356 bytes with only
+  235,688 total free and a 44,688-byte largest chunk. The request matches the
+  60,340-byte hyperblaster PCX plus the 16-byte Z header in the user's PAK.
+  Runtime confirmation is required; this does not guarantee every heap request.
+- Host regression exercises production allocation retry and cache invalidation,
+  aligned allocation, render-time refusal and nonfatal optional allocation.
+
 ## 0.1.0-alpha.85 - 2026-09-30 (local test build)
 
 - Implement PS2 save-directory creation and file enumeration through POSIX
