@@ -8,25 +8,50 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.85 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.86 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.85` (PROFILE CI passed; campaign state and 3 -> 4 runtime tests pending)
-- Current implementation commit: `94edc6a`
-  (`Restore campaign archive IO and free old PCM before map loading`)
+- Current source/test version: `0.1.0-alpha.86` (PROFILE CI passed; third-map late-weapon OOM runtime test pending)
+- Current implementation commit: `91da524`
+  (`Reclaim optional lighting cache for late mandatory asset allocations`)
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.85 local PROFILE ELF SHA-256 (7,672,188 bytes):
-  `BE3E6F080CAA989457C4933A49004869E26222E45313E816C1ECCD8F2D69ABF3`
-- CI `36707514666` passed host tests (BSP/VRAM/TGA/benchmark/level purge/transition IO with ASan/UBSan)
-  and the PROFILE build for `94edc6a`.
+- Alpha.86 local PROFILE ELF SHA-256 (7,671,060 bytes):
+  `3E0148EA77EB73285EF299457C53DFCA8E4F92D242D3C0E0D735D39C02D74B1C`
+- CI `36713766051` attempt 2 passed host tests (including memory reclamation with ASan/UBSan)
+  and the PROFILE build for `91da524`; attempt 1 was infrastructure startup_failure.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
+
+## Alpha.86 gameplay OOM target
+
+Alpha.85 user reported third-map gameplay Quake allocation failure: 60,356
+bytes, arena 21,962,736, used 21,727,048, free 235,688, largest chunk 44,688.
+World 6.59 MB, textures 4.50 MB, alias 2.88 MB, Quake 5.61 MB. Local PAK
+contains models/weapons/v_hyperb/skin.pcx of exactly 60,340 bytes, matching
+the request with a 16-byte PS2 Z header. This identifies a likely late weapon
+skin load, not a captured allocation stack.
+
+Alpha.86 mandatory normal/aligned heap allocation retries once after an
+optional cache reclaimer reports freeing memory. Renderer registers callback
+after model initialization and unregisters on shutdown. Reclaimer clears all
+triangle lighting pointers before releasing 96 KB chunks; refuses while inside
+RenderFrame or if no chunks exist. Retention stays disabled until next map
+registration; scratch tessellation is the same, but world CPU cost can rise.
+Nonfatal cache try-allocation never triggers reclamation. No sound/texture/
+model ownership is evicted during gameplay. Host production-body tests check
+retry/accounting, alignment, optional allocation, cache invalidation and render
+guard. Require long Base3 play, weapon pickup/switching (especially hyperblaster),
+lighting/edge visuals and 3 -> 4 transition, plus benchmark. No universal OOM fix.
+
+Read-only inspection after user's Alpha.85 test found base1/base2 .sav and
+.sv2 files under baseq2/save/current (plus base2 copies under save0). Creation
+now works; restoration is still unconfirmed. Do not delete these user saves.
 
 ## Alpha.85 campaign state and transition test target
 

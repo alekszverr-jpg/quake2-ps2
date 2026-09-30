@@ -19,6 +19,8 @@ Development priorities and completion criteria are tracked in
   Runtime confirmation is required; this does not guarantee every heap request.
 - Host regression exercises production allocation retry and cache invalidation,
   aligned allocation, render-time refusal and nonfatal optional allocation.
+- CI `36713766051` retry passed all sanitizer checks and PROFILE compilation;
+  both local ELF copies match the downloaded artifact. Runtime check pending.
 
 ## 0.1.0-alpha.85 - 2026-09-30 (local test build)
 
