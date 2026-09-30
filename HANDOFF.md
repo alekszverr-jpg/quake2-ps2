@@ -13,7 +13,7 @@ before changing renderer, audio or memory-management code.
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.87` (PROFILE CI passed; host boot and campaign restoration tests pending)
+- Current source/test version: `0.1.0-alpha.87` (PROFILE CI passed; user confirmed campaign restoration works)
 - Current implementation commit: `5ec622b`
   (`Use SDK-matched host IO and repair empty save path directories`)
 - Current published release:
@@ -27,7 +27,13 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.87 campaign archive repair target
+## Alpha.87 campaign archive repair accepted
+
+2026-09-30: user replied "Проверил, работает" to the Alpha.87 campaign
+restoration test request. Treat the reported restoration issue as fixed on
+the user's setup. No detailed route or separate flyer count was supplied;
+do not infer retail USB validation, 3 -> 4 transition or long-session OOM
+coverage from this confirmation.
 
 User still sees fresh Base2 soldiers instead of dead enemies/bridge flyers on
 story return. Inspection now finds directories (not files) named base1.sav,
@@ -44,9 +50,9 @@ stat reports a directory at that exact filename. Empty directory repair is
 allowed; nonempty directories fail explicitly, never recursively deleted.
 Host fixture tests repair, preservation of existing regular files and refusal
 with contents. Existing user save directories are left untouched by the agent.
-Runtime still needs emulator host boot, new campaign 1 -> 2 -> 3 -> 2 -> 1,
-actual nonempty save files, killed enemies remaining dead and crosslevel
-bridge flyer activation. USB and long-session memory checks remain pending.
+The requested runtime target was host boot and a new story campaign return,
+killed enemies remaining dead and crosslevel bridge flyer activation. User
+confirmed the fix works. USB and long-session memory checks remain pending.
 
 ## Alpha.86 gameplay OOM target
 
