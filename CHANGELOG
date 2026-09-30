@@ -22,6 +22,8 @@ Development priorities and completion criteria are tracked in
 - Host regression exercises real directory creation, archive deletion and
   pre-map sound purge bodies, wildcard/attribute filtering and repeat purge.
   Runtime state restoration and third-to-fourth transition still need testing.
+- CI `36707514666` passed all host sanitizer checks and PROFILE compilation;
+  both local root PROFILE ELF copies match the downloaded artifact.
 - User confirmed Alpha.84 fixed the third-to-second return.
 
 ## 0.1.0-alpha.84 - 2026-09-30 (local test build)

@@ -8,25 +8,51 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.84 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.85 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.84` (PROFILE CI passed; long-play map return test pending)
-- Current implementation commit: `c68826f`
-  (`Release old level models and textures before collision BSP load`)
+- Current source/test version: `0.1.0-alpha.85` (PROFILE CI passed; campaign state and 3 -> 4 runtime tests pending)
+- Current implementation commit: `94edc6a`
+  (`Restore campaign archive IO and free old PCM before map loading`)
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.84 local PROFILE ELF SHA-256 (7,595,760 bytes):
-  `8F24101AE70459BF637B06AF659022F8779F503989B2C374E5FFECE689182626`
-- CI `36675635365` passed host tests (BSP/VRAM/TGA/benchmark/level purge with ASan/UBSan)
-  and the PROFILE build for `c68826f`.
+- Alpha.85 local PROFILE ELF SHA-256 (7,672,188 bytes):
+  `BE3E6F080CAA989457C4933A49004869E26222E45313E816C1ECCD8F2D69ABF3`
+- CI `36707514666` passed host tests (BSP/VRAM/TGA/benchmark/level purge/transition IO with ASan/UBSan)
+  and the PROFILE build for `94edc6a`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
+
+## Alpha.85 campaign state and transition test target
+
+User confirmed Alpha.84 third-to-second return works, but third-to-fourth
+failed requesting 274,768 Quake bytes. Arena 21,660,144, used 6,490,360,
+free 15,169,784, largest free chunk 235,968. All renderer model tags zero;
+Quake 4.98 MB remains. Exact allocating asset is not identified. Alpha.85
+also stops sounds and releases cached PCM before CM_LoadMap, retaining stable
+sfx identities for subsequent registration. Expired alias truename allocations
+are freed rather than lost during memset. Need long-play 3 -> 4 validation.
+
+User reports killed enemies reset on campaign returns. Sys_Mkdir and Sys_Find*
+were stubs; Alpha.85 implements POSIX/newlib mkdir, bounded directory search,
+wildcard matching and attribute filtering. Existing SV/Game save/restore now
+has directory creation and archive copy/wipe enumeration. Host fixture tests
+real FS_CreatePath, Sys_Find*, SV_WipeSavegame and S_PurgeLevelSounds bodies;
+actual game entity serialization and host:/mass: writes require runtime tests.
+Start a new campaign (previous missing state cannot be recovered), kill enemies
+and return 1 -> 2 -> 3 -> 2 -> 1 via story exits, check deaths, doors/items and
+cross-level bridge flyers, then reach map four. The game-data directory must
+be writable. Check sound after transitions and three benchmark passes too.
+Do not claim campaign-wide stability or restore confirmation yet.
+
+An unrelated user image shows DEMO1 cache-detail Build A1850/969 frames;
+it is not an Alpha.84 Quake II benchmark result and has not been recorded
+as a Quake II performance comparison.
 
 ## Alpha.84 transition fix and accepted Alpha.83 baseline
 
