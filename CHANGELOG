@@ -13,7 +13,9 @@ Development priorities and completion criteria are tracked in
   Uses the same six clip distances and >=0 classification, scratch batching,
   texture/matrix and triangle counters. Boundary triangles keep colour
   interpolation through the ordinary clipper; crack-seal path unchanged.
-- No heap or cache growth. Runtime performance and edge/lighting checks pending.
+- No heap or cache growth. CI `36671454716` passed all host sanitizer tests
+  and PROFILE compilation; both local ELF copies were hash-verified.
+  Runtime performance and edge/lighting checks pending.
 - Alpha.81 user baseline: all passes 688 frames (195..882), combined 39.28 FPS
   / 25.46 ms; entities 7.80 ms, world 11.73 ms. The MD2 optimisation improved
   FPS about 4.8% versus Alpha.80 on the user's setup; colour validation pending.

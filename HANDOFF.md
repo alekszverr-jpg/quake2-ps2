@@ -8,20 +8,20 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.81 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.82 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.81` (PROFILE CI passed; MD2 optimization runtime test pending)
-- Current implementation commit: `76b81fc`
-  (`Pack MD2 colours once per unique vertex`)
+- Current source/test version: `0.1.0-alpha.82` (PROFILE CI passed; world optimization runtime test pending)
+- Current implementation commit: `c718e6e`
+  (`Reuse packed world colours for fully inside cached triangles`)
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.81 local PROFILE ELF SHA-256 (7,590,568 bytes):
-  `7C582585123EDC0E4B373C7318BD941A0B459DFCFCC46365798E6BECEBE9F38D`
-- CI `36375855092` passed host tests (BSP/VRAM/TGA/benchmark with ASan/UBSan)
-  and the PROFILE build for `76b81fc`.
+- Alpha.82 local PROFILE ELF SHA-256 (7,593,964 bytes):
+  `C8B87F3845D53AD9CDDE99C9FC8FFB064A7F4C06A699F173EEB6D09EFD3D5911`
+- CI `36671454716` passed host tests (BSP/VRAM/TGA/benchmark with ASan/UBSan)
+  and the PROFILE build for `c718e6e`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
@@ -127,8 +127,8 @@ The Alpha.75 third-map OOM runtime check is still pending and independent.
 The user explicitly authorized any GitHub actions on September 14, including
 push/CI. Continue PROFILE-only builds. New numbered releases remain deferred
 until a useful runtime result, as requested earlier. Alpha.72 is the latest
-public release; Alpha.81 is available locally for testing. Both root ELF copies
-were updated on September 28 and verified against the CI hash.
+public release; Alpha.82 is available locally for testing. Both root ELF copies
+were updated on September 30 and verified against the CI hash.
 
 ## Workspace safety
 
