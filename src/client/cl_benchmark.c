@@ -247,7 +247,7 @@ void CL_BenchmarkDraw(void)
             for (j = 0; j < BENCH_GROUP; ++j)
                 average[j] = frames[base+j] ? (double)totals[base+j][i] / frames[base+j] : 0;
             if (i < BENCH_UPLOADS)
-                for (j = 0; j < BENCH_RUNS; ++j) average[j] /= 1000.0;
+                for (j = 0; j < BENCH_GROUP; ++j) average[j] /= 1000.0;
             Com_sprintf(text, sizeof(text), "%-12s %7.2f %7.2f %7.2f", labels[i],
                         average[0], average[1], average[2]);
             Line(73 + i * 9, text);
