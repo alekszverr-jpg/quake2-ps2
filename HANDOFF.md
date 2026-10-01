@@ -46,6 +46,24 @@ projects, all matching CI hashes. ps2flow.bsp is 59,872 bytes, SHA-256
 `85731693AD0C8F536FABBFE23BEDCE7C59E1F5336EF56BCBE3256D3BFE860B74`.
 Game -> test map -> ps2flow - renderer effects test loads the expanded room.
 
+2026-10-01 user supplied benchmark screenshots after Alpha.92 installation:
+688 frames / demo frames 195..882 each; 19.15/19.11/19.12 s;
+35.93/36.00/35.99 FPS, combined 35.97 FPS / 27.80 ms.
+World 13.60/13.57/13.59 ms; entities 8.42/8.41/8.40 ms;
+setup .30, particles .47, VUwait .13, TexDMA .23, VRAMwait .16/.17/.16;
+uploads 20.15/19.83/19.94, reloads 19.94/19.63/19.75,
+evictions 20.17/19.78/19.90, VRAMsync 5.61/5.68/5.53;
+VU vertices 16202.45/16198.91/16198.84; triangles 5400.82/5399.64/5399.95.
+Screenshot title Alpha.83 is hardcoded in src/client/cl_benchmark.c:176,
+not reliable build identification. Both installed root ELF hashes still match
+Alpha.92. Treat this as post-install feedback, not proof of the launched path.
+Compared with accepted Alpha.83: FPS -21.3%, frame time +5.93 ms; world +5.12 ms
+and entities +.74 ms dominate. Versions between 83 and 92 restored effects,
+including dynamic world lights, so this cannot isolate Alpha.92's cost.
+Next: fix benchmark build identification and obtain a matched Alpha.91/92
+comparison or isolate dynamic-world-light cost before selecting optimization.
+User has not yet explicitly accepted Alpha.92 fixture visuals.
+
 Alpha.91: user requested a dedicated flowing-surface map after PAK scan found
 no ordinary SURF_FLOWING faces in installed campaign maps. tools/effect_map.py
 generates ps2flow, a sealed room with labelled STATIC/OPAQUE/GLASS samples and
