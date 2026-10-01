@@ -8,12 +8,12 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.97 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.98 implementation in progress
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.97` (PROFILE CI and host tests passed; runtime isolated cache comparison pending)
+- Current source/test version: `0.1.0-alpha.98` (host tests passed; CI/install pending, previous ELF Alpha.97)
 - Current implementation commit: `c33a500`
   (`Add isolated light color cache ON OFF benchmark with lighting held constant`)
 - Current published release:
@@ -28,6 +28,29 @@ Local test builds may advance; no GitHub release is currently requested. This ha
 checkpoint does not advance `VERSION`.
 
 ## Alpha.87 campaign archive repair accepted
+
+2026-10-01 Alpha.97 isolated cache comparison completed. CacheON37.46FPS,
+26.70ms/frame, world12.62ms; OFF37.13FPS,26.93ms,world12.84ms. Cachegain+0.23ms,
+~0.9%FPS. Summary says Complete; run pages with frame ranges were not supplied
+in this batch. Details ONworld12.60/12.64/12.62ms,entities8.30/8.31/8.30;
+OFFworld12.85/12.84/12.82,entities8.32/8.31/8.32. DMA waits nearly equal.
+ON~16200verts/~5400triangles, OFF~16201/~5400. Small measured benefit on this
+setup, not a universal speedup. Cache remains defaultON. Next target selection.
+
+Alpha.98 removes repeated source AABB selection only when static cached geometry
+has exactly3vertices: BuildCachedLitTriangle/AppendCachedTriangle preserves
+original source coordinates when no static subdivision occurred. Gather already
+selects that source's light mask; pass boundsSelected=true at transient root.
+Recursion defaultsfalse for children; child pruning/64-unitedge/depth7 unchanged.
+The known root skips mask selection and position-array copying. Larger cached
+subdivisions still test their own bounds. SelectTriangleLights unrolls axis
+bounds/nearest-point arithmetic, keeping original min/max nesting, strict
+radius comparison, squared-sum order and ascending nonzero mask iteration.
+No added per-map storage/heap allocation or quality change. Frozen Alpha.97
+selector verifies2400 varied/degenerate masks plus exact radius boundary cases;
+160 Alpha.93 differential trees also exercise known-root path. Counter regression
+proves exactlyone fewerbounds call with identical emitted tree/UV/colours.
+12000colour requests and cacheON/OFF tests remain. Runtime gain pending.
 
 2026-10-01 Alpha.96 feedback: normal world lights comparison has six matching
 688-frame passes/demo195..882. ON37.45FPS/26.70ms/world12.61ms; all3passes18.37s.

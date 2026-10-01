@@ -6,6 +6,20 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.98 - 2026-10-01 (local test build)
+
+- Reuse the source triangle's already-selected light mask when static cached
+  geometry contains exactly the same three original vertices. Skip duplicate
+  root bounds selection and position copying; recursive children still select
+  their own masks. Subdivided static geometry keeps ordinary bounds selection.
+- Unroll three-axis bounds/nearest-point arithmetic without changing min/max
+  semantics, radius boundary, light order, falloff or subdivision limits.
+- Compare2400 selectors plus tangency cases with frozen Alpha.97, verify the
+  known-root path against160 original trees and assert exactly one bounds call
+  removed with identical output. No extra map storage or heap allocations.
+- Alpha.97 isolated cache result:+0.23ms/frame (~0.9%FPS), world12.62 vs12.84ms;
+  keep cache enabled. Alpha.98 performance and visuals still await runtime tests.
+
 ## 0.1.0-alpha.97 - 2026-10-01 (local test build)
 
 - Add Game/light cache compare (6 runs): three cache ON then three OFF passes,

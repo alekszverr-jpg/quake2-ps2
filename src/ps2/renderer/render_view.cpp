@@ -1017,32 +1017,25 @@ u32 SelectTriangleLights(u32 mask, const math::Vec4 (&positions)[3])
 {
     WorldLightScope timer(s_lightProfile, WorldLightProfile::Select);
     if (s_lightProfile.enabled) ++s_lightProfile.bounds;
-    float mins[3] = { positions[0].x, positions[0].y, positions[0].z };
-    float maxs[3] = { mins[0], mins[1], mins[2] };
-    for (int v = 1; v < 3; ++v)
-    {
-        const float point[3] = { positions[v].x, positions[v].y, positions[v].z };
-        for (int axis = 0; axis < 3; ++axis)
-        {
-            mins[axis] = std::min(mins[axis], point[axis]);
-            maxs[axis] = std::max(maxs[axis], point[axis]);
-        }
-    }
+    // Preserve the original per-axis min/max order without temporary arrays
+    // or nested three-element loops on the EE.
+    const float minX = std::min(std::min(positions[0].x, positions[1].x), positions[2].x);
+    const float minY = std::min(std::min(positions[0].y, positions[1].y), positions[2].y);
+    const float minZ = std::min(std::min(positions[0].z, positions[1].z), positions[2].z);
+    const float maxX = std::max(std::max(positions[0].x, positions[1].x), positions[2].x);
+    const float maxY = std::max(std::max(positions[0].y, positions[1].y), positions[2].y);
+    const float maxZ = std::max(std::max(positions[0].z, positions[1].z), positions[2].z);
     u32 result = 0;
     while (mask != 0)
     {
         if (s_lightProfile.enabled) ++s_lightProfile.boundsTests;
         const int light = __builtin_ctz(mask);
         mask &= mask - 1u;
-        const float origin[3] = { s_worldLightOrigins[light].x,
-            s_worldLightOrigins[light].y, s_worldLightOrigins[light].z };
-        float squaredDistance = 0.0f;
-        for (int axis = 0; axis < 3; ++axis)
-        {
-            const float nearest = std::max(mins[axis], std::min(maxs[axis], origin[axis]));
-            const float delta = origin[axis] - nearest;
-            squaredDistance += delta * delta;
-        }
+        const math::Vec3 & origin = s_worldLightOrigins[light];
+        const float dx = origin.x - std::max(minX, std::min(maxX, origin.x));
+        const float dy = origin.y - std::max(minY, std::min(maxY, origin.y));
+        const float dz = origin.z - std::max(minZ, std::min(maxZ, origin.z));
+        const float squaredDistance = dx*dx + dy*dy + dz*dz;
         const float radius = s_worldLights[light].intensity;
         if (squaredDistance < radius * radius) result |= 1u << light;
         else if (s_lightProfile.enabled) ++s_lightProfile.rejected;
@@ -1252,7 +1245,8 @@ void SubmitWorldTriangle(const ClipVertex (&corners)[3], const math::Mat4 & mvp,
 // these vertices never enter the persistent lighting cache.
 void SubmitDynamicallyLitTriangle(const ClipVertex (&corners)[3],
                                   const math::Mat4 & mvp,
-                                  const tex::Texture & texture, int depth = 0)
+                                  const tex::Texture & texture, int depth = 0,
+                                  bool boundsSelected = false)
 {
     if (s_lightProfile.enabled) ++s_lightProfile.nodes;
     const u32 surfaceMask = s_surfaceLightMask;
@@ -1261,8 +1255,12 @@ void SubmitDynamicallyLitTriangle(const ClipVertex (&corners)[3],
         SubmitWorldTriangle(corners, mvp, texture);
         return;
     }
-    const math::Vec4 positions[3] = { corners[0].pos, corners[1].pos, corners[2].pos };
-    const u32 triangleMask = SelectTriangleLights(surfaceMask, positions);
+    u32 triangleMask = surfaceMask;
+    if (!boundsSelected)
+    {
+        const math::Vec4 positions[3] = { corners[0].pos, corners[1].pos, corners[2].pos };
+        triangleMask = SelectTriangleLights(surfaceMask, positions);
+    }
     s_surfaceLightMask = triangleMask;
     if (triangleMask == 0)
     {
@@ -1975,7 +1973,9 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
                 UnpackCachedColor(corners[v].color, src.packedColor);
             }
             if (s_surfaceLightMask != 0)
-                SubmitDynamicallyLitTriangle(corners, mvp, texture);
+                // A three-vertex cache is the unchanged source triangle:
+                // its mask was selected above. Children must select anew.
+                SubmitDynamicallyLitTriangle(corners, mvp, texture, 0, drawVertexCount == 3);
             else
                 SubmitWorldTriangle(corners, mvp, texture);
         }

@@ -109,6 +109,7 @@ void SubmitWorldTriangle(const ClipVertex (&corners)[3], const math::Mat4 &,
 void FlushScratch(const math::Mat4 &, const tex::Texture &, bool, int) {}
 #include "effects.inc"
 #include "dynamic_reference.inc"
+#include "selection_reference.inc"
 
 int main()
 {
@@ -201,6 +202,8 @@ int main()
         s_surfaceLightMask = selected;
         emitted.clear(); SubmitDynamicallyLitTriangle(large,{},{});
         assert(emitted == reference && s_surfaceLightMask == selected);
+        emitted.clear(); SubmitDynamicallyLitTriangle(large,{},{},0,true);
+        assert(emitted == reference && s_surfaceLightMask == selected);
     }
     s_surfaceLightMask = 0;
     s_worldLightCacheEnabled = true;
@@ -234,6 +237,41 @@ int main()
     assert(s_lightProfile.ticks[WorldLightProfile::Select] == stoppedTicks);
     s_lightProfile = {}; s_surfaceLightMask = 0;
     std::puts("160 Alpha.93 differential light/subdivision scenarios passed");
+
+    // Masks must match the frozen selector for varied, boundary and
+    // degenerate bounds. Keep high-bit sources, dense masks and strict tangency.
+    for (int scenario = 0; scenario < 2400; ++scenario) {
+        const float scale = scenario%2 ? 0.125f : 32.0f;
+        math::Vec4 points[3];
+        for (int v = 0; v < 3; ++v)
+            points[v] = {float((scenario*19+v*31)%127-63)*scale,
+                float((scenario*23+v*11)%97-48)*scale,
+                float((scenario*7+v*17)%73-36)*scale,1};
+        if (scenario%5 == 0) points[1] = points[2] = points[0];
+        for (int i = 0; i < 32; ++i) {
+            lights[i].intensity = float(1+(scenario*13+i*31)%257)*scale;
+            s_worldLightOrigins[i] = {float((scenario*3+i*17)%191-95)*scale,
+                float((scenario*11+i*23)%151-75)*scale,float((scenario*7+i*13)%109-54)*scale};
+        }
+        const u32 mask = scenario%3 == 0 ? 0xffffffffu : scenario%3 == 1 ? 0x80000001u : 0;
+        assert(SelectTriangleLights(mask,points) == ReferenceSelectTriangleLights(mask,points));
+    }
+    const math::Vec4 pointBounds[3] = {{0,0,0,1},{0,0,0,1},{0,0,0,1}};
+    lights[31].intensity = 64;
+    for (float delta : {63.999f,64.0f,64.001f}) {
+        s_worldLightOrigins[31] = {delta,0,0};
+        assert(SelectTriangleLights(0x80000000u,pointBounds) == ReferenceSelectTriangleLights(0x80000000u,pointBounds));
+    }
+    s_worldLightCache.Clear(); s_lightProfile = {}; s_lightProfile.enabled = true;
+    s_surfaceLightMask = 1; lights[0].intensity = 1000000; s_worldLightOrigins[0] = {0,0,0};
+    emitted.clear(); SubmitDynamicallyLitTriangle(large,{},{});
+    const auto normalTree = emitted;
+    const int normalBounds = s_lightProfile.bounds;
+    s_lightProfile = {}; s_lightProfile.enabled = true;
+    emitted.clear(); SubmitDynamicallyLitTriangle(large,{},{},0,true);
+    assert(emitted == normalTree && s_lightProfile.bounds == normalBounds-1);
+    assert(s_surfaceLightMask == 1);
+    std::puts("2400 selectors match Alpha.97; known root removes exactly one bounds call");
 
     // Cache keys must distinguish base RGBA, masks, positions and epochs;
     // the independent scalar path never consults the production cache.
