@@ -13,7 +13,7 @@ before changing renderer, audio or memory-management code.
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.93` (PROFILE CI passed; world-light comparison runtime validation pending; Alpha.92 visuals accepted)
+- Current source/test version: `0.1.0-alpha.93` (PROFILE CI and six-pass comparison completed successfully; Alpha.92 visuals accepted)
 - Current implementation commit: `d96ae39` (comparison added in `8fa89e6`)
   (`Bound renderer detail averages to each three-run benchmark group`)
 - Current published release:
@@ -39,12 +39,24 @@ or mismatched frame ranges across six passes. No extra warmup; loading excluded.
 VERSION now supplies PS2_BUILD_VERSION to C/C++; Makefile invalidates objects
 when VERSION changes. Host tests check six-run lifecycle, restoration, frame
 range mismatch, title, page navigation and displayed weighted cost. Runtime
-comparison pending; no optimization or speedup claim yet.
+comparison completed on the user's setup; no optimization or speedup claim yet.
 Both project-root PROFILE ELF copies match the downloaded CI artifact, including
 the embedded title QUAKE II - BENCHMARK 0.1.0-alpha.93. Alpha.92 fixture assets
 are unchanged. Initial CI 36860251873 caught an out-of-bounds detail-average loop
 after expanding storage to six runs; d96ae39 limits the loop to the displayed
 three-run group, and the successful CI sanitizer test exercises all five pages.
+
+2026-10-01 Alpha.93 matched comparison screenshots: all six passes have 688
+frames, demo range 195..882. ON: 19.10/19.10/19.08 s, 36.02/36.02/36.06 FPS;
+combined 36.03 FPS / 27.75 ms, world 13.57 ms. OFF: 15.57/15.60/15.57 s,
+44.18/44.11/44.18 FPS; combined 44.16 FPS / 22.65 ms, world 8.73 ms.
+Summary reports +5.11 ms/frame light cost (unrounded group times), approximately
+18.4% of ON frame time. World phase difference is 4.84 ms, explaining most of
+the measured cost. Confirms world dynamic lighting as the next optimization
+target; keep illumination enabled and visually equivalent. Renderer detail
+pages were not supplied in this batch. Do not interpret OFF as an optimized build
+or assume every light cost can be eliminated. Post-test setting restoration
+is covered by host tests but not explicitly confirmed by this user feedback.
 
 Alpha.92 implements an expanded ps2flow fixture for opaque/translucent MD2 and
 SP2 samples (original assets, two frames, NPOT 96x80 cutout discs). Guarded
