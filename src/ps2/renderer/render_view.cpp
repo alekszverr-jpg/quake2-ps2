@@ -368,6 +368,8 @@ void SetupFrame(const refdef_t & viewDef)
     s_worldLights = viewDef.dlights;
     s_worldLightCount = s_worldLights != nullptr
         ? std::max(0, std::min(viewDef.num_dlights, MAX_DLIGHTS)) : 0;
+    static const cvar_t * worldDlights = Cvar_Get("ps2_world_dlights", "1", 0);
+    if (worldDlights->value == 0.0f) s_worldLightCount = 0;
     s_surfaceLightMask = 0;
     for (int i = 0; i < s_worldLightCount; ++i)
     {

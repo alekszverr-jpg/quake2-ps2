@@ -2,7 +2,11 @@
 #include "benchmark.h"
 #include "benchmark_stats.h"
 
-enum { BENCH_RUNS = 3 };
+enum { BENCH_RUNS = 6, BENCH_GROUP = 3 };
+#ifndef PS2_BUILD_VERSION
+#define PS2_BUILD_VERSION "unversioned"
+#endif
+static int comparison, runLimit = BENCH_GROUP, resultWorldLights;
 static int active, pending, run, sampling, first, last;
 static int frames[BENCH_RUNS], milliseconds[BENCH_RUNS];
 static int ready, previousFrame;
@@ -12,7 +16,8 @@ static int detailPage;
 static char status[80] = "Select benchmark to run demo1 three times";
 static const char * const settings[] = {
     "timedemo", "paused", "ps2_show_fps", "ps2_show_memstats",
-    "ps2_show_vramstats", "ps2_show_drawstats", "developer", "con_notifytime"
+    "ps2_show_vramstats", "ps2_show_drawstats", "developer", "con_notifytime",
+    "ps2_world_dlights"
 };
 static float saved[sizeof(settings) / sizeof(settings[0])];
 
@@ -50,28 +55,35 @@ static void NextRun(void)
     Com_Printf("Benchmark demo1 run %d: %d frames, %.3f s, %.2f fps\n",
                run + 1, frames[run], milliseconds[run] / 1000.0,
                frames[run] * 1000.0 / milliseconds[run]);
-    if (++run == BENCH_RUNS)
+    if (++run == runLimit)
     {
         CL_Disconnect();
         Restore();
         strcpy(status, "Complete - demo1, uncapped, VSync off");
-        if (frames[0] != frames[1] || frames[0] != frames[2] ||
-            firstFrame[0] != firstFrame[1] || firstFrame[0] != firstFrame[2] ||
-            lastFrame[0] != lastFrame[1] || lastFrame[0] != lastFrame[2])
-            strcpy(status, "Frame ranges differ - repeat the test");
+        {
+            int i;
+            for (i = 1; i < runLimit; ++i)
+                if (frames[0] != frames[i] || firstFrame[0] != firstFrame[i] ||
+                    lastFrame[0] != lastFrame[i])
+                    strcpy(status, "Frame ranges differ - repeat the test");
+        }
         Cbuf_AddText("killserver\nbenchmark_results\n");
         return;
     }
     first = last = ready = 0;
+    if (comparison)
+        Cvar_SetValue("ps2_world_dlights", run < BENCH_GROUP ? 1 : 0);
     Cbuf_AddText("demomap demo1.dm2\n");
 }
 
-void CL_BenchmarkStart(void)
+static void Start(int compareLights)
 {
     FILE * demo = NULL;
     unsigned i;
     if (active)
         return;
+    comparison = compareLights;
+    runLimit = comparison ? BENCH_RUNS : BENCH_GROUP;
     detailPage = 0;
     memset(totals, 0, sizeof(totals));
     /* Check through the virtual filesystem: the stock demo lives in pak0. */
@@ -92,16 +104,21 @@ void CL_BenchmarkStart(void)
         saved[i] = Cvar_VariableValue(settings[i]);
         Cvar_SetValue(settings[i], i == 0 ? 1 : 0);
     }
+    resultWorldLights = comparison ? 1 : saved[8] != 0;
+    Cvar_SetValue("ps2_world_dlights", comparison ? 1 : saved[8]);
     memset(frames, 0, sizeof(frames));
     memset(milliseconds, 0, sizeof(milliseconds));
     active = 1;
     pending = sampling = run = first = last = ready = 0;
     memset(firstFrame, 0, sizeof(firstFrame));
     memset(lastFrame, 0, sizeof(lastFrame));
-    strcpy(status, "Running demo1 (3 passes)...");
+    strcpy(status, comparison ? "Running: 3 lights ON, then 3 OFF..." : "Running demo1 (3 passes)...");
     /* Explicitly leave the current session; never write a savegame. */
     Cbuf_AddText("killserver\ndemomap demo1.dm2\n");
 }
+
+void CL_BenchmarkStart(void) { Start(0); }
+void CL_BenchmarkWorldLights(void) { Start(1); }
 
 int CL_BenchmarkDemoCompleted(void)
 {
@@ -171,24 +188,64 @@ static void Line(int y, const char * text)
 void CL_BenchmarkDraw(void)
 {
     int i, totalFrames = 0, totalTime = 0;
+    int base = comparison && (detailPage == 2 || detailPage == 4) ? BENCH_GROUP : 0;
     char text[80];
     re.DrawFill(0, 0, viddef.width, viddef.height, 0);
-    Line(25, "QUAKE II - BENCHMARK Alpha.83");
-    if (detailPage)
+    Line(25, "QUAKE II - BENCHMARK " PS2_BUILD_VERSION);
+    if (comparison && detailPage == 0)
+    {
+        int group;
+        double mean[2] = {0,0};
+        Line(45, status);
+        Line(64, "World lights: 3 ON / 3 OFF");
+        Line(83, "Mode      FPS   Frame ms  World ms");
+        for (group = 0; group < 2; ++group)
+        {
+            unsigned long long world = 0;
+            totalFrames = totalTime = 0;
+            for (i = group * BENCH_GROUP; i < (group+1)*BENCH_GROUP; ++i)
+            {
+                totalFrames += frames[i]; totalTime += milliseconds[i];
+                world += totals[i][BENCH_WORLD];
+            }
+            if (totalFrames && totalTime)
+            {
+                mean[group] = (double)totalTime / totalFrames;
+                Com_sprintf(text,sizeof(text),"%-4s %8.2f %8.2f %9.2f",
+                    group ? "OFF" : "ON",totalFrames*1000.0/totalTime,
+                    mean[group],(double)world / totalFrames / 1000.0);
+            }
+            else Com_sprintf(text,sizeof(text),"%s       --",group ? "OFF" : "ON");
+            Line(103+group*20,text);
+        }
+        if (mean[0] && mean[1] && !strncmp(status,"Complete",8))
+        {
+            Com_sprintf(text,sizeof(text),"Light cost: %+.2f ms/frame",mean[0]-mean[1]);
+            Line(152,text);
+        }
+        Line(173,"Entity lights and styles unchanged.");
+        Line(188,"Loading excluded; no extra warm-up.");
+        Line(204,"Left/Right: ON/OFF runs and details");
+        Line(220,"Back: return to menu");
+        return;
+    }
+    if (comparison ? detailPage >= 3 : detailPage != 0)
     {
         static const char * labels[BENCH_STATS_COUNT] = {
             "World ms", "Entities ms", "Setup ms", "Particles ms",
             "VUwait ms", "TexDMA ms", "VRAMwait ms", "Uploads", "Reloads",
             "Evictions", "VRAMsync", "VU vertices", "Triangles"
         };
-        Line(43, "Averages per measured frame (incl HUD)");
+        Line(43, "Averages per frame (incl HUD)");
+        Line(52, comparison ? (base ? "World dynamic lights: OFF" : "World dynamic lights: ON") :
+            (resultWorldLights ? "World dynamic lights: ON" : "World dynamic lights: OFF"));
         Line(59, "Metric          Run1    Run2    Run3");
         for (i = 0; i < BENCH_STATS_COUNT; ++i)
         {
             double average[3];
             int j;
-            for (j = 0; j < BENCH_RUNS; ++j)
-                average[j] = frames[j] ? (double)totals[j][i] / frames[j] : 0;
+            for (j = 0; j < BENCH_GROUP; ++j)
+                average[j] = frames[base+j] ? (double)totals[base+j][i] / frames[base+j] : 0;
             if (i < BENCH_UPLOADS)
                 for (j = 0; j < BENCH_RUNS; ++j) average[j] /= 1000.0;
             Com_sprintf(text, sizeof(text), "%-12s %7.2f %7.2f %7.2f", labels[i],
@@ -200,21 +257,21 @@ void CL_BenchmarkDraw(void)
         Line(224, "Back: return to menu");
         return;
     }
-    Line(45, status);
+    Line(45, comparison ? (base ? "World lights OFF - demo1, uncapped" : "World lights ON - demo1, uncapped") : status);
     Line(66, "Run    Frames   Seconds     FPS");
-    for (i = 0; i < BENCH_RUNS; ++i)
+    for (i = base; i < base + BENCH_GROUP; ++i)
     {
         if (milliseconds[i] > 0)
-            Com_sprintf(text, sizeof(text), "%d      %5d    %6.2f    %6.2f", i + 1,
+            Com_sprintf(text, sizeof(text), "%d      %5d    %6.2f    %6.2f", i - base + 1,
                         frames[i], milliseconds[i] / 1000.0,
                         frames[i] * 1000.0 / milliseconds[i]);
         else
-            Com_sprintf(text, sizeof(text), "%d      --", i + 1);
-        Line(82 + i * 26, text);
+            Com_sprintf(text, sizeof(text), "%d      --", i - base + 1);
+        Line(82 + (i-base) * 26, text);
         if (frames[i])
         {
             Com_sprintf(text, sizeof(text), "       Demo frames: %d..%d", firstFrame[i], lastFrame[i]);
-            Line(94 + i * 26, text);
+            Line(94 + (i-base) * 26, text);
         }
         totalFrames += frames[i];
         totalTime += milliseconds[i];
@@ -232,11 +289,12 @@ void CL_BenchmarkDraw(void)
 
 void CL_BenchmarkTogglePage(void)
 {
-    detailPage = !detailPage;
+    detailPage = (detailPage + 1) % (comparison ? 5 : 2);
 }
 
 void CL_BenchmarkInit(void)
 {
+    Cvar_Get("ps2_world_dlights", "1", 0);
     Cmd_AddCommand("benchmark_next", NextRun);
     Cmd_AddCommand("benchmark_results", M_BenchmarkResults);
 }

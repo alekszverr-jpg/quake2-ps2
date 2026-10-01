@@ -15,6 +15,7 @@ output.mkdir(parents=True, exist_ok=True)
 binary = output / ("test.exe" if os.name == "nt" else "test")
 flags = [] if os.name == "nt" else ["-fsanitize=address,undefined"]
 subprocess.run([os.environ.get("CC", "gcc"), "-std=gnu89", "-Wall", "-Wextra",
-                "-Werror", *flags, "-I" + str(root / "src"), "-I" + str(output),
+                "-Werror", '-DPS2_BUILD_VERSION="' + (root/'VERSION').read_text().strip() + '"',
+                *flags, "-I" + str(root / "src"), "-I" + str(output),
                 str(root / "tests/benchmark/test.c"), "-o", str(binary)], check=True)
 subprocess.run([str(binary)], check=True)

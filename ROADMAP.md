@@ -18,6 +18,7 @@ Status markers:
 - [x] Gamepad-accessible campaign map selector for renderer testing
 - [x] Gamepad demo benchmark: three matching demo1 passes validated on Alpha.79
 - [~] Per-pass renderer cost summary for choosing optimizations (Alpha.80)
+- [~] Matched world dynamic light ON/OFF benchmark (Alpha.93; six passes, runtime validation pending)
 - [x] Gamepad-accessible live mipmapping/format diagnostics for BSP artifact isolation
 - [x] Textured BSP world geometry
 - [x] Animated MD2 enemies, corpses and first-person weapons

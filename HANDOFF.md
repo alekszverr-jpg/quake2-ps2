@@ -29,6 +29,18 @@ checkpoint does not advance `VERSION`.
 
 ## Alpha.87 campaign archive repair accepted
 
+Alpha.93 adds Game/world lights compare (6 runs), with three ON then three OFF
+demo1 passes. ps2_world_dlights defaults1 and affects only s_worldLightCount,
+including inline brushes; MD2 dynamic entity lights and animated styles retain
+the same refdef. All benchmark settings including this cvar are restored at
+completion/cancel/failure. Five pages: summary, ON runs, OFF runs, ON details,
+OFF details. Cost = weighted ON mean frame ms - OFF mean; not shown for incomplete
+or mismatched frame ranges across six passes. No extra warmup; loading excluded.
+VERSION now supplies PS2_BUILD_VERSION to C/C++; Makefile invalidates objects
+when VERSION changes. Host tests check six-run lifecycle, restoration, frame
+range mismatch, title, page navigation and displayed weighted cost. Runtime
+comparison pending; no optimization or speedup claim yet.
+
 Alpha.92 implements an expanded ps2flow fixture for opaque/translucent MD2 and
 SP2 samples (original assets, two frames, NPOT 96x80 cutout discs). Guarded
 misc_ps2sample uses only stock server/client render flags; RF_TRANSLUCENT alone

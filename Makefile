@@ -141,6 +141,7 @@ DEPS    = $(C_OBJS:.o=.d) $(CXX_OBJS:.o=.d)
 # ----------------------------------------------------------------------------
 
 COMMON_DEFS = -DGAME_HARD_LINKED -DPS2_QUAKE $(PROFILE_DEFS)
+COMMON_DEFS += -DPS2_BUILD_VERSION=\"$(strip $(shell cat VERSION))\"
 
 EE_INCS += -I$(SRC_DIR)
 
@@ -193,6 +194,8 @@ EE_LIBS += -laudsrv -ldraw -lgraph -lmath3d -lpacket -lpacket2 -ldma -lpad -lpat
 .PHONY: all run tools clean clean_vu compiledb
 
 all: $(EE_BIN) tools
+
+$(C_OBJS) $(CXX_OBJS): VERSION
 
 # Out-of-tree object rules. These static-pattern rules take precedence over the
 # generic %.o rules from Makefile.eeglobal so objects land under build/ mirroring

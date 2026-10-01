@@ -11,7 +11,13 @@ enum { ca_uninitialized = 0, ca_disconnected = 1, ca_active = 2 };
 static struct { int state, disable_screen, disable_servercount; } cls;
 static struct { int refresh_prepped; struct { int valid, serverframe; } frame; } cl;
 static struct { int width, height; } viddef;
-static void DrawChar(int x, int y, int c) { (void)x; (void)y; (void)c; }
+static char drawn[8192];
+static void DrawChar(int x, int y, int c)
+{
+    size_t n = strlen(drawn);
+    (void)x; (void)y;
+    assert(n+1 < sizeof(drawn)); drawn[n] = (char)c; drawn[n+1] = 0;
+}
 static int fills;
 static void DrawFill(int x, int y, int w, int h, int c)
 { (void)x; (void)y; (void)w; (void)h; assert(c == 0); ++fills; }
@@ -26,17 +32,19 @@ void PS2_ReadBenchmarkStats(int values[BENCH_STATS_COUNT])
     values[BENCH_VERTICES] = INT_MAX;
 }
 static char queued[4096];
-static float values[8] = { 0, 0, 1, 1, 1, 1, 1, 3 };
+static float values[9] = { 0, 0, 1, 1, 1, 1, 1, 3, 1 };
 static int Setting(const char * name)
 {
     const char * names[] = { "timedemo", "paused", "ps2_show_fps", "ps2_show_memstats",
-                            "ps2_show_vramstats", "ps2_show_drawstats", "developer", "con_notifytime" };
+                            "ps2_show_vramstats", "ps2_show_drawstats", "developer", "con_notifytime", "ps2_world_dlights" };
     int i;
-    for (i = 0; i < 8; ++i) if (!strcmp(name, names[i])) return i;
+    for (i = 0; i < 9; ++i) if (!strcmp(name, names[i])) return i;
     assert(0); return 0;
 }
 static float Cvar_VariableValue(const char * name) { return values[Setting(name)]; }
 static void Cvar_SetValue(const char * name, float value) { values[Setting(name)] = value; }
+static void Cvar_Get(const char * name, const char * value, int flags)
+{ assert(!strcmp(name,"ps2_world_dlights") && !strcmp(value,"1") && flags == 0); }
 static void Cbuf_AddText(const char * text) { assert(strlen(queued) + strlen(text) < sizeof(queued)); strcat(queued, text); }
 static void CL_Disconnect(void) { cls.state = ca_disconnected; }
 static void SCR_EndLoadingPlaque(void) { cls.disable_screen = 0; }
@@ -122,6 +130,53 @@ int main(void)
     assert(!active && strstr(status, "failed"));
     CL_BenchmarkDraw();
     assert(fills == 2);
+    values[8] = 0;
+    CL_BenchmarkWorldLights();
+    assert(comparison && active && runLimit == 6 && values[8] == 1);
+    CL_BenchmarkStart(); /* Active comparison cannot be replaced. */
+    assert(comparison && runLimit == 6);
+    for (i = 0; i < 6; ++i)
+    {
+        assert(values[8] == (i < 3 ? 1 : 0));
+        cls.state = ca_active; cl.refresh_prepped = cl.frame.valid = 1;
+        CL_BenchmarkServerData();
+        cl.frame.serverframe = 10; Frame(100,110);
+        cl.frame.serverframe = 11; Frame(120,i < 3 ? 140 : 130);
+        assert(CL_BenchmarkDemoCompleted()); NextRun();
+    }
+    assert(!active && values[8] == 0 && !strncmp(status,"Complete",8));
+    for (i = 0; i < 5; ++i)
+    {
+        drawn[0] = 0; assert(detailPage == i); CL_BenchmarkDraw();
+        assert(strstr(drawn,PS2_BUILD_VERSION));
+        if (!i) assert(strstr(drawn,"Light cost: +5.00 ms/frame"));
+        CL_BenchmarkTogglePage();
+    }
+    assert(detailPage == 0);
+    CL_BenchmarkWorldLights();
+    /* Cancellation after switching OFF preserves the caller's original OFF. */
+    for (i = 0; i < 3; ++i)
+    {
+        cls.state = ca_active; CL_BenchmarkServerData();
+        cl.frame.serverframe = 10; Frame(0,10);
+        cl.frame.serverframe = 11; Frame(20,30);
+        CL_BenchmarkDemoCompleted(); NextRun();
+    }
+    assert(values[8] == 0); CL_BenchmarkCancel(); assert(values[8] == 0);
+    values[8] = 1;
+    CL_BenchmarkWorldLights();
+    Cvar_SetValue("ps2_world_dlights",0); CL_BenchmarkCancel(); assert(values[8] == 1);
+    CL_BenchmarkWorldLights();
+    for (i = 0; i < 6; ++i)
+    {
+        cls.state = ca_active; CL_BenchmarkServerData();
+        cl.frame.serverframe = i == 5 ? 9 : 10; Frame(0,10);
+        cl.frame.serverframe = 11; Frame(20,30);
+        CL_BenchmarkDemoCompleted(); NextRun();
+    }
+    assert(!active && strstr(status,"ranges differ") && values[8] == 1);
+    drawn[0] = 0; CL_BenchmarkDraw(); assert(!strstr(drawn,"Light cost:"));
+    CL_BenchmarkStart(); assert(!comparison && values[8] == 1); CL_BenchmarkCancel();
     puts("Benchmark lifecycle, loading exclusion, cancellation and restoration PASS");
     return 0;
 }

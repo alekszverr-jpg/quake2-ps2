@@ -2216,6 +2216,7 @@ static menuaction_s s_medium_game_action;
 static menuaction_s s_hard_game_action;
 static menuaction_s s_testmap_action;
 static menuaction_s s_benchmark_action;
+static menuaction_s s_light_benchmark_action;
 static menuaction_s s_load_game_action;
 static menuaction_s s_save_game_action;
 static menuaction_s s_credits_action;
@@ -2289,6 +2290,12 @@ static void BenchmarkFunc(void * unused)
 {
     (void)unused;
     CL_BenchmarkStart();
+}
+
+static void LightBenchmarkFunc(void * unused)
+{
+    (void)unused;
+    CL_BenchmarkWorldLights();
 }
 
 static void SaveGameFunc(void * unused)
@@ -2373,6 +2380,14 @@ void Game_MenuInit(void)
     s_benchmark_action.generic.callback = BenchmarkFunc;
     s_benchmark_action.generic.statusbar = "Ends current game; any button cancels demo";
 
+    s_light_benchmark_action.generic.type = MTYPE_ACTION;
+    s_light_benchmark_action.generic.flags = QMF_LEFT_JUSTIFY;
+    s_light_benchmark_action.generic.x = 0;
+    s_light_benchmark_action.generic.y = 90;
+    s_light_benchmark_action.generic.name = "world lights compare (6 runs)";
+    s_light_benchmark_action.generic.callback = LightBenchmarkFunc;
+    s_light_benchmark_action.generic.statusbar = "3 ON then 3 OFF; restores settings after test";
+
     Menu_AddItem(&s_game_menu, (void *)&s_easy_game_action);
     Menu_AddItem(&s_game_menu, (void *)&s_medium_game_action);
     Menu_AddItem(&s_game_menu, (void *)&s_hard_game_action);
@@ -2383,6 +2398,7 @@ void Game_MenuInit(void)
     Menu_AddItem(&s_game_menu, (void *)&s_blankline);
     Menu_AddItem(&s_game_menu, (void *)&s_credits_action);
     Menu_AddItem(&s_game_menu, (void *)&s_benchmark_action);
+    Menu_AddItem(&s_game_menu, (void *)&s_light_benchmark_action);
 
     Menu_Center(&s_game_menu);
 }

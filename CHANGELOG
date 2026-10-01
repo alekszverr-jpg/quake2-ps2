@@ -6,6 +6,21 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.93 - 2026-10-01 (local test build)
+
+- Benchmark title uses VERSION from build flags instead of the hardcoded
+  Alpha.83 label; VERSION changes invalidate compiled objects for local builds.
+- Add Game/world lights compare (6 runs): three demo1 passes with world dynamic
+  lights enabled, then three disabled. Entity lights and animated styles stay
+  unchanged. Default normal gameplay remains enabled.
+- Result pages include ON/OFF summary, each group's three runs and renderer
+  details. Light cost uses combined weighted frame time; mismatched frame ranges
+  or incomplete runs never produce a valid cost. Loading stays excluded.
+- Restore all benchmark settings, including world light mode, on completion,
+  cancellation and failure. Host regression covers six-pass mode transitions,
+  restoration, matching ranges, page navigation, version and cost display.
+- This is a diagnostic build; no performance improvement is claimed.
+
 ## 0.1.0-alpha.92 - 2026-10-01 (local test build)
 
 - Expand ps2flow with original two-frame MD2 opaque/translucent controls and
