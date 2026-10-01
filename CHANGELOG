@@ -20,6 +20,10 @@ Development priorities and completion criteria are tracked in
 - Regression covers profiling pages, units, six-pass lifecycle/restoration,
   counter meanings and unchanged differential light output with timers enabled.
 
+- CI36866985964 passed all host sanitizer tests, map validation and PROFILE
+  build. Alpha.95 ELF installed and hashes verified in both local project roots;
+  runtime diagnostic measurements pending.
+
 ## 0.1.0-alpha.94 - 2026-10-01 (local test build)
 
 - Reject world lights outside a source triangle's conservative bounding box

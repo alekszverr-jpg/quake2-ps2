@@ -8,19 +8,19 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.95 diagnostics in progress
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.95 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.95` (diagnostics in progress; last installed ELF Alpha.94)
-- Current implementation commit: `4daf6c7`
-  (`Preserve cached world fast path for distant lights and iterate sparse masks`)
+- Current source/test version: `0.1.0-alpha.95` (PROFILE CI and host tests passed; runtime diagnostic check pending)
+- Current implementation commit: `1e4c055`
+  (`Add opt-in world light CPU profiling benchmark with exclusive phase timers`)
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.94 local PROFILE ELF SHA-256 (7,728,376 bytes):
-  `9468AC215168605575D5CB7736E513BB7F9FE13E1BB1779F585BB181248D3A13`
-- CI `36863012353` passed all host sanitizer tests, map validation and PROFILE build for `4daf6c7`.
+- Alpha.95 local PROFILE ELF SHA-256 (7,748,156 bytes):
+  `ACE758811A5D5AC1EB439307F15B38639AAD986B8A11BB96AC65FD45FA872BE3`
+- CI `36866985964` passed all host sanitizer tests, map validation and PROFILE build for `1e4c055`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
@@ -52,6 +52,15 @@ Scope stop is idempotent. Counters include surface calls/light-plane pairs,
 bounds calls/light-AABB pairs/rejected pairs, recursive nodes/splits, emitted
 lit vertices/vertex-light pairs. Includes inline BSP brushes, excludes MD2.
 No extra persistent per-map allocations, no visual algorithm changes.
+CI36866985964 passed; 7,748,156-byte ELF installed in both project roots and
+verified against downloaded SHA above. Embedded Alpha.95 title, profile menu
+and ON/OFF labels checked. Fixture assets unchanged. User should launch Game ->
+world lights profile (6 runs), then provide last two pages Light profile ON/OFF.
+FPS from this diagnostic mode must not be compared directly with Alpha.94;
+normal compare mode remains the performance reference. No runtime profile
+results yet. Host tests exercise all seven pages, per-row units, six passes,
+restoration, failed demos, idempotent timer stop and exact light-work counters;
+160 differential light cases include enabled/disabled profiling.
 
 Alpha.94 optimizes world dynamic lighting without changing illumination:
 GatherPolyTriangles filters the surface plane mask by source-triangle AABB
