@@ -8,19 +8,19 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.93 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.94 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.93` (PROFILE CI and six-pass comparison completed successfully; Alpha.92 visuals accepted)
-- Current implementation commit: `d96ae39` (comparison added in `8fa89e6`)
-  (`Bound renderer detail averages to each three-run benchmark group`)
+- Current source/test version: `0.1.0-alpha.94` (PROFILE CI and differential tests passed; runtime optimization check pending)
+- Current implementation commit: `4daf6c7`
+  (`Preserve cached world fast path for distant lights and iterate sparse masks`)
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.93 local PROFILE ELF SHA-256 (7,724,864 bytes):
-  `903332C7EE9330A993347A10E1B21EDD5C6B1AFAC911174EB404582505481AA0`
-- CI `36860406523` passed all host sanitizer tests, map validation and PROFILE build for `d96ae39`.
+- Alpha.94 local PROFILE ELF SHA-256 (7,728,376 bytes):
+  `9468AC215168605575D5CB7736E513BB7F9FE13E1BB1779F585BB181248D3A13`
+- CI `36863012353` passed all host sanitizer tests, map validation and PROFILE build for `4daf6c7`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
@@ -40,6 +40,11 @@ No changed falloff, colour rounding, split limits or persistent allocation.
 160 differential cases compare emitted geometry/UV/colour/light contributions
 against Alpha.93's production recursion in tests/view_effects/dynamic_reference.inc,
 including parent source-mask filtering. Runtime benchmark/visual check pending.
+Both root ELF copies match the downloaded successful CI artifact and embedded
+Alpha.94 benchmark title. Fixture assets unchanged. User should repeat world
+lights compare (6 runs), plus blaster illumination near walls/doors and glass;
+compare ON FPS and world time, OFF control, Light cost and geometry counters
+against Alpha.93 before choosing further light/subdivision optimization.
 
 Alpha.93 adds Game/world lights compare (6 runs), with three ON then three OFF
 demo1 passes. ps2_world_dlights defaults1 and affects only s_worldLightCount,

@@ -21,6 +21,9 @@ Development priorities and completion criteria are tracked in
   emitted geometry, UVs, static colours and light contributions match exactly.
 - Runtime visual checks and the six-pass ON/OFF cost comparison are pending.
   No measured speedup is claimed before user benchmarks.
+- CI 36863012353 passed all sanitizer checks, differential light regression,
+  map validation and PROFILE build. ELF installed in both local projects with
+  matching CI hashes and the Alpha.94 title verified in the binary.
 
 ## 0.1.0-alpha.93 - 2026-10-01 (local test build)
 
