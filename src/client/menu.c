@@ -1978,7 +1978,7 @@ static const char * s_testmap_names[] =
     "city3 - upper palace",
     "boss1 - inner chamber",
     "boss2 - final showdown",
-    "ps2flow - flowing surface test",
+    "ps2flow - renderer effects test",
     0
 };
 

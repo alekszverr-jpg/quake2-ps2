@@ -14,10 +14,10 @@
 ;
 ; Batch layout at XTOP:
 ;   +0   header: vertex count in .w
-;   +1   9 GIF tag qwords (set tag, seven A+D state writes, draw tag)
-;   +10  vertices, 2 qwords each: position, then (rgba, s, t, q)
+;   +1   10 GIF tag qwords (set tag, eight A+D state writes, draw tag)
+;   +11  vertices, 2 qwords each: position, then (rgba, s, t, q)
 ;
-; The GS packet (the 9 GIF tags + 3 output qwords per vertex: ST,
+; The GS packet (the 10 GIF tags + 3 output qwords per vertex: ST,
 ; RGBAQ, XYZ2) is built right after the input vertices in the same
 ; buffer and sent with XGKICK. The color arrives packed in the .x
 ; word of the second input qword and is raw-copied into an A+D
@@ -32,7 +32,7 @@
 ; Batch offsets, relative to XTOP:
 #define kBatchHeader 0
 #define kGifTags     1
-#define kVertexData  10
+#define kVertexData  11
 
 ; Transforms one vertex: 2 input qwords at offPos/offStq from iInPtr
 ; become the ST, RGBAQ (via A+D) and XYZ2 output qwords at offST/offAD/
@@ -137,9 +137,9 @@
 ;       qword* kick = in + (numVerts * 2);
 ;       qword* out  = kick;
 ;
-;       // Packet head: the 9 GIF tag qwords prepared by the EE:
-;       memcpy(out, &batch[kGifTags], 9 * sizeof(qword));
-;       out += 9;
+;       // Packet head: the 10 GIF tag qwords prepared by the EE:
+;       memcpy(out, &batch[kGifTags], 10 * sizeof(qword));
+;       out += 10;
 ;
 ;       do // One triangle per iteration:
 ;       {
@@ -214,6 +214,8 @@
     lqi fTag1, (iTagPtr++)
     sqi fTag0, (iOutPtr++)
     sqi fTag1, (iOutPtr++)
+    lqi fTag0, (iTagPtr++)
+    sqi fTag0, (iOutPtr++)
 
     ; One triangle per iteration:
     lTriangleLoop:

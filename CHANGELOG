@@ -6,6 +6,23 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.92 - 2026-10-01 (local test build)
+
+- Expand ps2flow with original two-frame MD2 opaque/translucent controls and
+  96x80 cutout/translucent SP2 discs, overlap and foreground occlusion samples.
+  Diagnostic game spawn is restricted to this map and uses the normal network
+  model/frame/render-flag path. The original flowing samples are retained.
+- Match ref_gl's blended pass depth policy: VU batches retain depth testing but
+  disable depth writes for blended geometry; opaque batches and frame clears
+  explicitly restore writes. EE and VU GIF layouts are updated together.
+- Submit sprites and translucent MD2s through the existing six-plane clipper
+  to avoid whole-triangle rejection at the camera. Opaque MD2 fast path stays.
+- Normalize file TGA alpha from 0..255 to GS 0..128 before upload, preserving
+  entity opacity and cutout pixels without affecting the sky RGB16 path.
+- Host checks cover actual packet state in both contexts, state reuse/layout,
+  depth restoration, sprite origin/NPOT UV/frame/alpha handling and TGA alpha.
+  Visual checks and matching demo1 performance measurements remain pending.
+
 ## 0.1.0-alpha.91 - 2026-10-01 (local test build)
 
 - Add original ps2flow test room and Game/test map entry: stationary control,

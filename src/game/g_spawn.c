@@ -111,6 +111,7 @@ void SP_misc_strogg_ship(edict_t * self);
 void SP_misc_teleporter(edict_t * self);
 void SP_misc_teleporter_dest(edict_t * self);
 void SP_misc_blackhole(edict_t * self);
+void SP_misc_ps2sample(edict_t * self);
 void SP_misc_eastertank(edict_t * self);
 void SP_misc_easterchick(edict_t * self);
 void SP_misc_easterchick2(edict_t * self);
@@ -230,6 +231,7 @@ spawn_t spawns[] = {
     { "misc_teleporter", SP_misc_teleporter },
     { "misc_teleporter_dest", SP_misc_teleporter_dest },
     { "misc_blackhole", SP_misc_blackhole },
+    { "misc_ps2sample", SP_misc_ps2sample },
     { "misc_eastertank", SP_misc_eastertank },
     { "misc_easterchick", SP_misc_easterchick },
     { "misc_easterchick2", SP_misc_easterchick2 },

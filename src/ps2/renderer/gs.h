@@ -41,6 +41,8 @@ int CurrentContext();
 // The configured z-test method (a libdraw ZTEST_METHOD_* value), for paths
 // that program the TEST register themselves (the VU1 3D batches).
 int DepthTestMethod();
+// Complete ZBUF value; suppress writes for blended 3D while retaining tests.
+u64 DepthBufferData(bool maskWrites);
 
 // GS VRAM word address of the 256-entry global-palette CLUT (Quake's shared
 // 8-bit palette), uploaded once by Init() to a fixed spot outside the texture

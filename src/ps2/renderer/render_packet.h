@@ -72,6 +72,11 @@ public:
         m_ptr = draw_setup_environment(m_ptr, context, &frame, &zbuffer);
     }
 
+    void DepthBuffer(int context, zbuffer_t & zbuffer)
+    {
+        m_ptr = draw_zbuffer(m_ptr, context, &zbuffer);
+    }
+
     void TextureWrapping(int context, texwrap_t & wrap)
     {
         m_ptr = draw_texture_wrapping(m_ptr, context, &wrap);

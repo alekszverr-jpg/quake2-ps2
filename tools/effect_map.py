@@ -10,6 +10,8 @@ import struct
 
 FONT = {
     "A": [14,17,17,31,17,17,17], "C": [14,17,16,16,16,17,14],
+    "F": [31,16,16,30,16,16,16], "H": [17,17,17,31,17,17,17],
+    "M": [17,27,21,21,17,17,17], "N": [17,25,21,19,17,17,17],
     "D": [30,17,17,17,17,17,30], "E": [31,16,16,30,16,16,31],
     "G": [14,17,16,23,17,17,15], "I": [31,4,4,4,4,4,31],
     "L": [16,16,16,16,16,16,31], "O": [14,17,17,17,17,17,14],
@@ -68,6 +70,56 @@ def entity(properties, brushes=()):
     return "\n".join(["{", *(f'"{k}" "{v}"' for k, v in properties.items()), *brushes, "}"])
 
 
+def diagnostic_models(root):
+    """Original NPOT cutout sprite and two-frame MD2; no stock assets needed."""
+    def tga(name, width, height, pixels):
+        target = root / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        header = struct.pack('<BBBHHBHHHHBB', 0,0,2,0,0,0,0,0,width,height,32,0x28)
+        target.write_bytes(header + bytes(pixels))
+
+    frames = []
+    for frame in range(2):
+        w, h = 96, 80
+        pixels = []
+        for y in range(h):
+            for x in range(w):
+                radius = ((x-48)/42)**2 + ((y-40)/34)**2
+                # Transparent border and central hole expose both alpha testing
+                # and depth handling. Different frames keep the hole stationary.
+                alpha = 255 if 0.15 < radius < 1 else 0
+                b,g,r = (32,200,255) if frame == 0 else (255,180,32)
+                if (x//8+y//8) % 2: b,g,r = b//2,g//2,r//2
+                pixels += [b,g,r,alpha]
+        name = f'sprites/ps2test/disc{frame}.tga'
+        tga(name, w, h, pixels)
+        frames.append(struct.pack('<4i64s', w,h,48,40,name.encode()))
+    (root / 'sprites/ps2test/disc.sp2').write_bytes(struct.pack('<4sii',b'IDS2',2,2)+b''.join(frames))
+
+    skin = 'models/ps2test/check.tga'
+    pixels = []
+    for y in range(64):
+        for x in range(64):
+            v = 240 if (x//8+y//8) % 2 else 48
+            pixels += [v,v,v,255]
+    tga(skin,64,64,pixels)
+    st = struct.pack('<8h',0,0,63,0,63,63,0,63)
+    quads = [(0,3,2,1),(4,5,6,7),(0,1,5,4),(1,2,6,5),(2,3,7,6),(3,0,4,7)]
+    tris = b''.join(struct.pack('<6h',*(q[i] for i in indices),*indices)
+                    for q in quads for indices in ((0,1,2),(0,2,3)))
+    xyz = [(0,0,0),(96,0,0),(96,96,0),(0,96,0),
+           (0,0,128),(96,0,128),(96,96,128),(0,96,128)]
+    anim = b''.join(struct.pack('<6f16s',.5,.5,.5,-24,-24,-32,f'frame{i}'.encode()) +
+                    b''.join(struct.pack('<4B',x,y,z-i*8 if z else z,5) for x,y,z in xyz)
+                    for i in range(2))
+    ofs_skin,ofs_st,ofs_tris,ofs_frames = 68,132,148,292
+    ofs_gl = ofs_frames + len(anim)
+    header = struct.pack('<4s16i',b'IDP2',8,64,64,72,1,8,4,12,1,2,
+                         ofs_skin,ofs_st,ofs_tris,ofs_frames,ofs_gl,ofs_gl+4)
+    (root / 'models/ps2test/cube.md2').write_bytes(header +
+        struct.pack('<64s',skin.encode())+st+tris+anim+struct.pack('<i',0))
+
+
 def generate(root):
     root.mkdir(parents=True, exist_ok=True)
     # QRAD requires a colormap even with zero bounces. This original grayscale
@@ -85,8 +137,9 @@ def generate(root):
         [8 if x % 16 == 0 or y % 16 == 0 else 4 for y in range(64) for x in range(64)])
     wal(root, "ps2test/stripes", 64, 64,
         [15 if ((x//8) % 2) else 2 for y in range(64) for x in range(64)])
-    for text in ("STATIC", "OPAQUE", "GLASS", "DOOR"):
+    for text in ("STATIC", "OPAQUE", "GLASS", "DOOR", "MODEL", "ALPHA", "SPRITE", "FADE"):
         label(root, text)
+    diagnostic_models(root)
 
     solids = [
         brush((-400,-400,-16), (400,400,0)),
@@ -102,6 +155,11 @@ def generate(root):
     # A stationary grid behind the transparent sample reveals its transparency.
     solids.append(brush((144,380,16), (352,384,128)))
     solids.append(brush((380,-64,144), (384,64,176), "door", shift=(64,176)))
+    # New samples face the opposite side of the same room. The grid behind
+    # them exposes transparency; a low foreground bar tests opaque occlusion.
+    for x,name in ((-264,'model'),(-88,'alpha'),(88,'sprite'),(264,'fade')):
+        solids.append(brush((x-64,-384,136),(x+64,-380,168),name,shift=(64-x,168)))
+        solids.append(brush((x-56,-268,24),(x+56,-260,72)))
     entities = [entity({"classname":"worldspawn", "message":"PS2 Flowing Surface Test"}, solids),
                 entity({"classname":"info_player_start", "origin":"0 -240 32", "angle":"90"})]
     for x in (-256,0,256):
@@ -109,11 +167,16 @@ def generate(root):
     entities.append(entity({"classname":"light", "origin":"0 -192 160", "light":"400"}))
     entities.append(entity({"classname":"func_door", "angle":"90", "speed":"64", "wait":"3", "lip":"8"},
                            [brush((368,-64,16), (376,64,128), "stripes", 64)]))
+    for style,x in enumerate((-264,-88,88,264)):
+        entities.append(entity({'classname':'misc_ps2sample','origin':f'{x} -312 88','style':str(style)}))
+    # Overlap two faded sprites, nearer first: no depth writes must prevent
+    # it from suppressing the later rear sample when the client groups models.
+    entities.append(entity({'classname':'misc_ps2sample','origin':'276 -340 100','style':'3'}))
     maps = root / "maps"
     maps.mkdir(exist_ok=True)
     (maps / "ps2flow.map").write_text("// Original PS2 diagnostic room, generated by tools/effect_map.py\n" +
                                       "\n".join(entities) + "\n")
-    print("Generated ps2flow.map and six original WAL textures in", root)
+    print("Generated ps2flow MAP, original WALs, MD2 and NPOT cutout sprite in", root)
 
 
 def verify(root):
@@ -127,6 +190,23 @@ def verify(root):
     entities = data[eo:eo+es].decode("ascii")
     assert '"info_player_start"' in entities and '"func_door"' in entities
     assert not re.search(r'"monster_', entities)
+    assert entities.count('"misc_ps2sample"') == 5
+    md2 = (root / 'models/ps2test/cube.md2').read_bytes()
+    hdr = struct.unpack_from('<4s16i',md2)
+    assert hdr[:2] == (b'IDP2',8) and hdr[10] == 2 and hdr[16] == len(md2)
+    assert hdr[14]+hdr[4]*hdr[10] == hdr[15]
+    for p in range(hdr[13],hdr[14],12):
+        triangle = struct.unpack_from('<6h',md2,p)
+        assert all(0 <= v < hdr[6] for v in triangle[:3])
+        assert all(0 <= v < hdr[7] for v in triangle[3:])
+    sp2 = (root / 'sprites/ps2test/disc.sp2').read_bytes()
+    assert struct.unpack_from('<4sii',sp2) == (b'IDS2',2,2) and len(sp2) == 172
+    for p in (12,92):
+        w,h,ox,oy,name = struct.unpack_from('<4i64s',sp2,p)
+        image = (root / name.split(b'\0')[0].decode()).read_bytes()
+        assert struct.unpack_from('<HH',image,12) == (w,h)
+        assert (w,h,ox,oy) == (96,80,48,40)
+        assert set(image[21::4]) == {0,255} and len(image) == 18+w*h*4
     to, ts = lumps[5]
     texture_info = [struct.unpack_from("<8fii32si",data,p) for p in range(to,to+ts,76)]
     fo, fs = lumps[6]

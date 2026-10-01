@@ -24,9 +24,9 @@
  *      8-999  the two XTOP double buffers (VIF1 BASE=8, OFFSET=496)
  *
  *  Batch layout inside a double buffer (relative to XTOP): input is one header
- *  qword (vertex count in .w), 9 GIF/AD tag qwords, then 2 qwords per vertex;
+ *  qword (vertex count in .w), 10 GIF/AD tag qwords, then 2 qwords per vertex;
  *  the microprogram builds the GS packet in the same buffer after the input.
- *  The A+D block programs TEST, TEX0/TEX1, MIPTBP1, ALPHA, PRMODECONT and PRIM,
+ *  The A+D block programs TEST, ZBUF, TEX0/TEX1, MIPTBP1, ALPHA, PRMODECONT and PRIM,
  *  so a batch draws with the proper z-test, mip chain and blend state no matter
  *  what state the surrounding 2D/3D packets left behind.
  *
@@ -55,8 +55,8 @@ namespace {
 static TimingStats s_timingStats = {};
 
 // Vertices per VU run: DrawTriangles splits larger draws into chunks of this
-// size. Bounded by the VU double buffer: input (10 + 2n) plus output
-// (9 + 3n), so n <= 95. Eighty-four is the largest practical count that is
+// size. Bounded by the VU double buffer: input (11 + 2n) plus output
+// (10 + 3n), so n <= 95. Eighty-four is the largest practical count that is
 // also divisible by 3 triangles and 4 DrawVertex records: every successive
 // REF therefore begins on the Sony-recommended 8-QW / 128-byte boundary.
 constexpr int kMaxVertsPerBatch = 84;
@@ -72,8 +72,8 @@ constexpr int kFrameConstantsAddr = 0;
 
 // Batch layout, relative to the current double buffer (XTOP).
 constexpr int kBatchHeaderAddr = 0; // vertex count in .w
-constexpr int kGifTagsAddr     = 1; // 9 qwords: set tag, 7 A+D writes, draw tag
-constexpr int kVertexDataAddr  = kGifTagsAddr + 9;
+constexpr int kGifTagsAddr     = 1; // 10 qwords: set tag, 8 A+D writes, draw tag
+constexpr int kVertexDataAddr  = kGifTagsAddr + 10;
 
 // Each chain is tags plus small per-draw/per-chunk inline unpacks; staged
 // vertices are referenced in place. Two modest EE-side buffers let the CPU
@@ -90,7 +90,7 @@ static_assert((kStagedVertexCapacity % 4) == 0,
 // unpack, vertex REF unpack, FLUSH + MSCAL; ~11 qwords in practice) and of
 // the chain tail (trailing FLUSH + END tag). DrawTriangles flushes the packet
 // when the next chunk plus the tail might not fit.
-constexpr int kChunkChainQwords = 16;
+constexpr int kChunkChainQwords = 17;
 constexpr int kChainTailQwords  = 4;
 constexpr int kConstantsChainQwords = 10;
 constexpr int kDrawBarrierQwords = 2;
@@ -247,11 +247,15 @@ void AddBatchChunk(VifPacket & pkt, const tex::Texture & texture, int ctx,
 
         if (includeState)
         {
-            // Seven A+D writes: pixel tests, the complete texture bind, alpha
+            // Eight A+D writes: pixel tests, the complete texture bind, alpha
             // equation and explicit primitive control. MIPTBP1 must also be
             // sent for translucent WALs; omitting it samples stale mip pages.
-            pkt.AddQword(GIF_SET_TAG(7, 0, 0, 0, GIF_FLG_PACKED, 1), GIF_REG_AD);
+            pkt.AddQword(GIF_SET_TAG(8, 0, 0, 0, GIF_FLG_PACKED, 1), GIF_REG_AD);
             pkt.AddQword(MakeTestData(), static_cast<u64>(GS_REG_TEST + ctx));
+            // Blended geometry tests against opaque depth without hiding
+            // subsequently submitted effects. Every opaque batch restores it.
+            pkt.AddQword(gs::DepthBufferData(alphaBlend),
+                         static_cast<u64>(GS_REG_ZBUF + ctx));
             pkt.AddQword(MakeTex1Data(texture), static_cast<u64>(GS_REG_TEX1 + ctx));
             pkt.AddQword(MakeTex0Data(texture), static_cast<u64>(GS_REG_TEX0 + ctx));
             pkt.AddQword(MakeMiptbp1Data(texture),
@@ -272,10 +276,10 @@ void AddBatchChunk(VifPacket & pkt, const tex::Texture & texture, int ctx,
         }
         else
         {
-            // Leave the resident state at qwords 1..8 untouched and address
-            // the changing draw tag directly at qword 9.
+            // Leave the resident state at qwords 1..9 untouched and address
+            // the changing draw tag directly at qword 10.
             pkt.CloseInlineUnpack();
-            pkt.OpenInlineUnpack(kGifTagsAddr + 8, true);
+            pkt.OpenInlineUnpack(kGifTagsAddr + 9, true);
         }
 
         // The draw tag changes with the final short chunk's vertex count, so

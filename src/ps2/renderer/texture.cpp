@@ -21,6 +21,13 @@
 
 namespace ps2::tex {
 
+// File alpha is 0..255; the GS texture/vertex modulation uses 0x80 as 1.0.
+// Normalize decoded TGA alpha once, so entity alpha is not doubled.
+u8 GsTextureAlpha(u8 alpha)
+{
+    return static_cast<u8>((static_cast<unsigned int>(alpha) * 128u + 127u) / 255u);
+}
+
 // ------------------------------------------------------------------------------------------------
 // Enum -> SDK constant mappings
 // ------------------------------------------------------------------------------------------------
@@ -356,6 +363,8 @@ const Texture * TextureCache::LoadFromFile(const char * fullname, const ImageTyp
         {
             format     = PixelFormat::RGBA32;
             components = hasAlpha ? TexComponents::RGBA : TexComponents::RGB;
+            for (int pixel = 0; pixel < width * height; ++pixel)
+                pic32[pixel * 4 + 3] = GsTextureAlpha(pic32[pixel * 4 + 3]);
             pixels     = pic32;
             pixelBytes = width * height * BytesPerTexel(format);
         }

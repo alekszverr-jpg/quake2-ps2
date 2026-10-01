@@ -2623,8 +2623,8 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model,
             ? s_weaponViewProjMatrix
             : s_viewProjMatrix;
     const bool clipViewWeapon = (entity.flags & RF_DEPTHHACK) != 0;
-    const bool clipAlias = clipViewWeapon || shell;
     const bool translucent = (entity.flags & RF_TRANSLUCENT) != 0;
+    const bool clipAlias = clipViewWeapon || shell || translucent;
     float entityAlpha = translucent ? entity.alpha : 1.0f;
     if (entityAlpha < 0.0f) { entityAlpha = 0.0f; }
     if (entityAlpha > 1.0f) { entityAlpha = 1.0f; }
@@ -2794,29 +2794,24 @@ void DrawSpriteModel(const entity_t & entity, const mod::ModelInstance & model)
     float alpha = translucent ? entity.alpha : 1.0f;
     if (alpha < 0.0f) { alpha = 0.0f; }
     if (alpha > 1.0f) { alpha = 1.0f; }
-    const u32 color = vu1::PackColorRGBA(
-        128, 128, 128, static_cast<u32>(alpha * 128.0f + 0.5f));
+    const math::Vec4 color = { 128.0f, 128.0f, 128.0f, alpha * 128.0f };
 
     PS2_Assert(s_scratchVertCount == 0);
-    for (int i = 0; i < 6; ++i)
+    for (int i = 0; i < 6; i += 3)
     {
-        const int corner = indices[i];
-        vu1::DrawVertex & out = s_scratchVerts[s_scratchVertCount++];
-        out.x = corners[corner].x;
-        out.y = corners[corner].y;
-        out.z = corners[corner].z;
-        out.w = 1.0f;
-        out.rgba = color;
-        out.s = texS[corner];
-        out.t = texT[corner];
-        out.q = 1.0f;
+        ClipVertex triangle[3] = {};
+        for (int j = 0; j < 3; ++j)
+        {
+            const int corner = indices[i+j];
+            triangle[j].pos = { corners[corner].x, corners[corner].y,
+                               corners[corner].z, 1.0f };
+            triangle[j].color = color;
+            triangle[j].st = { texS[corner], texT[corner], 0.0f, 0.0f };
+            SetClipDistances(triangle[j], s_viewProjMatrix);
+        }
+        SubmitWorldTriangle(triangle, s_viewProjMatrix, texture, translucent);
     }
-
-    PS2_STAT_ADD(trisDrawn, 2);
-    PS2_STAT_INC(drawBatches);
-    vu1::DrawTriangles(s_viewProjMatrix, texture, s_scratchVerts,
-                       s_scratchVertCount, translucent);
-    s_scratchVertCount = 0;
+    FlushScratch(s_viewProjMatrix, texture, translucent);
 }
 
 void RenderEntities(const refdef_t & viewDef)

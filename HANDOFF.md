@@ -29,6 +29,19 @@ checkpoint does not advance `VERSION`.
 
 ## Alpha.87 campaign archive repair accepted
 
+Alpha.92 implements an expanded ps2flow fixture for opaque/translucent MD2 and
+SP2 samples (original assets, two frames, NPOT 96x80 cutout discs). Guarded
+misc_ps2sample uses only stock server/client render flags; RF_TRANSLUCENT alone
+receives 0.7 alpha in cl_ents. Blended VU batches now set ZMSK=1 with depth tests
+retained; opaque draws restore writes and BeginFrame restores before clearing.
+GIF state grows to eight AD writes, ten total tag qwords, vertex input offset11;
+VU packet copy and reused draw-tag offset updated together, 84 vertices retained.
+Sprites and translucent MD2 use the six-plane clipper. TGA alpha normalized to
+0..128 on the texture-cache path (file decoder and sky RGB16 stay unchanged).
+See tests/transparency and tools/effect-map.md. Runtime/performance validation
+is pending; user must turn around in ps2flow for MODEL/ALPHA/SPRITE/FADE samples
+and repeat demo1 with the same settings. Do not claim measured performance yet.
+
 Alpha.91: user requested a dedicated flowing-surface map after PAK scan found
 no ordinary SURF_FLOWING faces in installed campaign maps. tools/effect_map.py
 generates ps2flow, a sealed room with labelled STATIC/OPAQUE/GLASS samples and

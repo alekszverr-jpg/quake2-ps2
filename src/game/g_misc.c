@@ -1036,6 +1036,34 @@ void SP_misc_blackhole(edict_t * ent)
     gi.linkentity(ent);
 }
 
+/* Original diagnostic assets, confined to the ps2flow fixture. The network
+ * flags deliberately use stock client alpha (RF_TRANSLUCENT alone = 0.7).
+ * No new campaign entity behaviour or client-side synthetic render path. */
+static void ps2sample_think(edict_t * ent)
+{
+    ent->s.frame = (ent->s.frame + 1) % 2;
+    ent->nextthink = level.time + 0.25f;
+}
+
+void SP_misc_ps2sample(edict_t * ent)
+{
+    if (strcmp(level.mapname, "ps2flow") || ent->style < 0 || ent->style > 3)
+    {
+        G_FreeEdict(ent);
+        return;
+    }
+    ent->movetype = MOVETYPE_NONE;
+    ent->solid = SOLID_NOT;
+    VectorSet(ent->mins, -48, -48, -40);
+    VectorSet(ent->maxs, 48, 48, 40);
+    ent->s.modelindex = gi.modelindex(ent->style < 2
+        ? "models/ps2test/cube.md2" : "sprites/ps2test/disc.sp2");
+    ent->s.renderfx = (ent->style & 1) ? RF_TRANSLUCENT : 0;
+    ent->think = ps2sample_think;
+    ent->nextthink = level.time + 0.25f;
+    gi.linkentity(ent);
+}
+
 /*QUAKED misc_eastertank (1 .5 0) (-32 -32 -16) (32 32 32)
 */
 

@@ -57,6 +57,9 @@ jobs:
       - name: Check underwater view, beams and dynamic world lighting on host
         run: python3 tests/view_effects/run.py
 
+      - name: Check VU transparency packet and sprite submission on host
+        run: python3 tests/transparency/run.py
+
       - name: Build and validate original flowing-surface test map
         run: |
           python3 tools/effect_map.py build/effect-map/quake2/baseq2
@@ -78,6 +81,8 @@ jobs:
             build/effect-map/quake2/baseq2/maps/ps2flow.bsp
             build/effect-map/quake2/baseq2/maps/ps2flow.map
             build/effect-map/quake2/baseq2/textures/ps2test/*.wal
+            build/effect-map/quake2/baseq2/models/ps2test/*
+            build/effect-map/quake2/baseq2/sprites/ps2test/*
 
       - name: Download PS2DEV prebuilt toolchain
         run: |

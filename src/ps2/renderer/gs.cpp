@@ -38,6 +38,7 @@
 
 #include <dma.h>
 #include <gs_psm.h>
+#include <gs_gp.h>
 #include <graph.h>
 #include <kernel.h> // SyncDCache
 #include <draw.h>
@@ -188,6 +189,12 @@ int DepthTestMethod()
     return static_cast<int>(s_zbuffer.method);
 }
 
+u64 DepthBufferData(bool maskWrites)
+{
+    return GS_SET_ZBUF(s_zbuffer.address >> 11, s_zbuffer.zsm,
+                       maskWrites ? 1 : 0);
+}
+
 void SetClearColor(u8 r, u8 g, u8 b)
 {
     s_clear[0] = r;
@@ -336,6 +343,9 @@ void BeginFrame()
     clear.Reset();
 
     draw_disable_blending(); // draw_clear must overwrite, never blend
+    // The preceding frame may end with a blended VU batch (ZMSK=1).
+    // Restore writes before the z=0 clear, independently of later world draws.
+    clear.DepthBuffer(s_drawCtx, s_zbuffer);
     clear.DisableTests(s_drawCtx, s_zbuffer);
     clear.Clear(s_drawCtx,
                 0.0f, 0.0f,
