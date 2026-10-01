@@ -6,6 +6,20 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.96 - 2026-10-01 (local test build)
+
+- Reuse identical world-vertex dynamic colours through a bounded64-entry
+  surface-local cache. Exact coordinate bits, static RGBA and selected light
+  mask form the key; collisions recompute. Reset at each surface and frame to
+  prevent stale colours for moving lights, doors and changes in static lighting.
+- Add Color hits/Color misses to light profiles. Color ms now measures miss
+  calculation only, excluding lookup; emitted vertex and computed pair counts
+  remain separate. Normal compare mode remains the FPS measurement reference.
+- Verify12000 colour requests against an independent uncached light calculation,
+  plus collision/invalidation and160 differential subdivision cases. No change
+  to triangle geometry, clipping, falloff, rounding, UVs or persistent map caches.
+- User FPS and visual checks pending; no speedup claimed before measurement.
+
 ## 0.1.0-alpha.95 - 2026-10-01 (local test build)
 
 - Add Game/world lights profile (6 runs), with selection, exclusive subdivision

@@ -93,7 +93,9 @@ Both modes restore the caller's world-light and diagnostic settings.
 Profile units are averages per measured frame. Select ms includes surface-plane
 and triangle-AABB tests. Split ms includes edge selection, midpoint interpolation
 and midpoint clip distances, excluding recursive children and triangle submission.
-Color ms covers emitted-vertex dynamic colour calculation. Other rows count
+Alpha.96 Color ms covers cache-miss dynamic colour calculation and excludes
+lookup. Color hits/Color misses count reuse/recomputation; Lit vertices counts
+all emitted requests, Vertex tests counts only recomputed vertex/light pairs. Other rows count
 surface calls, plane/light pairs, AABB calls, AABB/light pairs, rejected pairs,
 recursive nodes, actual splits, lit emitted vertices and vertex/light pairs.
 Inline BSP brushes are included; alias-model illumination is excluded. Bounds

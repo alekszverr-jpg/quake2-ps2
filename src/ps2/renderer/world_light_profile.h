@@ -9,6 +9,7 @@ struct WorldLightProfile {
     bool enabled = false;
     long long ticks[PhaseCount] = {};
     int surfaces = 0, surfaceTests = 0, bounds = 0, boundsTests = 0;
+    int colorHits = 0, colorMisses = 0;
     int rejected = 0, nodes = 0, splits = 0, vertices = 0, vertexTests = 0;
     int Micros(Phase phase) const {
         return static_cast<int>(ticks[phase] * 1000000LL / CLOCKS_PER_SEC);

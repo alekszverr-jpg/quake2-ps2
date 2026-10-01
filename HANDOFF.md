@@ -8,12 +8,12 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.95 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.96 implementation in progress
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.95` (PROFILE CI and host tests passed; runtime diagnostic check pending)
+- Current source/test version: `0.1.0-alpha.96` (host tests passed; CI/install pending, previous ELF Alpha.95)
 - Current implementation commit: `1e4c055`
   (`Add opt-in world light CPU profiling benchmark with exclusive phase timers`)
 - Current published release:
@@ -28,6 +28,30 @@ Local test builds may advance; no GitHub release is currently requested. This ha
 checkpoint does not advance `VERSION`.
 
 ## Alpha.87 campaign archive repair accepted
+
+2026-10-01 Alpha.95 profiling screenshots accepted as diagnostic measurements.
+ON Select2.84/2.83/2.85ms, Split1.05/1.05/1.07ms, Color2.44/2.43/2.47ms.
+Surfaces463.38 each; Plane tests411.99; Bounds calls651.51/647.42/656.94;
+Bounds tests881.25/877.30/887.02; Rejected304.54/304.13/305.99;
+Split nodes447.71/444.11/452.15; Splits139.26/138.13/140.75;
+Lit vertices1031.81/1025.00/1040.90; Vertex tests1357.98/1351.60/1367.11.
+OFF Select0.65ms each, surfaces463.38, all other light counters/times zero.
+Do not interpret diagnostic times as additive FPS savings: timers perturb work.
+
+Alpha.96 memoizes emitted-vertex dynamic colours in a bounded64-entry direct
+mapped cache (1796bytes static, no heap allocation). Key: exact float xyz bits,
+original packed RGBA (including alpha) and current32-bit light mask. Hit returns
+identical previously computed packed result; collisions recompute. Clear on every
+SelectSurfaceLights and every RenderFrame, covering static-light changes, moving
+light frames and brush-local origin transformations. No UV/geometry/clipping,
+falloff or light order changes. Profile pages append Color hits/Color misses,
+14rows at8px spacing; Color ms now times misses only, excluding lookup (labelled).
+Vertex tests count computed vertex/light pairs; Lit vertices count requests.
+Independent uncached scalar reference verifies12000 colour requests including
+mask, alpha, positions, negative colour channels and changing light epochs;
+collision replacement/invalidation tests plus160 original recursion cases.
+Runtime FPS/hit rate pending; use normalcompare for speed, separateprofile for
+hit/miss diagnostic counts. No claimed speedup before matched userbenchmark.
 
 2026-10-01 Alpha.94 accepted: user reports blaster light looks normal.
 Matched six passes: 688 frames / 195..882 each. ON 18.68/18.72/18.68 s,

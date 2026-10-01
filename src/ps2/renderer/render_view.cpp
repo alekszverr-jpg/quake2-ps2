@@ -28,6 +28,7 @@
 #include "ps2/renderer/gs.h"
 #include "ps2/renderer/timing.h"
 #include "ps2/renderer/world_light_profile.h"
+#include "ps2/renderer/world_light_cache.h"
 #include "ps2/math/vec_mat.h"
 #include "ps2/builtin/builtin.h"
 
@@ -99,6 +100,7 @@ static int s_worldLightCount = 0;
 static math::Vec3 s_worldLightOrigins[MAX_DLIGHTS];
 static u32 s_surfaceLightMask = 0;
 static WorldLightProfile s_lightProfile;
+static WorldLightCache s_worldLightCache;
 
 // Adaptive BSP-lighting controls, refreshed from archived cvars each frame.
 // Large triangles are probed at most this many lightmap cells apart; within
@@ -976,8 +978,17 @@ inline u32 PackFloatColor(const math::Vec4 & color)
 
 u32 AddWorldLights(u32 packedColor, const math::Vec4 & position)
 {
-    WorldLightScope timer(s_lightProfile, WorldLightProfile::Color);
     if (s_lightProfile.enabled) ++s_lightProfile.vertices;
+    const auto key = s_worldLightCache.MakeKey(position.x, position.y, position.z,
+                                              packedColor, s_surfaceLightMask);
+    u32 cachedColor;
+    if (s_worldLightCache.Find(key, cachedColor))
+    {
+        if (s_lightProfile.enabled) ++s_lightProfile.colorHits;
+        return cachedColor;
+    }
+    if (s_lightProfile.enabled) ++s_lightProfile.colorMisses;
+    WorldLightScope timer(s_lightProfile, WorldLightProfile::Color);
     u32 remaining = s_surfaceLightMask;
     while (remaining != 0)
     {
@@ -992,6 +1003,8 @@ u32 AddWorldLights(u32 packedColor, const math::Vec4 & position)
                                         s_worldLights[i].intensity,
                                         s_worldLights[i].color);
     }
+    timer.Stop(); // Measure light arithmetic, not cache insertion.
+    s_worldLightCache.Store(key, packedColor);
     return packedColor;
 }
 
@@ -1036,6 +1049,7 @@ u32 SelectTriangleLights(u32 mask, const math::Vec4 (&positions)[3])
 
 void SelectSurfaceLights(const mod::ModelSurface & surface)
 {
+    s_worldLightCache.Clear(); // New surface/static colour or brush light space.
     WorldLightScope timer(s_lightProfile, WorldLightProfile::Select);
     if (s_lightProfile.enabled) ++s_lightProfile.surfaces;
     s_surfaceLightMask = 0;
@@ -3149,6 +3163,7 @@ void RenderFrame(const refdef_t & viewDef)
 #endif
 
     s_lightProfile = {};
+    s_worldLightCache.Clear(); // Never reuse moving lights from a previous frame.
 #if PS2_PROFILE
     static const cvar_t * profileLights = Cvar_Get("ps2_profile_world_lights", "0", 0);
     s_lightProfile.enabled = profileLights->value != 0.0f;

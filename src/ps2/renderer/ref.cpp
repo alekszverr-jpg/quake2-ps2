@@ -610,6 +610,8 @@ extern "C" void PS2_ReadBenchmarkStats(int values[BENCH_STATS_COUNT])
     values[BENCH_LIGHT_SPLITS] = light.splits;
     values[BENCH_LIGHT_VERTICES] = light.vertices;
     values[BENCH_LIGHT_VERTEX_TESTS] = light.vertexTests;
+    values[BENCH_LIGHT_COLOR_HITS] = light.colorHits;
+    values[BENCH_LIGHT_COLOR_MISSES] = light.colorMisses;
 
 }
 

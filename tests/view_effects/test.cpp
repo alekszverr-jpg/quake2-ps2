@@ -9,6 +9,10 @@
 using ps2::view::WorldLightProfile;
 using ps2::view::WorldLightScope;
 static WorldLightProfile s_lightProfile;
+#include "ps2/renderer/world_light_cache.h"
+using ps2::view::WorldLightCache;
+static WorldLightCache s_worldLightCache;
+static bool referenceMode;
 
 using u32 = std::uint32_t;
 using u8 = std::uint8_t;
@@ -71,6 +75,18 @@ void FillRect(int x, int y, int w, int h, u8 r, u8 g, u8 b, u8 a)
 }
 }
 u32 AddWorldLights(u32 color, const math::Vec4 & point);
+u32 DirectWorldLights(u32 color, const math::Vec4 & position)
+{
+    for (int i = 0; i < 32; ++i)
+        if (s_surfaceLightMask & (1u << i)) {
+            const auto & origin = s_worldLightOrigins[i];
+            const float x = position.x-origin.x, y = position.y-origin.y, z = position.z-origin.z;
+            color = effects::AddLight(color,x*x+y*y+z*z,lights[i].intensity,lights[i].color);
+        }
+    return color;
+}
+u32 TestWorldLights(u32 color, const math::Vec4 & point)
+{ return referenceMode ? DirectWorldLights(color,point) : AddWorldLights(color,point); }
 void SetClipDistances(ClipVertex &, const math::Mat4 &) {}
 void SubmitWorldTriangle(const ClipVertex (&corners)[3], const math::Mat4 &,
                          const tex::Texture &, bool = false, int alpha = -1)
@@ -79,13 +95,13 @@ void SubmitWorldTriangle(const ClipVertex (&corners)[3], const math::Mat4 &,
     lastS = corners[0].st.x; lastT = corners[0].st.y; lastAlpha = alpha;
     for (const auto & corner : corners)
     {
-        if (AddWorldLights(0x80404040u, corner.pos) != 0x80404040u) ++brightVertices;
+        if (TestWorldLights(0x80404040u, corner.pos) != 0x80404040u) ++brightVertices;
         std::array<u32,13> record{};
         const float values[] = { corner.pos.x,corner.pos.y,corner.pos.z,corner.pos.w,
             corner.st.x,corner.st.y,corner.st.z,corner.st.w,
             corner.color.x,corner.color.y,corner.color.z,corner.color.w };
         std::memcpy(record.data(),values,sizeof(values));
-        record[12] = AddWorldLights(0x80404040u,corner.pos);
+        record[12] = TestWorldLights(0x80404040u,corner.pos);
         emitted.push_back(record);
     }
 }
@@ -145,6 +161,7 @@ int main()
     assert(triangles > 1 && triangles <= 128 && brightVertices > 0);
     assert(s_surfaceLightMask == (1u << 31));
     triangles = brightVertices = 0;
+    s_worldLightCache.Clear();
     s_worldLightOrigins[31] = {10000,0,10};
     SubmitDynamicallyLitTriangle(large, {}, {});
     assert(triangles == 1 && brightVertices == 0);
@@ -156,6 +173,7 @@ int main()
     // position, UV, static colour, rounded light contribution and order match.
     for (int scenario = 0; scenario < 160; ++scenario)
     {
+        s_worldLightCache.Clear();
         s_lightProfile = {};
         s_lightProfile.enabled = scenario % 2 != 0;
         for (int i = 0; i < 32; ++i)
@@ -170,7 +188,8 @@ int main()
         const math::Vec4 positions[3] = { large[0].pos,large[1].pos,large[2].pos };
         const u32 selected = SelectTriangleLights(mask, positions);
         assert((selected & ~mask) == 0);
-        emitted.clear(); ReferenceDynamicTriangle(large,{},{});
+        emitted.clear(); referenceMode = true; ReferenceDynamicTriangle(large,{},{});
+        referenceMode = false;
         const auto reference = emitted;
         assert(s_surfaceLightMask == mask);
         emitted.clear(); SubmitDynamicallyLitTriangle(large,{},{});
@@ -185,6 +204,7 @@ int main()
     s_lightProfile = {};
     AddWorldLights(0x80404040u, {});
     assert(s_lightProfile.vertices == 0 && s_lightProfile.ticks[WorldLightProfile::Color] == 0);
+    s_worldLightCache.Clear();
     s_lightProfile.enabled = true;
     lights[0] = {200, {1,0,0}}; lights[31] = lights[0];
     s_worldLightOrigins[0] = {0,0,0}; s_worldLightOrigins[31] = {10000,0,0};
@@ -194,6 +214,10 @@ int main()
     s_surfaceLightMask = 0x80000001u;
     AddWorldLights(0x80404040u, {});
     assert(s_lightProfile.vertices == 1 && s_lightProfile.vertexTests == 2);
+    AddWorldLights(0x80404040u, {});
+    assert(s_lightProfile.colorHits == 1 && s_lightProfile.colorMisses == 1);
+    assert(s_lightProfile.vertexTests == 2);
+    s_worldLightCache.Clear();
     s_lightProfile = {}; s_lightProfile.enabled = true;
     lights[0].intensity = 1000000; s_surfaceLightMask = 1;
     triangles = 0;
@@ -207,6 +231,46 @@ int main()
     assert(s_lightProfile.ticks[WorldLightProfile::Select] == stoppedTicks);
     s_lightProfile = {}; s_surfaceLightMask = 0;
     std::puts("160 Alpha.93 differential light/subdivision scenarios passed");
+
+    // Cache keys must distinguish base RGBA, masks, positions and epochs;
+    // the independent scalar path never consults the production cache.
+    s_lightProfile.enabled = true;
+    for (int batch = 0; batch < 20; ++batch)
+    {
+        s_worldLightCache.Clear();
+        for (int i = 0; i < 32; ++i) {
+            lights[i] = {float(80+i*9), {0.4f,-0.2f,0.6f}};
+            s_worldLightOrigins[i] = {float(i*13-batch*7), float(i*3), float(batch*2)};
+        }
+        for (int v = 0; v < 200; ++v) {
+            const math::Vec4 point = {float(v%23)*0.25f,float(v%17)*1.25f,float(v%7),1};
+            s_surfaceLightMask = v%3 == 0 ? 0xffffffffu : v%3 == 1 ? 0x80000001u : 0u;
+            const u32 base = 0x40000000u + static_cast<u32>(v)*0x10101u;
+            const u32 expected = DirectWorldLights(base,point);
+            assert(AddWorldLights(base,point) == expected);
+            assert(AddWorldLights(base,point) == expected); // repeat is a hit
+            assert(AddWorldLights(base^0x80000000u,point) == DirectWorldLights(base^0x80000000u,point));
+        }
+    }
+    WorldLightCache collisionCache;
+    const auto oldKey = collisionCache.MakeKey(1,2,3,0x80404040u,1);
+    auto collisionKey = oldKey;
+    for (int i = 2; i < 10000; ++i) {
+        collisionKey = collisionCache.MakeKey(float(i),2,3,0x80404040u,1);
+        if (collisionKey.slot == oldKey.slot) break;
+    }
+    assert(collisionKey.slot == oldKey.slot && collisionKey.words[0] != oldKey.words[0]);
+    u32 cached;
+    collisionCache.Store(oldKey,0x12345678u);
+    assert(collisionCache.Find(oldKey,cached) && cached == 0x12345678u);
+    assert(!collisionCache.Find(collisionKey,cached));
+    collisionCache.Store(collisionKey,0x87654321u);
+    assert(!collisionCache.Find(oldKey,cached));
+    collisionCache.Clear();
+    assert(!collisionCache.Find(collisionKey,cached));
+    assert(s_lightProfile.colorHits >= 4000 && s_lightProfile.colorMisses >= 4000);
+    s_lightProfile = {}; s_worldLightCache.Clear(); s_surfaceLightMask = 0;
+    std::puts("12000 cached colours match independent path; key collisions/invalidation pass");
 
     // Use the stock water blend and a reduced viewport: tint only the 3D view.
     refdef_t view = { 10,20,320,240,0, {0.5f,0.3f,0.2f,0.4f} };

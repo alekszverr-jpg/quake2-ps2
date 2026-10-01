@@ -201,7 +201,7 @@ void CL_BenchmarkDraw(void)
         static const char * labels[] = {
             "Select ms", "Split ms", "Color ms", "Surfaces", "Plane tests",
             "Bounds calls", "Bounds tests", "Rejected", "Split nodes",
-            "Splits", "Lit vertices", "Vertex tests"
+            "Splits", "Lit vertices", "Vertex tests", "Color hits", "Color misses"
         };
         Line(43, base ? "Light profile OFF (incl brushes)" : "Light profile ON (incl brushes)");
         Line(59, "Metric          Run1    Run2    Run3");
@@ -216,10 +216,10 @@ void CL_BenchmarkDraw(void)
             }
             Com_sprintf(text,sizeof(text),"%-12s %7.2f %7.2f %7.2f",
                 labels[i-BENCH_LIGHT_SELECT],average[0],average[1],average[2]);
-            Line(75+(i-BENCH_LIGHT_SELECT)*9,text);
+            Line(69+(i-BENCH_LIGHT_SELECT)*8,text);
         }
         Line(190,"Timers perturb FPS; use compare mode.");
-        Line(202,"Split excludes children/submission.");
+        Line(202,"Color times misses; excludes lookup.");
         Line(214,"Left/Right: pages; Back: menu");
         return;
     }

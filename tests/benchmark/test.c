@@ -197,6 +197,8 @@ int main(void)
             assert(strstr(drawn,"Select ms      14.00"));
             assert(strstr(drawn,"Surfaces     17000.00"));
             assert(strstr(drawn,"Vertex tests"));
+            assert(strstr(drawn,"Color hits   26000.00"));
+            assert(strstr(drawn,"Color misses 27000.00"));
         }
         CL_BenchmarkTogglePage();
     }
