@@ -8,19 +8,19 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.96 implementation in progress
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.96 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.96` (host tests passed; CI/install pending, previous ELF Alpha.95)
-- Current implementation commit: `1e4c055`
-  (`Add opt-in world light CPU profiling benchmark with exclusive phase timers`)
+- Current source/test version: `0.1.0-alpha.96` (PROFILE CI and host tests passed; runtime FPS/cache validation pending)
+- Current implementation commit: `91d1c26`
+  (`Match memoized color output type to PS2 uint32_t`; implementation `79f0ab0`)
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.95 local PROFILE ELF SHA-256 (7,748,156 bytes):
-  `ACE758811A5D5AC1EB439307F15B38639AAD986B8A11BB96AC65FD45FA872BE3`
-- CI `36866985964` passed all host sanitizer tests, map validation and PROFILE build for `1e4c055`.
+- Alpha.96 local PROFILE ELF SHA-256 (7,754,308 bytes):
+  `CB0C6C37ABF7AFEDA880AB212C4AFF2269CADEB176C3374EF4EA0D16A16BFDA1`
+- CI `36869297879` passed all host sanitizer tests, map validation and PROFILE build for `91d1c26`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
@@ -50,6 +50,11 @@ Vertex tests count computed vertex/light pairs; Lit vertices count requests.
 Independent uncached scalar reference verifies12000 colour requests including
 mask, alpha, positions, negative colour channels and changing light epochs;
 collision replacement/invalidation tests plus160 original recursion cases.
+CI36868989858 passed all host checks but PS2 compile caught uint32_t being
+unsigned long while engine u32 is unsigned int. 91d1c26 matches cache output to
+std::uint32_t then explicitly casts returned value to u32. CI36869297879 passed
+all tests/map validation/PROFILE build. Installed 7,754,308-byte ELF into both
+roots, SHA verified and embedded Alpha.96/cache labels checked. Assets unchanged.
 Runtime FPS/hit rate pending; use normalcompare for speed, separateprofile for
 hit/miss diagnostic counts. No claimed speedup before matched userbenchmark.
 
