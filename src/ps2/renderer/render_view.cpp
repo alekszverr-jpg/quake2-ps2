@@ -981,11 +981,11 @@ u32 AddWorldLights(u32 packedColor, const math::Vec4 & position)
     if (s_lightProfile.enabled) ++s_lightProfile.vertices;
     const auto key = s_worldLightCache.MakeKey(position.x, position.y, position.z,
                                               packedColor, s_surfaceLightMask);
-    u32 cachedColor;
+    std::uint32_t cachedColor;
     if (s_worldLightCache.Find(key, cachedColor))
     {
         if (s_lightProfile.enabled) ++s_lightProfile.colorHits;
-        return cachedColor;
+        return static_cast<u32>(cachedColor);
     }
     if (s_lightProfile.enabled) ++s_lightProfile.colorMisses;
     WorldLightScope timer(s_lightProfile, WorldLightProfile::Color);
