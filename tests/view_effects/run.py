@@ -9,7 +9,7 @@ out = root / "build/view-effects-host"
 out.mkdir(parents=True, exist_ok=True)
 source = (root / "src/ps2/renderer/render_view.cpp").read_text()
 functions = []
-for signature in ["u32 AddWorldLights", "void SubmitDynamicallyLitTriangle",
+for signature in ["u32 AddWorldLights", "u32 SelectTriangleLights", "void SubmitDynamicallyLitTriangle",
                   "u8 ViewBlendByte", "void RenderViewBlend", "math::Vec3 AliasShellColor",
                   "math::Vec3 AliasShellOffset", "math::Vec4 AliasShellVertexColor",
                   "void DrawTranslucentSurface"]:

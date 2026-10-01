@@ -29,6 +29,18 @@ checkpoint does not advance `VERSION`.
 
 ## Alpha.87 campaign archive repair accepted
 
+Alpha.94 optimizes world dynamic lighting without changing illumination:
+GatherPolyTriangles filters the surface plane mask by source-triangle AABB
+before cached vertex preparation; cached subdivisions lie inside that source
+bound. Misses regain packed-colour fast submission. The original surface mask
+is restored at function exit for later polygons/crack seals. AddWorldLights
+and transient bounds checks iterate nonzero mask bits via ctz in ascending order
+(ctz never receives zero). Transient misses bypass edge-length selection.
+No changed falloff, colour rounding, split limits or persistent allocation.
+160 differential cases compare emitted geometry/UV/colour/light contributions
+against Alpha.93's production recursion in tests/view_effects/dynamic_reference.inc,
+including parent source-mask filtering. Runtime benchmark/visual check pending.
+
 Alpha.93 adds Game/world lights compare (6 runs), with three ON then three OFF
 demo1 passes. ps2_world_dlights defaults1 and affects only s_worldLightCount,
 including inline brushes; MD2 dynamic entity lights and animated styles retain

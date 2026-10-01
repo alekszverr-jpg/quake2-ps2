@@ -974,9 +974,11 @@ inline u32 PackFloatColor(const math::Vec4 & color)
 
 u32 AddWorldLights(u32 packedColor, const math::Vec4 & position)
 {
-    for (int i = 0; i < s_worldLightCount; ++i)
+    u32 remaining = s_surfaceLightMask;
+    while (remaining != 0)
     {
-        if ((s_surfaceLightMask & (1u << i)) == 0) continue;
+        const int i = __builtin_ctz(remaining);
+        remaining &= remaining - 1u;
         const math::Vec3 & origin = s_worldLightOrigins[i];
         const float x = position.x - origin.x;
         const float y = position.y - origin.y;
@@ -986,6 +988,41 @@ u32 AddWorldLights(u32 packedColor, const math::Vec4 & position)
                                         s_worldLights[i].color);
     }
     return packedColor;
+}
+
+// Conservative sphere/AABB rejection, shared by source-triangle selection
+// and transient subdivision. Iterate set bits in original ascending order.
+u32 SelectTriangleLights(u32 mask, const math::Vec4 (&positions)[3])
+{
+    float mins[3] = { positions[0].x, positions[0].y, positions[0].z };
+    float maxs[3] = { mins[0], mins[1], mins[2] };
+    for (int v = 1; v < 3; ++v)
+    {
+        const float point[3] = { positions[v].x, positions[v].y, positions[v].z };
+        for (int axis = 0; axis < 3; ++axis)
+        {
+            mins[axis] = std::min(mins[axis], point[axis]);
+            maxs[axis] = std::max(maxs[axis], point[axis]);
+        }
+    }
+    u32 result = 0;
+    while (mask != 0)
+    {
+        const int light = __builtin_ctz(mask);
+        mask &= mask - 1u;
+        const float origin[3] = { s_worldLightOrigins[light].x,
+            s_worldLightOrigins[light].y, s_worldLightOrigins[light].z };
+        float squaredDistance = 0.0f;
+        for (int axis = 0; axis < 3; ++axis)
+        {
+            const float nearest = std::max(mins[axis], std::min(maxs[axis], origin[axis]));
+            const float delta = origin[axis] - nearest;
+            squaredDistance += delta * delta;
+        }
+        const float radius = s_worldLights[light].intensity;
+        if (squaredDistance < radius * radius) result |= 1u << light;
+    }
+    return result;
 }
 
 void SelectSurfaceLights(const mod::ModelSurface & surface)
@@ -1189,34 +1226,20 @@ void SubmitDynamicallyLitTriangle(const ClipVertex (&corners)[3],
                                   const tex::Texture & texture, int depth = 0)
 {
     const u32 surfaceMask = s_surfaceLightMask;
-    u32 triangleMask = 0;
-    float mins[3] = { corners[0].pos.x, corners[0].pos.y, corners[0].pos.z };
-    float maxs[3] = { mins[0], mins[1], mins[2] };
-    for (int v = 1; v < 3; ++v)
+    if (surfaceMask == 0)
     {
-        const float point[3] = { corners[v].pos.x, corners[v].pos.y, corners[v].pos.z };
-        for (int axis = 0; axis < 3; ++axis)
-        {
-            mins[axis] = std::min(mins[axis], point[axis]);
-            maxs[axis] = std::max(maxs[axis], point[axis]);
-        }
+        SubmitWorldTriangle(corners, mvp, texture);
+        return;
     }
-    for (int light = 0; light < s_worldLightCount; ++light)
-    {
-        if ((surfaceMask & (1u << light)) == 0) continue;
-        const float origin[3] = { s_worldLightOrigins[light].x,
-            s_worldLightOrigins[light].y, s_worldLightOrigins[light].z };
-        float squaredDistance = 0.0f;
-        for (int axis = 0; axis < 3; ++axis)
-        {
-            const float nearest = std::max(mins[axis], std::min(maxs[axis], origin[axis]));
-            const float delta = origin[axis] - nearest;
-            squaredDistance += delta * delta;
-        }
-        const float radius = s_worldLights[light].intensity;
-        if (squaredDistance < radius * radius) triangleMask |= 1u << light;
-    }
+    const math::Vec4 positions[3] = { corners[0].pos, corners[1].pos, corners[2].pos };
+    const u32 triangleMask = SelectTriangleLights(surfaceMask, positions);
     s_surfaceLightMask = triangleMask;
+    if (triangleMask == 0)
+    {
+        SubmitWorldTriangle(corners, mvp, texture);
+        s_surfaceLightMask = surfaceMask;
+        return;
+    }
     int longest = 0;
     float longestSquared = 0.0f;
     for (int edge = 0; edge < 3; ++edge)
@@ -1758,6 +1781,7 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
                          const math::Mat4 & mvp, const tex::Texture & texture,
                          const u32 topologyKey, const u32 colorKey)
 {
+    const u32 surfaceMask = s_surfaceLightMask;
     const float scroll = (surface.texInfo->flags & SURF_FLOWING) != 0
         ? effects::FlowingScroll(s_viewTime) : 0.0f;
     const int numTriangles = poly.numVerts - 2;
@@ -1767,6 +1791,20 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
         if (tri.vertexes[0] == tri.vertexes[1])
         {
             continue; // Degenerate placeholder left by failed triangulation.
+        }
+
+        // Cached subdivisions remain inside their source triangle. Reject
+        // distant lights once before expanding its cached vertices into full
+        // clipping records, preserving the packed-colour path for misses.
+        if (surfaceMask != 0)
+        {
+            math::Vec4 positions[3];
+            for (int v = 0; v < 3; ++v)
+            {
+                const math::Vec3 & p = poly.vertexes[tri.vertexes[v]].position;
+                positions[v] = { p.x, p.y, p.z, 1.0f };
+            }
+            s_surfaceLightMask = SelectTriangleLights(surfaceMask, positions);
         }
 
         const CachedLitVertex * drawVertices = nullptr;
@@ -1908,6 +1946,7 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
                 SubmitWorldTriangle(corners, mvp, texture);
         }
     }
+    s_surfaceLightMask = surfaceMask;
 }
 
 // Appends the original source triangles beneath adaptively subdivided BSP

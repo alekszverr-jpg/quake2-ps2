@@ -2,6 +2,9 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdio>
+#include <cstring>
+#include <vector>
+#include <array>
 
 using u32 = std::uint32_t;
 using u8 = std::uint8_t;
@@ -47,6 +50,7 @@ static u32 s_surfaceLightMask = 0;
 static int triangles, brightVertices;
 static float lastS, lastT;
 static int lastAlpha;
+static std::vector<std::array<u32,13>> emitted;
 struct cvar_t { float value; };
 static cvar_t polyBlend = {1};
 const cvar_t * Cvar_Get(const char *, const char *, int) { return &polyBlend; }
@@ -70,10 +74,20 @@ void SubmitWorldTriangle(const ClipVertex (&corners)[3], const math::Mat4 &,
     ++triangles;
     lastS = corners[0].st.x; lastT = corners[0].st.y; lastAlpha = alpha;
     for (const auto & corner : corners)
+    {
         if (AddWorldLights(0x80404040u, corner.pos) != 0x80404040u) ++brightVertices;
+        std::array<u32,13> record{};
+        const float values[] = { corner.pos.x,corner.pos.y,corner.pos.z,corner.pos.w,
+            corner.st.x,corner.st.y,corner.st.z,corner.st.w,
+            corner.color.x,corner.color.y,corner.color.z,corner.color.w };
+        std::memcpy(record.data(),values,sizeof(values));
+        record[12] = AddWorldLights(0x80404040u,corner.pos);
+        emitted.push_back(record);
+    }
 }
 void FlushScratch(const math::Mat4 &, const tex::Texture &, bool, int) {}
 #include "effects.inc"
+#include "dynamic_reference.inc"
 
 int main()
 {
@@ -133,6 +147,36 @@ int main()
     assert(s_surfaceLightMask == (1u << 31));
     s_surfaceLightMask = 0;
     assert(AddWorldLights(0x80404040u, {}) == 0x80404040u);
+
+    // Differential test against the actual Alpha.93 recursive path: emitted
+    // position, UV, static colour, rounded light contribution and order match.
+    for (int scenario = 0; scenario < 160; ++scenario)
+    {
+        for (int i = 0; i < 32; ++i)
+        {
+            lights[i] = {float(40+(i*37+scenario*19)%320), {.8f,.5f,.2f}};
+            s_worldLightOrigins[i] = { float((i*127+scenario*31)%1600-800),
+                float((i*73+scenario*47)%1600-800), float((i*23)%180) };
+        }
+        const u32 mask = scenario % 4 == 0 ? 0u : scenario % 4 == 1 ? 0x80000000u :
+                         scenario % 4 == 2 ? 0x80000001u : 0xffffffffu;
+        s_surfaceLightMask = mask;
+        const math::Vec4 positions[3] = { large[0].pos,large[1].pos,large[2].pos };
+        const u32 selected = SelectTriangleLights(mask, positions);
+        assert((selected & ~mask) == 0);
+        emitted.clear(); ReferenceDynamicTriangle(large,{},{});
+        const auto reference = emitted;
+        assert(s_surfaceLightMask == mask);
+        emitted.clear(); SubmitDynamicallyLitTriangle(large,{},{});
+        assert(s_surfaceLightMask == mask && emitted == reference);
+        // Filtering the parent source triangle before cached subdivision
+        // cannot change the output of the transient tree.
+        s_surfaceLightMask = selected;
+        emitted.clear(); SubmitDynamicallyLitTriangle(large,{},{});
+        assert(emitted == reference && s_surfaceLightMask == selected);
+    }
+    s_surfaceLightMask = 0;
+    std::puts("160 Alpha.93 differential light/subdivision scenarios passed");
 
     // Use the stock water blend and a reduced viewport: tint only the 3D view.
     refdef_t view = { 10,20,320,240,0, {0.5f,0.3f,0.2f,0.4f} };

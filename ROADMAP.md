@@ -51,6 +51,7 @@ enough for normal gameplay.
 - [x] Animated light styles
 - [x] Dynamic entity lights
 - [x] Dynamic world lighting: user confirmed projectile illumination on Alpha.88
+- [~] Dynamic world light cost reduction (Alpha.94: source-triangle rejection and sparse mask iteration; differential tests passed, runtime comparison pending)
 - [x] RF_BEAM laser tubes: user confirmed visibility on Alpha.88
 - [x] Underwater appearance and damage colour blend: user accepted Alpha.89
 - [~] Separate slime/lava, pickup and powerup blend validation

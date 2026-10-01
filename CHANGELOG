@@ -6,6 +6,22 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.94 - 2026-10-01 (local test build)
+
+- Reject world lights outside a source triangle's conservative bounding box
+  before expanding cached vertices into clipping records. Unaffected interior
+  triangles retain their existing packed-colour submission path even when
+  another part of the same surface plane is illuminated.
+- Iterate only selected light-mask bits, in ascending source order, for vertex
+  lighting and recursive triangle bounds checks. Misses skip longest-edge work.
+- Keep light falloff, byte rounding, split limits, UVs, static cache and crack
+  seals unchanged; no extra persistent allocations or lower quality setting.
+- Differential host regression compares 160 cases against Alpha.93's actual
+  subdivision routine, including bit31, dense/empty masks and parent filtering:
+  emitted geometry, UVs, static colours and light contributions match exactly.
+- Runtime visual checks and the six-pass ON/OFF cost comparison are pending.
+  No measured speedup is claimed before user benchmarks.
+
 ## 0.1.0-alpha.93 - 2026-10-01 (local test build)
 
 - Benchmark title uses VERSION from build flags instead of the hardcoded
