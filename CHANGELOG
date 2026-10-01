@@ -21,7 +21,9 @@ Development priorities and completion criteria are tracked in
   entity opacity and cutout pixels without affecting the sky RGB16 path.
 - Host checks cover actual packet state in both contexts, state reuse/layout,
   depth restoration, sprite origin/NPOT UV/frame/alpha handling and TGA alpha.
-  Visual checks and matching demo1 performance measurements remain pending.
+  User confirmed all new fixture samples look correct. Post-install demo1
+  feedback: 35.97 FPS / 27.80 ms; hardcoded Alpha.83 title is unreliable.
+  Performance cost isolation remains pending.
 - CI 36815578564 passed all sanitizer tests, expanded map checks and PROFILE
   ELF build. ELF and 16 fixture assets installed in both local projects with
   matching downloaded-artifact hashes. No release published.

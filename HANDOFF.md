@@ -13,7 +13,7 @@ before changing renderer, audio or memory-management code.
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.92` (PROFILE CI and expanded map validation passed; user transparency/performance checks pending)
+- Current source/test version: `0.1.0-alpha.92` (PROFILE CI, expanded map checks and user visual validation passed; performance cost investigation pending)
 - Current implementation commit: `cc858d9`
   (`Restore blended depth policy and add sprite and model transparency fixture`)
 - Current published release:
@@ -38,9 +38,9 @@ GIF state grows to eight AD writes, ten total tag qwords, vertex input offset11;
 VU packet copy and reused draw-tag offset updated together, 84 vertices retained.
 Sprites and translucent MD2 use the six-plane clipper. TGA alpha normalized to
 0..128 on the texture-cache path (file decoder and sky RGB16 stay unchanged).
-See tests/transparency and tools/effect-map.md. Runtime/performance validation
-is pending; user must turn around in ps2flow for MODEL/ALPHA/SPRITE/FADE samples
-and repeat demo1 with the same settings. Do not claim measured performance yet.
+See tests/transparency and tools/effect-map.md. User accepted the fixture visuals
+on 2026-10-01. Benchmark feedback is recorded below; performance cost isolation
+remains pending. Do not attribute the full change since Alpha.83 to Alpha.92.
 Alpha.92 PROFILE ELF and 16 runtime fixture assets are installed in both local
 projects, all matching CI hashes. ps2flow.bsp is 59,872 bytes, SHA-256
 `85731693AD0C8F536FABBFE23BEDCE7C59E1F5336EF56BCBE3256D3BFE860B74`.
@@ -62,7 +62,7 @@ and entities +.74 ms dominate. Versions between 83 and 92 restored effects,
 including dynamic world lights, so this cannot isolate Alpha.92's cost.
 Next: fix benchmark build identification and obtain a matched Alpha.91/92
 comparison or isolate dynamic-world-light cost before selecting optimization.
-User has not yet explicitly accepted Alpha.92 fixture visuals.
+User subsequently confirmed Alpha.92 fixture visuals all look correct.
 
 Alpha.91: user requested a dedicated flowing-surface map after PAK scan found
 no ordinary SURF_FLOWING faces in installed campaign maps. tools/effect_map.py

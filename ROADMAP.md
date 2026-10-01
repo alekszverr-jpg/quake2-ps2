@@ -56,12 +56,12 @@ enough for normal gameplay.
 - [x] MD2 colour shells (RF_SHELL_*), including powerup/protection effects (Alpha.90; user confirmed protection and medic resurrection effects in Alpha.91)
 - [x] SURF_FLOWING texture scroll on non-turbulent opaque/transparent surfaces (Alpha.90; user accepted ps2flow check in Alpha.91)
 - [ ] Optional ref_gl projected model shadows (gl_shadows)
-- [~] Sprite entities (Alpha.92: clipped submission and original cutout/alpha fixture; runtime validation pending)
+- [x] Sprite entities (Alpha.92: clipped submission and cutout/alpha fixture accepted by user)
 - [x] Particles
 - [x] Opaque brush entities such as moving doors and platforms
 - [~] Sky surfaces and skybox
 - [x] Transparent BSP surfaces such as Base 3 glass, validated on PCSX2 and PS2
-- [~] Translucent entity alpha (Alpha.92: no depth writes, TGA alpha normalization and fixture; runtime validation pending)
+- [x] Translucent entity alpha (Alpha.92: no depth writes, TGA alpha normalization and fixture accepted by user)
 - [x] Turbulent water/lava/slime surfaces, validated in PCSX2
 - [x] Weapon depth-range and view-model render flags
 - [x] WAL mipmaps and stable minification filtering
