@@ -8,19 +8,19 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.98 implementation in progress
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.98 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.98` (host tests passed; CI/install pending, previous ELF Alpha.97)
-- Current implementation commit: `c33a500`
-  (`Add isolated light color cache ON OFF benchmark with lighting held constant`)
+- Current source/test version: `0.1.0-alpha.98` (PROFILE CI and host tests passed; runtime selection optimization pending)
+- Current implementation commit: `e41501b`
+  (`Reuse selected light bounds for unchanged source triangles and unroll axes`)
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.97 local PROFILE ELF SHA-256 (7,757,460 bytes):
-  `11FFB4DD1F6D7658D46E82B5D3210E9D9C6FF327B4D41A5C6241B8E9D9E46DD3`
-- CI `36903859510` passed all host sanitizer tests, map validation and PROFILE build for `c33a500`.
+- Alpha.98 local PROFILE ELF SHA-256 (7,758,308 bytes):
+  `606AD24EABBA3685624F28405FEC4AB65A52678E939FE093AE836DF4EDDD7FDB`
+- CI `36908578351` passed all host sanitizer tests, map validation and PROFILE build for `e41501b`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
@@ -50,7 +50,14 @@ No added per-map storage/heap allocation or quality change. Frozen Alpha.97
 selector verifies2400 varied/degenerate masks plus exact radius boundary cases;
 160 Alpha.93 differential trees also exercise known-root path. Counter regression
 proves exactlyone fewerbounds call with identical emitted tree/UV/colours.
-12000colour requests and cacheON/OFF tests remain. Runtime gain pending.
+12000colour requests and cacheON/OFF tests remain. CI36908578351 passed all
+host sanitizer checks/map validation/PROFILE build. Installed7,758,308-byte ELF
+in both roots with CI hash above and embedded Alpha.98 version verified. Fixture
+assets unchanged. Runtime gain pending. User should run normal world lights
+compare (6 runs), send summary/details, then separate world lights profile:
+compare Select ms and Bounds calls/tests to Alpha.96; timers perturb FPS.
+Also verify blaster illumination on flat walls and moving doors. No new runtime
+FPS, profile counters or Alpha.98 visual acceptance yet.
 
 2026-10-01 Alpha.96 feedback: normal world lights comparison has six matching
 688-frame passes/demo195..882. ON37.45FPS/26.70ms/world12.61ms; all3passes18.37s.

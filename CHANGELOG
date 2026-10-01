@@ -20,6 +20,9 @@ Development priorities and completion criteria are tracked in
 - Alpha.97 isolated cache result:+0.23ms/frame (~0.9%FPS), world12.62 vs12.84ms;
   keep cache enabled. Alpha.98 performance and visuals still await runtime tests.
 
+- CI36908578351 passed all sanitizer regressions, map validation and PROFILE
+  build. Alpha.98 installed in both project roots with matching CI hashes.
+
 ## 0.1.0-alpha.97 - 2026-10-01 (local test build)
 
 - Add Game/light cache compare (6 runs): three cache ON then three OFF passes,
