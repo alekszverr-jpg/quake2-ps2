@@ -24,6 +24,8 @@ Development priorities and completion criteria are tracked in
   UV mutation. Visual confirmation and matching benchmark remain pending.
 - Existing translucent depth-write behaviour is retained; optional projected
   shadows and music are outside this change.
+- CI `36811808631` passed all sanitizer tests and PROFILE compilation for
+  `2edcc21`. Both local testing ELF copies match the downloaded artifact.
 
 ## 0.1.0-alpha.89 - 2026-09-30 (local test build)
 
