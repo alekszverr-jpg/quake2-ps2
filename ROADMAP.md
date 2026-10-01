@@ -54,7 +54,7 @@ enough for normal gameplay.
 - [x] Underwater appearance and damage colour blend: user accepted Alpha.89
 - [~] Separate slime/lava, pickup and powerup blend validation
 - [~] MD2 colour shells (RF_SHELL_*), including powerup/protection effects (Alpha.90)
-- [~] SURF_FLOWING texture scroll on non-turbulent opaque/transparent surfaces (Alpha.90)
+- [x] SURF_FLOWING texture scroll on non-turbulent opaque/transparent surfaces (Alpha.90; user accepted ps2flow check in Alpha.91)
 - [ ] Optional ref_gl projected model shadows (gl_shadows)
 - [~] Sprite entities
 - [x] Particles

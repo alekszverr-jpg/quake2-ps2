@@ -13,7 +13,7 @@ before changing renderer, audio or memory-management code.
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.91` (PROFILE CI and map validation passed; visual runtime validation pending)
+- Current source/test version: `0.1.0-alpha.91` (PROFILE CI, map validation and user flowing-map check passed)
 - Current implementation commit: `20a5c07` (map/menu added in `d337ca5`)
   (`Fix legacy QRAD pointer alignment on 64-bit map build hosts`)
 - Current published release:
@@ -37,8 +37,10 @@ yquake2/maptools 9b7e43334646f63f25a7aebfd62070b3aebc2554 and exports maps plus
 textures as ps2flow-test-map. The compiler-only pics/colormap.pcx must never
 be copied to runtime (would replace the game's palette). Alpha.91 adds the
 menu entry only; renderer remains Alpha.90. Installation uses maps/ps2flow.bsp
-and textures/ps2test/*.wal alongside the PROFILE ELF. Visual confirmation is
-pending; doc tools/effect-map.md describes expected behaviour.
+and textures/ps2test/*.wal alongside the PROFILE ELF. User tested the map and
+reported everything works on 2026-10-01; accept ordinary flowing surfaces on
+this setup. Colour-shell validation remains separate. Doc tools/effect-map.md
+describes expected behaviour.
 The CI map and all six WALs are installed in both projects' baseq2 directories;
 all copied assets and ELF hashes match the downloads. ps2flow.bsp is 48,408 bytes,
 SHA-256 `389CF447216B7F548DD995C9BF579E135FC35E7554312FB5115FF6DFC6D762A5`.
