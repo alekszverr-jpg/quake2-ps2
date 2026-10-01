@@ -29,6 +29,17 @@ checkpoint does not advance `VERSION`.
 
 ## Alpha.87 campaign archive repair accepted
 
+Alpha.91: user requested a dedicated flowing-surface map after PAK scan found
+no ordinary SURF_FLOWING faces in installed campaign maps. tools/effect_map.py
+generates ps2flow, a sealed room with labelled STATIC/OPAQUE/GLASS samples and
+a side inline moving DOOR. Six original WALs; no water or enemies. CI pins
+yquake2/maptools 9b7e43334646f63f25a7aebfd62070b3aebc2554 and exports maps plus
+textures as ps2flow-test-map. The compiler-only pics/colormap.pcx must never
+be copied to runtime (would replace the game's palette). Alpha.91 adds the
+menu entry only; renderer remains Alpha.90. Installation uses maps/ps2flow.bsp
+and textures/ps2test/*.wal alongside the PROFILE ELF. Visual confirmation is
+pending; doc tools/effect-map.md describes expected behaviour.
+
 Alpha.90 (2026-10-01): user authorized colour shells and ordinary flowing
 textures. MD2 shells use stock mixed colours and 4-unit current-frame normal
 offsets, constant RGB via neutral BeamTexture, existing entity alpha, inflated

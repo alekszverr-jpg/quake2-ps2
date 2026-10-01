@@ -6,6 +6,19 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.91 - 2026-10-01 (local test build)
+
+- Add original ps2flow test room and Game/test map entry: stationary control,
+  opaque scrolling surface, transparent scrolling surface with a static grid
+  behind it, and an automatically moving scrolling inline door. No monsters
+  or turbulent water; specifically targets the new ordinary SURF_FLOWING path.
+- Generate MAP and six original WAL assets from tools/effect_map.py. CI pins
+  yquake2/maptools, builds BSP/PVS/lightmaps, validates spawn collision, face
+  flags and inline model, and exports a separate map artifact. No commercial
+  game data is bundled; compiler-only grayscale colormap is excluded.
+- Rendering remains the Alpha.90 implementation. Visual map/effect verification
+  on PCSX2/PS2 is still required; see tools/effect-map.md for the test route.
+
 ## 0.1.0-alpha.90 - 2026-10-01 (local test build)
 
 - Restore MD2 RF_SHELL_RED/GREEN/BLUE/DOUBLE/HALF_DAM using stock ref_gl

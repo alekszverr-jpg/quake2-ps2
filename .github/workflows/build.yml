@@ -57,6 +57,27 @@ jobs:
       - name: Check underwater view, beams and dynamic world lighting on host
         run: python3 tests/view_effects/run.py
 
+      - name: Build and validate original flowing-surface test map
+        run: |
+          python3 tools/effect_map.py build/effect-map/quake2/baseq2
+          git init build/effect-map-tools
+          git -C build/effect-map-tools fetch --depth 1 https://github.com/yquake2/maptools.git 9b7e43334646f63f25a7aebfd62070b3aebc2554
+          git -C build/effect-map-tools checkout --detach FETCH_HEAD
+          make -C build/effect-map-tools -j2 qbsp3 qvis3 qrad3 CFLAGS="-O2 -fcommon -fno-strict-aliasing -Wall -MMD"
+          build/effect-map-tools/release/qbsp3 -leaktest "$PWD/build/effect-map/quake2/baseq2/maps/ps2flow.map"
+          build/effect-map-tools/release/qvis3 "$PWD/build/effect-map/quake2/baseq2/maps/ps2flow.bsp"
+          build/effect-map-tools/release/qrad3 -threads 1 -bounce 0 -ambient 0.2 "$PWD/build/effect-map/quake2/baseq2/maps/ps2flow.bsp"
+          python3 tools/effect_map.py build/effect-map/quake2/baseq2 --verify
+
+      - name: Upload flowing-surface test map
+        uses: actions/upload-artifact@v4
+        with:
+          name: ps2flow-test-map
+          path: |
+            build/effect-map/quake2/baseq2/maps/ps2flow.bsp
+            build/effect-map/quake2/baseq2/maps/ps2flow.map
+            build/effect-map/quake2/baseq2/textures/ps2test/*.wal
+
       - name: Download PS2DEV prebuilt toolchain
         run: |
           mkdir -p "$PS2DEV"

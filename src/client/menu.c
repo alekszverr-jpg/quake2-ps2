@@ -1934,7 +1934,7 @@ static const char * s_testmap_ids[] =
     "power1", "power2", "cool1",
     "waste1", "waste2", "waste3", "biggun",
     "hangar1", "hangar2", "lab", "command", "strike", "space",
-    "city1", "city2", "city3", "boss1", "boss2"
+    "city1", "city2", "city3", "boss1", "boss2", "ps2flow"
 };
 
 static const char * s_testmap_names[] =
@@ -1978,6 +1978,7 @@ static const char * s_testmap_names[] =
     "city3 - upper palace",
     "boss1 - inner chamber",
     "boss2 - final showdown",
+    "ps2flow - flowing surface test",
     0
 };
 
