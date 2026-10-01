@@ -2217,6 +2217,7 @@ static menuaction_s s_hard_game_action;
 static menuaction_s s_testmap_action;
 static menuaction_s s_benchmark_action;
 static menuaction_s s_light_benchmark_action;
+static menuaction_s s_light_profile_action;
 static menuaction_s s_load_game_action;
 static menuaction_s s_save_game_action;
 static menuaction_s s_credits_action;
@@ -2296,6 +2297,12 @@ static void LightBenchmarkFunc(void * unused)
 {
     (void)unused;
     CL_BenchmarkWorldLights();
+}
+
+static void LightProfileFunc(void * unused)
+{
+    (void)unused;
+    CL_BenchmarkLightProfile();
 }
 
 static void SaveGameFunc(void * unused)
@@ -2388,6 +2395,14 @@ void Game_MenuInit(void)
     s_light_benchmark_action.generic.callback = LightBenchmarkFunc;
     s_light_benchmark_action.generic.statusbar = "3 ON then 3 OFF; restores settings after test";
 
+    s_light_profile_action.generic.type = MTYPE_ACTION;
+    s_light_profile_action.generic.flags = QMF_LEFT_JUSTIFY;
+    s_light_profile_action.generic.x = 0;
+    s_light_profile_action.generic.y = 100;
+    s_light_profile_action.generic.name = "world lights profile (6 runs)";
+    s_light_profile_action.generic.callback = LightProfileFunc;
+    s_light_profile_action.generic.statusbar = "Diagnostic timers affect FPS; settings restored";
+
     Menu_AddItem(&s_game_menu, (void *)&s_easy_game_action);
     Menu_AddItem(&s_game_menu, (void *)&s_medium_game_action);
     Menu_AddItem(&s_game_menu, (void *)&s_hard_game_action);
@@ -2399,6 +2414,7 @@ void Game_MenuInit(void)
     Menu_AddItem(&s_game_menu, (void *)&s_credits_action);
     Menu_AddItem(&s_game_menu, (void *)&s_benchmark_action);
     Menu_AddItem(&s_game_menu, (void *)&s_light_benchmark_action);
+    Menu_AddItem(&s_game_menu, (void *)&s_light_profile_action);
 
     Menu_Center(&s_game_menu);
 }

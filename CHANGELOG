@@ -6,6 +6,20 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.95 - 2026-10-01 (local test build)
+
+- Add Game/world lights profile (6 runs), with selection, exclusive subdivision
+  preparation and vertex-colour times plus light-work counters per pass.
+- Keep detailed timers disabled in ordinary benchmark/comparison and gameplay.
+  Profile results label timer overhead; use ordinary compare for FPS claims.
+  Restore diagnostic settings on completion, cancellation and failed demos.
+- Sum raw clock ticks before converting to microseconds to avoid per-call
+  truncation; stop subdivision timers before recursive children/submission.
+- Add ON/OFF profile pages after the five existing comparison pages. Statistics
+  include inline brush models and exclude alias-model lighting.
+- Regression covers profiling pages, units, six-pass lifecycle/restoration,
+  counter meanings and unchanged differential light output with timers enabled.
+
 ## 0.1.0-alpha.94 - 2026-10-01 (local test build)
 
 - Reject world lights outside a source triangle's conservative bounding box
@@ -19,8 +33,9 @@ Development priorities and completion criteria are tracked in
 - Differential host regression compares 160 cases against Alpha.93's actual
   subdivision routine, including bit31, dense/empty masks and parent filtering:
   emitted geometry, UVs, static colours and light contributions match exactly.
-- Runtime visual checks and the six-pass ON/OFF cost comparison are pending.
-  No measured speedup is claimed before user benchmarks.
+- User accepted blaster lighting. Matched ON/OFF benchmark: ON36.81FPS
+  (Alpha.93:36.03), lightcost4.08ms (was5.11); OFF43.32FPS (was44.16).
+  ON improvement2.2%; OFF variability limits precision of the cost reduction.
 - CI 36863012353 passed all sanitizer checks, differential light regression,
   map validation and PROFILE build. ELF installed in both local projects with
   matching CI hashes and the Alpha.94 title verified in the binary.

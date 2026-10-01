@@ -8,12 +8,12 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.94 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.95 diagnostics in progress
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.94` (PROFILE CI and differential tests passed; runtime optimization check pending)
+- Current source/test version: `0.1.0-alpha.95` (diagnostics in progress; last installed ELF Alpha.94)
 - Current implementation commit: `4daf6c7`
   (`Preserve cached world fast path for distant lights and iterate sparse masks`)
 - Current published release:
@@ -29,6 +29,30 @@ checkpoint does not advance `VERSION`.
 
 ## Alpha.87 campaign archive repair accepted
 
+2026-10-01 Alpha.94 accepted: user reports blaster light looks normal.
+Matched six passes: 688 frames / 195..882 each. ON 18.68/18.72/18.68 s,
+36.84/36.76/36.84 FPS; combined36.81 FPS/27.16ms, world12.79ms.
+OFF15.89/15.88/15.86s,43.29/43.34/43.37FPS; combined43.32FPS/23.09ms,
+world8.92ms; reported lightcost4.08ms (vs Alpha.93 5.11ms).
+Details ON world12.81/12.80/12.78, entities8.57/8.56/8.55;
+OFF world8.92/8.91/8.93, entities8.38/8.37/8.38. Geometry ON ~16200
+vertices/~5400triangles; OFF~15792/~5264. DMA waits nearly unchanged.
+ON FPS improvement2.2%; OFF also slower, so do not treat20% cost reduction
+as a precise universally repeatable result. Alpha.94 visual check accepted.
+
+Alpha.95 adds separate Game/world lights profile (6 runs) diagnostics.
+Normal benchmark and compare force ps2_profile_world_lights=0; profile enables1.
+All10 settings restored on finish/cancel/failure. Seven pages (existingfive,
+then ON/OFF lightprofiles). Timers perturb FPS, explicitly labelled; use normal
+compare for performance claims. Raw clock ticks accumulated before per-frame
+microsecond conversion. Select includes surface plane and source/recursive AABB;
+Split times only longest-edge/midpoint/clip-distance preparation, excluding
+recursive children and submission; Color times emitted vertex light calculation.
+Scope stop is idempotent. Counters include surface calls/light-plane pairs,
+bounds calls/light-AABB pairs/rejected pairs, recursive nodes/splits, emitted
+lit vertices/vertex-light pairs. Includes inline BSP brushes, excludes MD2.
+No extra persistent per-map allocations, no visual algorithm changes.
+
 Alpha.94 optimizes world dynamic lighting without changing illumination:
 GatherPolyTriangles filters the surface plane mask by source-triangle AABB
 before cached vertex preparation; cached subdivisions lie inside that source
@@ -39,12 +63,11 @@ and transient bounds checks iterate nonzero mask bits via ctz in ascending order
 No changed falloff, colour rounding, split limits or persistent allocation.
 160 differential cases compare emitted geometry/UV/colour/light contributions
 against Alpha.93's production recursion in tests/view_effects/dynamic_reference.inc,
-including parent source-mask filtering. Runtime benchmark/visual check pending.
+including parent source-mask filtering. User benchmark and blaster check accepted.
 Both root ELF copies match the downloaded successful CI artifact and embedded
-Alpha.94 benchmark title. Fixture assets unchanged. User should repeat world
-lights compare (6 runs), plus blaster illumination near walls/doors and glass;
-compare ON FPS and world time, OFF control, Light cost and geometry counters
-against Alpha.93 before choosing further light/subdivision optimization.
+Alpha.94 benchmark title. Fixture assets unchanged. Measurements above select
+light CPU processing as the next profiling target. Glass-specific acceptance
+was not separately reported in this batch.
 
 Alpha.93 adds Game/world lights compare (6 runs), with three ON then three OFF
 demo1 passes. ps2_world_dlights defaults1 and affects only s_worldLightCount,

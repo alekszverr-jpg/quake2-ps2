@@ -27,6 +27,7 @@
 #include "ps2/renderer/vu1.h"
 #include "ps2/renderer/gs.h"
 #include "ps2/renderer/timing.h"
+#include "ps2/renderer/world_light_profile.h"
 #include "ps2/math/vec_mat.h"
 #include "ps2/builtin/builtin.h"
 
@@ -97,6 +98,7 @@ static const dlight_t * s_worldLights = nullptr;
 static int s_worldLightCount = 0;
 static math::Vec3 s_worldLightOrigins[MAX_DLIGHTS];
 static u32 s_surfaceLightMask = 0;
+static WorldLightProfile s_lightProfile;
 
 // Adaptive BSP-lighting controls, refreshed from archived cvars each frame.
 // Large triangles are probed at most this many lightmap cells apart; within
@@ -974,9 +976,12 @@ inline u32 PackFloatColor(const math::Vec4 & color)
 
 u32 AddWorldLights(u32 packedColor, const math::Vec4 & position)
 {
+    WorldLightScope timer(s_lightProfile, WorldLightProfile::Color);
+    if (s_lightProfile.enabled) ++s_lightProfile.vertices;
     u32 remaining = s_surfaceLightMask;
     while (remaining != 0)
     {
+        if (s_lightProfile.enabled) ++s_lightProfile.vertexTests;
         const int i = __builtin_ctz(remaining);
         remaining &= remaining - 1u;
         const math::Vec3 & origin = s_worldLightOrigins[i];
@@ -994,6 +999,8 @@ u32 AddWorldLights(u32 packedColor, const math::Vec4 & position)
 // and transient subdivision. Iterate set bits in original ascending order.
 u32 SelectTriangleLights(u32 mask, const math::Vec4 (&positions)[3])
 {
+    WorldLightScope timer(s_lightProfile, WorldLightProfile::Select);
+    if (s_lightProfile.enabled) ++s_lightProfile.bounds;
     float mins[3] = { positions[0].x, positions[0].y, positions[0].z };
     float maxs[3] = { mins[0], mins[1], mins[2] };
     for (int v = 1; v < 3; ++v)
@@ -1008,6 +1015,7 @@ u32 SelectTriangleLights(u32 mask, const math::Vec4 (&positions)[3])
     u32 result = 0;
     while (mask != 0)
     {
+        if (s_lightProfile.enabled) ++s_lightProfile.boundsTests;
         const int light = __builtin_ctz(mask);
         mask &= mask - 1u;
         const float origin[3] = { s_worldLightOrigins[light].x,
@@ -1021,17 +1029,21 @@ u32 SelectTriangleLights(u32 mask, const math::Vec4 (&positions)[3])
         }
         const float radius = s_worldLights[light].intensity;
         if (squaredDistance < radius * radius) result |= 1u << light;
+        else if (s_lightProfile.enabled) ++s_lightProfile.rejected;
     }
     return result;
 }
 
 void SelectSurfaceLights(const mod::ModelSurface & surface)
 {
+    WorldLightScope timer(s_lightProfile, WorldLightProfile::Select);
+    if (s_lightProfile.enabled) ++s_lightProfile.surfaces;
     s_surfaceLightMask = 0;
     const cplane_t & plane = *surface.plane;
     for (int i = 0; i < s_worldLightCount; ++i)
     {
         const math::Vec3 & origin = s_worldLightOrigins[i];
+        if (s_lightProfile.enabled) ++s_lightProfile.surfaceTests;
         const float distance = origin.x * plane.normal[0] +
             origin.y * plane.normal[1] + origin.z * plane.normal[2] - plane.dist;
         if (std::fabs(distance) < s_worldLights[i].intensity)
@@ -1225,6 +1237,7 @@ void SubmitDynamicallyLitTriangle(const ClipVertex (&corners)[3],
                                   const math::Mat4 & mvp,
                                   const tex::Texture & texture, int depth = 0)
 {
+    if (s_lightProfile.enabled) ++s_lightProfile.nodes;
     const u32 surfaceMask = s_surfaceLightMask;
     if (surfaceMask == 0)
     {
@@ -1240,6 +1253,7 @@ void SubmitDynamicallyLitTriangle(const ClipVertex (&corners)[3],
         s_surfaceLightMask = surfaceMask;
         return;
     }
+    WorldLightScope splitTimer(s_lightProfile, WorldLightProfile::Split);
     int longest = 0;
     float longestSquared = 0.0f;
     for (int edge = 0; edge < 3; ++edge)
@@ -1252,6 +1266,7 @@ void SubmitDynamicallyLitTriangle(const ClipVertex (&corners)[3],
     }
     if (triangleMask != 0 && longestSquared > 64.0f * 64.0f && depth < 7)
     {
+        if (s_lightProfile.enabled) ++s_lightProfile.splits;
         const int next = (longest + 1) % 3, other = (longest + 2) % 3;
         ClipVertex midpoint = {};
         math::LerpTo(midpoint.pos, corners[longest].pos, corners[next].pos, 0.5f);
@@ -1260,11 +1275,13 @@ void SubmitDynamicallyLitTriangle(const ClipVertex (&corners)[3],
         SetClipDistances(midpoint, mvp);
         const ClipVertex first[3] = { corners[longest], midpoint, corners[other] };
         const ClipVertex second[3] = { midpoint, corners[next], corners[other] };
+        splitTimer.Stop(); // Exclude children, bounds tests and submission.
         SubmitDynamicallyLitTriangle(first, mvp, texture, depth + 1);
         SubmitDynamicallyLitTriangle(second, mvp, texture, depth + 1);
     }
     else
     {
+        splitTimer.Stop();
         SubmitWorldTriangle(corners, mvp, texture);
     }
     s_surfaceLightMask = surfaceMask;
@@ -3098,6 +3115,11 @@ void BeginRegistration()
     s_oldViewCluster2 = kInvalidCluster;
 }
 
+const WorldLightProfile & GetWorldLightProfile()
+{
+    return s_lightProfile;
+}
+
 const DrawStats & GetDrawStats()
 {
     return s_drawStats;
@@ -3124,6 +3146,12 @@ void RenderFrame(const refdef_t & viewDef)
 
 #if PS2_PROFILE
     s_drawStats = {};
+#endif
+
+    s_lightProfile = {};
+#if PS2_PROFILE
+    static const cvar_t * profileLights = Cvar_Get("ps2_profile_world_lights", "0", 0);
+    s_lightProfile.enabled = profileLights->value != 0.0f;
 #endif
 
     // Alpha.12 deliberately releases the previous renderer world before the

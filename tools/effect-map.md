@@ -83,3 +83,20 @@ matching directories inside `baseq2`, alongside the Alpha.92 PROFILE ELF.
 The `.map` source is optional at runtime. **Do not install the generated
 compiler-only `pics/colormap.pcx`**: runtime must retain the game's palette.
 The artifact intentionally excludes it. Other maps and PAK files are unchanged.
+
+For detailed light CPU work, use **Game -> world lights profile (6 runs)**
+(Alpha.95). Left/Right cycles the existing five pages, then **Light profile ON**
+and **Light profile OFF**. Send these last two pages. This mode adds timers and
+perturbs FPS; use ordinary **world lights compare** to measure optimization gains.
+Both modes restore the caller's world-light and diagnostic settings.
+
+Profile units are averages per measured frame. Select ms includes surface-plane
+and triangle-AABB tests. Split ms includes edge selection, midpoint interpolation
+and midpoint clip distances, excluding recursive children and triangle submission.
+Color ms covers emitted-vertex dynamic colour calculation. Other rows count
+surface calls, plane/light pairs, AABB calls, AABB/light pairs, rejected pairs,
+recursive nodes, actual splits, lit emitted vertices and vertex/light pairs.
+Inline BSP brushes are included; alias-model illumination is excluded. Bounds
+counts include original source triangles and transient children. Rejected is
+per candidate light, so it can exceed Bounds calls. These are subsets of world
+and brush entity phases, not additional frame costs.

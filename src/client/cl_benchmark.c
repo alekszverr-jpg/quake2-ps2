@@ -6,6 +6,7 @@ enum { BENCH_RUNS = 6, BENCH_GROUP = 3 };
 #ifndef PS2_BUILD_VERSION
 #define PS2_BUILD_VERSION "unversioned"
 #endif
+static int lightProfile;
 static int comparison, runLimit = BENCH_GROUP, resultWorldLights;
 static int active, pending, run, sampling, first, last;
 static int frames[BENCH_RUNS], milliseconds[BENCH_RUNS];
@@ -17,7 +18,7 @@ static char status[80] = "Select benchmark to run demo1 three times";
 static const char * const settings[] = {
     "timedemo", "paused", "ps2_show_fps", "ps2_show_memstats",
     "ps2_show_vramstats", "ps2_show_drawstats", "developer", "con_notifytime",
-    "ps2_world_dlights"
+    "ps2_world_dlights", "ps2_profile_world_lights"
 };
 static float saved[sizeof(settings) / sizeof(settings[0])];
 
@@ -82,7 +83,8 @@ static void Start(int compareLights)
     unsigned i;
     if (active)
         return;
-    comparison = compareLights;
+    comparison = compareLights != 0;
+    lightProfile = compareLights == 2;
     runLimit = comparison ? BENCH_RUNS : BENCH_GROUP;
     detailPage = 0;
     memset(totals, 0, sizeof(totals));
@@ -104,6 +106,7 @@ static void Start(int compareLights)
         saved[i] = Cvar_VariableValue(settings[i]);
         Cvar_SetValue(settings[i], i == 0 ? 1 : 0);
     }
+    Cvar_SetValue("ps2_profile_world_lights", lightProfile ? 1 : 0);
     resultWorldLights = comparison ? 1 : saved[8] != 0;
     Cvar_SetValue("ps2_world_dlights", comparison ? 1 : saved[8]);
     memset(frames, 0, sizeof(frames));
@@ -119,6 +122,7 @@ static void Start(int compareLights)
 
 void CL_BenchmarkStart(void) { Start(0); }
 void CL_BenchmarkWorldLights(void) { Start(1); }
+void CL_BenchmarkLightProfile(void) { Start(2); }
 
 int CL_BenchmarkDemoCompleted(void)
 {
@@ -188,10 +192,37 @@ static void Line(int y, const char * text)
 void CL_BenchmarkDraw(void)
 {
     int i, totalFrames = 0, totalTime = 0;
-    int base = comparison && (detailPage == 2 || detailPage == 4) ? BENCH_GROUP : 0;
+    int base = comparison && (detailPage == 2 || detailPage == 4 || detailPage == 6) ? BENCH_GROUP : 0;
     char text[80];
     re.DrawFill(0, 0, viddef.width, viddef.height, 0);
     Line(25, "QUAKE II - BENCHMARK " PS2_BUILD_VERSION);
+    if (lightProfile && detailPage >= 5)
+    {
+        static const char * labels[] = {
+            "Select ms", "Split ms", "Color ms", "Surfaces", "Plane tests",
+            "Bounds calls", "Bounds tests", "Rejected", "Split nodes",
+            "Splits", "Lit vertices", "Vertex tests"
+        };
+        Line(43, base ? "Light profile OFF (incl brushes)" : "Light profile ON (incl brushes)");
+        Line(59, "Metric          Run1    Run2    Run3");
+        for (i = BENCH_LIGHT_SELECT; i < BENCH_STATS_COUNT; ++i)
+        {
+            double average[BENCH_GROUP];
+            int j;
+            for (j = 0; j < BENCH_GROUP; ++j)
+            {
+                average[j] = frames[base+j] ? (double)totals[base+j][i] / frames[base+j] : 0;
+                if (i <= BENCH_LIGHT_COLOR) average[j] /= 1000.0;
+            }
+            Com_sprintf(text,sizeof(text),"%-12s %7.2f %7.2f %7.2f",
+                labels[i-BENCH_LIGHT_SELECT],average[0],average[1],average[2]);
+            Line(75+(i-BENCH_LIGHT_SELECT)*9,text);
+        }
+        Line(190,"Timers perturb FPS; use compare mode.");
+        Line(202,"Split excludes children/submission.");
+        Line(214,"Left/Right: pages; Back: menu");
+        return;
+    }
     if (comparison && detailPage == 0)
     {
         int group;
@@ -223,7 +254,7 @@ void CL_BenchmarkDraw(void)
             Com_sprintf(text,sizeof(text),"Light cost: %+.2f ms/frame",mean[0]-mean[1]);
             Line(152,text);
         }
-        Line(173,"Entity lights and styles unchanged.");
+        Line(173,lightProfile ? "Diagnostic timers ON: FPS perturbed." : "Entity lights and styles unchanged.");
         Line(188,"Loading excluded; no extra warm-up.");
         Line(204,"Left/Right: ON/OFF runs and details");
         Line(220,"Back: return to menu");
@@ -231,7 +262,7 @@ void CL_BenchmarkDraw(void)
     }
     if (comparison ? detailPage >= 3 : detailPage != 0)
     {
-        static const char * labels[BENCH_STATS_COUNT] = {
+        static const char * labels[BENCH_LIGHT_SELECT] = {
             "World ms", "Entities ms", "Setup ms", "Particles ms",
             "VUwait ms", "TexDMA ms", "VRAMwait ms", "Uploads", "Reloads",
             "Evictions", "VRAMsync", "VU vertices", "Triangles"
@@ -240,7 +271,7 @@ void CL_BenchmarkDraw(void)
         Line(52, comparison ? (base ? "World dynamic lights: OFF" : "World dynamic lights: ON") :
             (resultWorldLights ? "World dynamic lights: ON" : "World dynamic lights: OFF"));
         Line(59, "Metric          Run1    Run2    Run3");
-        for (i = 0; i < BENCH_STATS_COUNT; ++i)
+        for (i = 0; i < BENCH_LIGHT_SELECT; ++i)
         {
             double average[3];
             int j;
@@ -289,12 +320,13 @@ void CL_BenchmarkDraw(void)
 
 void CL_BenchmarkTogglePage(void)
 {
-    detailPage = (detailPage + 1) % (comparison ? 5 : 2);
+    detailPage = (detailPage + 1) % (lightProfile ? 7 : comparison ? 5 : 2);
 }
 
 void CL_BenchmarkInit(void)
 {
     Cvar_Get("ps2_world_dlights", "1", 0);
+    Cvar_Get("ps2_profile_world_lights", "0", 0);
     Cmd_AddCommand("benchmark_next", NextRun);
     Cmd_AddCommand("benchmark_results", M_BenchmarkResults);
 }

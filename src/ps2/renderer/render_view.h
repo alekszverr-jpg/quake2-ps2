@@ -7,6 +7,7 @@
  * ================================================================================================ */
 
 #include "ps2/common.h"
+#include "ps2/renderer/world_light_profile.h"
 
 namespace ps2::view
 {
@@ -44,6 +45,7 @@ struct DrawStats
 
 // Stats of the most recent RenderFrame; all zeros before the first 3D frame.
 const DrawStats & GetDrawStats();
+const WorldLightProfile & GetWorldLightProfile();
 
 // Resets the cached view clusters. Call when a new map loads
 // (PS2_BeginRegistration) so stale PVS state cannot leak across maps.

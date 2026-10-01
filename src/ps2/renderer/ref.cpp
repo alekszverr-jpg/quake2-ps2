@@ -597,6 +597,20 @@ extern "C" void PS2_ReadBenchmarkStats(int values[BENCH_STATS_COUNT])
     values[BENCH_SYNCS] = gs.vramStalls;
     values[BENCH_VERTICES] = vu.vertices;
     values[BENCH_TRIANGLES] = draw.trisDrawn;
+    const auto & light = ps2::view::GetWorldLightProfile();
+    values[BENCH_LIGHT_SELECT] = light.Micros(ps2::view::WorldLightProfile::Select);
+    values[BENCH_LIGHT_SPLIT] = light.Micros(ps2::view::WorldLightProfile::Split);
+    values[BENCH_LIGHT_COLOR] = light.Micros(ps2::view::WorldLightProfile::Color);
+    values[BENCH_LIGHT_SURFACES] = light.surfaces;
+    values[BENCH_LIGHT_SURFACE_TESTS] = light.surfaceTests;
+    values[BENCH_LIGHT_BOUNDS] = light.bounds;
+    values[BENCH_LIGHT_BOUNDS_TESTS] = light.boundsTests;
+    values[BENCH_LIGHT_REJECTED] = light.rejected;
+    values[BENCH_LIGHT_NODES] = light.nodes;
+    values[BENCH_LIGHT_SPLITS] = light.splits;
+    values[BENCH_LIGHT_VERTICES] = light.vertices;
+    values[BENCH_LIGHT_VERTEX_TESTS] = light.vertexTests;
+
 }
 
 void PS2_RenderFrame(refdef_t * viewDef)

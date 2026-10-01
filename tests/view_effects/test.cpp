@@ -5,6 +5,10 @@
 #include <cstring>
 #include <vector>
 #include <array>
+#include "ps2/renderer/world_light_profile.h"
+using ps2::view::WorldLightProfile;
+using ps2::view::WorldLightScope;
+static WorldLightProfile s_lightProfile;
 
 using u32 = std::uint32_t;
 using u8 = std::uint8_t;
@@ -152,6 +156,8 @@ int main()
     // position, UV, static colour, rounded light contribution and order match.
     for (int scenario = 0; scenario < 160; ++scenario)
     {
+        s_lightProfile = {};
+        s_lightProfile.enabled = scenario % 2 != 0;
         for (int i = 0; i < 32; ++i)
         {
             lights[i] = {float(40+(i*37+scenario*19)%320), {.8f,.5f,.2f}};
@@ -176,6 +182,30 @@ int main()
         assert(emitted == reference && s_surfaceLightMask == selected);
     }
     s_surfaceLightMask = 0;
+    s_lightProfile = {};
+    AddWorldLights(0x80404040u, {});
+    assert(s_lightProfile.vertices == 0 && s_lightProfile.ticks[WorldLightProfile::Color] == 0);
+    s_lightProfile.enabled = true;
+    lights[0] = {200, {1,0,0}}; lights[31] = lights[0];
+    s_worldLightOrigins[0] = {0,0,0}; s_worldLightOrigins[31] = {10000,0,0};
+    const math::Vec4 probe[3] = {{0,0,0,1},{1,0,0,1},{0,1,0,1}};
+    assert(SelectTriangleLights(0x80000001u,probe) == 1u);
+    assert(s_lightProfile.bounds == 1 && s_lightProfile.boundsTests == 2 && s_lightProfile.rejected == 1);
+    s_surfaceLightMask = 0x80000001u;
+    AddWorldLights(0x80404040u, {});
+    assert(s_lightProfile.vertices == 1 && s_lightProfile.vertexTests == 2);
+    s_lightProfile = {}; s_lightProfile.enabled = true;
+    lights[0].intensity = 1000000; s_surfaceLightMask = 1;
+    triangles = 0;
+    SubmitDynamicallyLitTriangle(large,{},{});
+    assert(s_lightProfile.splits > 0 && s_lightProfile.nodes == 2*s_lightProfile.splits+1);
+    assert(triangles == s_lightProfile.splits+1);
+    WorldLightScope stopped(s_lightProfile,WorldLightProfile::Select);
+    stopped.Stop();
+    const auto stoppedTicks = s_lightProfile.ticks[WorldLightProfile::Select];
+    stopped.Stop();
+    assert(s_lightProfile.ticks[WorldLightProfile::Select] == stoppedTicks);
+    s_lightProfile = {}; s_surfaceLightMask = 0;
     std::puts("160 Alpha.93 differential light/subdivision scenarios passed");
 
     // Use the stock water blend and a reduced viewport: tint only the 3D view.
