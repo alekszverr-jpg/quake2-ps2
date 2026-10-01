@@ -19,6 +19,8 @@ Development priorities and completion criteria are tracked in
 - Rendering remains the Alpha.90 implementation. User tested ps2flow and
   confirmed everything works; ordinary flowing surfaces accepted on this setup.
   See tools/effect-map.md for the test route.
+- User also confirmed colour shells for protection and medic resurrection work
+  correctly on the testing setup.
 - CI 36813234821 passed host sanitizer tests, map validation and PROFILE build.
   Map, six WALs and Alpha.91 ELF installed in both local projects with matching
   artifact hashes. No GitHub release published.

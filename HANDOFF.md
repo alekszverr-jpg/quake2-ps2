@@ -39,7 +39,8 @@ be copied to runtime (would replace the game's palette). Alpha.91 adds the
 menu entry only; renderer remains Alpha.90. Installation uses maps/ps2flow.bsp
 and textures/ps2test/*.wal alongside the PROFILE ELF. User tested the map and
 reported everything works on 2026-10-01; accept ordinary flowing surfaces on
-this setup. Colour-shell validation remains separate. Doc tools/effect-map.md
+this setup. User also confirmed protection and medic resurrection colour shells
+work correctly on 2026-10-01. Doc tools/effect-map.md
 describes expected behaviour.
 The CI map and all six WALs are installed in both projects' baseq2 directories;
 all copied assets and ELF hashes match the downloads. ps2flow.bsp is 48,408 bytes,
