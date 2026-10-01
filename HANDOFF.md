@@ -8,19 +8,19 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.97 implementation in progress
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.97 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.97` (host tests passed; CI/install pending, previous ELF Alpha.96)
-- Current implementation commit: `91d1c26`
-  (`Match memoized color output type to PS2 uint32_t`; implementation `79f0ab0`)
+- Current source/test version: `0.1.0-alpha.97` (PROFILE CI and host tests passed; runtime isolated cache comparison pending)
+- Current implementation commit: `c33a500`
+  (`Add isolated light color cache ON OFF benchmark with lighting held constant`)
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.96 local PROFILE ELF SHA-256 (7,754,308 bytes):
-  `CB0C6C37ABF7AFEDA880AB212C4AFF2269CADEB176C3374EF4EA0D16A16BFDA1`
-- CI `36869297879` passed all host sanitizer tests, map validation and PROFILE build for `91d1c26`.
+- Alpha.97 local PROFILE ELF SHA-256 (7,757,460 bytes):
+  `11FFB4DD1F6D7658D46E82B5D3210E9D9C6FF327B4D41A5C6241B8E9D9E46DD3`
+- CI `36903859510` passed all host sanitizer tests, map validation and PROFILE build for `c33a500`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
@@ -53,7 +53,15 @@ scalar light arithmetic, splitting and rendering. Ordinary tests preserve the
 caller's cache setting. All11 benchmark cvars restored on completion/cancel/
 failure. Tests cover six modes, timers/lights invariants, allfivepage labels,
 units/sign, cancellation afterOFFswitch, missing/empty/mismatched demos and
-cache-disabled colours/geometry against independent reference. Runtimepending.
+cache-disabled colours/geometry against independent reference. CI36903859510
+passed all sanitizer tests/map validation/PROFILE build. ELF installed in both
+roots; size/hash above match CI. Embedded Alpha.97 title, new cache-compare menu,
+gain label and fixed-light/timers-OFF line verified. Assets unchanged.
+User should launch Game -> light cache compare (6 runs), send summary and both
+renderer-detail pages. No runtime cache gain result yet. Cache disabled still
+retains fixed cache storage and surface epoch invalidation; bypasses actual
+per-vertex memoization work. This compares the runtime cached/scalar paths in
+one build, not a separate pre-cache executable.
 
 2026-10-01 Alpha.95 profiling screenshots accepted as diagnostic measurements.
 ON Select2.84/2.83/2.85ms, Split1.05/1.05/1.07ms, Color2.44/2.43/2.47ms.

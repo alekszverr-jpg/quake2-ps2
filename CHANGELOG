@@ -22,6 +22,10 @@ Development priorities and completion criteria are tracked in
 - Alpha.96 feedback confirms ~58% colour reuse and ~57% fewer computed light
   pairs; matched world ON/OFF cost4.10ms vs4.08ms does not establish cache speedup.
 
+- CI36903859510 passed all host sanitizer tests, map validation and PS2 PROFILE
+  build. Alpha.97 installed in both local projects with matching CI hashes;
+  runtime isolated cache comparison pending.
+
 ## 0.1.0-alpha.96 - 2026-10-01 (local test build)
 
 - Reuse identical world-vertex dynamic colours through a bounded64-entry
