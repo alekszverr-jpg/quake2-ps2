@@ -8,19 +8,19 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.92 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.93 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.92` (PROFILE CI, expanded map checks and user visual validation passed; performance cost investigation pending)
-- Current implementation commit: `cc858d9`
-  (`Restore blended depth policy and add sprite and model transparency fixture`)
+- Current source/test version: `0.1.0-alpha.93` (PROFILE CI passed; world-light comparison runtime validation pending; Alpha.92 visuals accepted)
+- Current implementation commit: `d96ae39` (comparison added in `8fa89e6`)
+  (`Bound renderer detail averages to each three-run benchmark group`)
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.92 local PROFILE ELF SHA-256 (7,719,144 bytes):
-  `9C5AFA63C4E149CFF9FAFC9F6471FC93ADCACB7822E0FD4EF4125E67E407E249`
-- CI `36815578564` passed all host sanitizer tests, map validation and PROFILE build for `cc858d9`.
+- Alpha.93 local PROFILE ELF SHA-256 (7,724,864 bytes):
+  `903332C7EE9330A993347A10E1B21EDD5C6B1AFAC911174EB404582505481AA0`
+- CI `36860406523` passed all host sanitizer tests, map validation and PROFILE build for `d96ae39`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
@@ -40,6 +40,11 @@ VERSION now supplies PS2_BUILD_VERSION to C/C++; Makefile invalidates objects
 when VERSION changes. Host tests check six-run lifecycle, restoration, frame
 range mismatch, title, page navigation and displayed weighted cost. Runtime
 comparison pending; no optimization or speedup claim yet.
+Both project-root PROFILE ELF copies match the downloaded CI artifact, including
+the embedded title QUAKE II - BENCHMARK 0.1.0-alpha.93. Alpha.92 fixture assets
+are unchanged. Initial CI 36860251873 caught an out-of-bounds detail-average loop
+after expanding storage to six runs; d96ae39 limits the loop to the displayed
+three-run group, and the successful CI sanitizer test exercises all five pages.
 
 Alpha.92 implements an expanded ps2flow fixture for opaque/translucent MD2 and
 SP2 samples (original assets, two frames, NPOT 96x80 cutout discs). Guarded

@@ -20,6 +20,9 @@ Development priorities and completion criteria are tracked in
   cancellation and failure. Host regression covers six-pass mode transitions,
   restoration, matching ranges, page navigation, version and cost display.
 - This is a diagnostic build; no performance improvement is claimed.
+- CI 36860406523 passed all sanitizer checks, map validation and PROFILE build.
+  ELF installed in both local projects with matching artifact hashes and the
+  Alpha.93 title verified inside the binary. Runtime comparison is pending.
 
 ## 0.1.0-alpha.92 - 2026-10-01 (local test build)
 
