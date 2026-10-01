@@ -8,19 +8,19 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.91 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.92 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.91` (PROFILE CI, map validation and user flowing-map check passed)
-- Current implementation commit: `20a5c07` (map/menu added in `d337ca5`)
-  (`Fix legacy QRAD pointer alignment on 64-bit map build hosts`)
+- Current source/test version: `0.1.0-alpha.92` (PROFILE CI and expanded map validation passed; user transparency/performance checks pending)
+- Current implementation commit: `cc858d9`
+  (`Restore blended depth policy and add sprite and model transparency fixture`)
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.91 local PROFILE ELF SHA-256 (7,713,576 bytes):
-  `C28957AB01C506950E6DB0958D41B6DFA349EC7E0CF838995CF9988F4E112965`
-- CI `36813234821` passed all host sanitizer tests, map validation and PROFILE build for `20a5c07`.
+- Alpha.92 local PROFILE ELF SHA-256 (7,719,144 bytes):
+  `9C5AFA63C4E149CFF9FAFC9F6471FC93ADCACB7822E0FD4EF4125E67E407E249`
+- CI `36815578564` passed all host sanitizer tests, map validation and PROFILE build for `cc858d9`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
@@ -41,6 +41,10 @@ Sprites and translucent MD2 use the six-plane clipper. TGA alpha normalized to
 See tests/transparency and tools/effect-map.md. Runtime/performance validation
 is pending; user must turn around in ps2flow for MODEL/ALPHA/SPRITE/FADE samples
 and repeat demo1 with the same settings. Do not claim measured performance yet.
+Alpha.92 PROFILE ELF and 16 runtime fixture assets are installed in both local
+projects, all matching CI hashes. ps2flow.bsp is 59,872 bytes, SHA-256
+`85731693AD0C8F536FABBFE23BEDCE7C59E1F5336EF56BCBE3256D3BFE860B74`.
+Game -> test map -> ps2flow - renderer effects test loads the expanded room.
 
 Alpha.91: user requested a dedicated flowing-surface map after PAK scan found
 no ordinary SURF_FLOWING faces in installed campaign maps. tools/effect_map.py

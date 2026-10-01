@@ -22,6 +22,9 @@ Development priorities and completion criteria are tracked in
 - Host checks cover actual packet state in both contexts, state reuse/layout,
   depth restoration, sprite origin/NPOT UV/frame/alpha handling and TGA alpha.
   Visual checks and matching demo1 performance measurements remain pending.
+- CI 36815578564 passed all sanitizer tests, expanded map checks and PROFILE
+  ELF build. ELF and 16 fixture assets installed in both local projects with
+  matching downloaded-artifact hashes. No release published.
 
 ## 0.1.0-alpha.91 - 2026-10-01 (local test build)
 
