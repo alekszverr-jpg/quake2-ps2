@@ -8,19 +8,19 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.90 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.91 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.90` (PROFILE CI passed; shells and flowing textures await runtime validation)
-- Current implementation commit: `2edcc21`
-  (`Restore MD2 colour shells and ordinary flowing BSP textures`)
+- Current source/test version: `0.1.0-alpha.91` (PROFILE CI and map validation passed; visual runtime validation pending)
+- Current implementation commit: `20a5c07` (map/menu added in `d337ca5`)
+  (`Fix legacy QRAD pointer alignment on 64-bit map build hosts`)
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.90 local PROFILE ELF SHA-256 (7,713,576 bytes):
-  `671335465867B087955E36286021C10628E5524A0C3EDD0BD4E6050A279B882B`
-- CI `36811808631` passed all host sanitizer tests and PROFILE build for `2edcc21`.
+- Alpha.91 local PROFILE ELF SHA-256 (7,713,576 bytes):
+  `C28957AB01C506950E6DB0958D41B6DFA349EC7E0CF838995CF9988F4E112965`
+- CI `36813234821` passed all host sanitizer tests, map validation and PROFILE build for `20a5c07`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
@@ -39,6 +39,10 @@ be copied to runtime (would replace the game's palette). Alpha.91 adds the
 menu entry only; renderer remains Alpha.90. Installation uses maps/ps2flow.bsp
 and textures/ps2test/*.wal alongside the PROFILE ELF. Visual confirmation is
 pending; doc tools/effect-map.md describes expected behaviour.
+The CI map and all six WALs are installed in both projects' baseq2 directories;
+all copied assets and ELF hashes match the downloads. ps2flow.bsp is 48,408 bytes,
+SHA-256 `389CF447216B7F548DD995C9BF579E135FC35E7554312FB5115FF6DFC6D762A5`.
+Select Game -> test map -> ps2flow - flowing surface test and load the map.
 
 Alpha.90 (2026-10-01): user authorized colour shells and ordinary flowing
 textures. MD2 shells use stock mixed colours and 4-unit current-frame normal

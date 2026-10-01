@@ -18,6 +18,9 @@ Development priorities and completion criteria are tracked in
   game data is bundled; compiler-only grayscale colormap is excluded.
 - Rendering remains the Alpha.90 implementation. Visual map/effect verification
   on PCSX2/PS2 is still required; see tools/effect-map.md for the test route.
+- CI 36813234821 passed host sanitizer tests, map validation and PROFILE build.
+  Map, six WALs and Alpha.91 ELF installed in both local projects with matching
+  artifact hashes. No GitHub release published.
 
 ## 0.1.0-alpha.90 - 2026-10-01 (local test build)
 
