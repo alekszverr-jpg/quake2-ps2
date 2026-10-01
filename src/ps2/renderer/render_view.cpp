@@ -50,6 +50,8 @@ constexpr float kWeaponZNear = 0.5f;
 
 // Vertex colour for the not-yet-lit world: GS modulate 128 = texels unchanged.
 constexpr u32 kFullBright = vu1::PackColorRGBA(128, 128, 128, 0x80);
+constexpr int kAliasShellMask = RF_SHELL_RED | RF_SHELL_GREEN | RF_SHELL_BLUE |
+                               RF_SHELL_DOUBLE | RF_SHELL_HALF_DAM;
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-conversion"
@@ -1249,6 +1251,8 @@ void DrawTranslucentSurface(const mod::ModelSurface & surface,
 {
     const tex::Texture & texture =
         *TextureAnimation(surface.texInfo, animationFrame);
+    const float scroll = (surface.texInfo->flags & SURF_FLOWING) != 0
+        ? effects::FlowingScroll(s_viewTime) : 0.0f;
     for (const mod::ModelPoly * poly = surface.polys;
          poly != nullptr; poly = poly->next)
     {
@@ -1266,7 +1270,7 @@ void DrawTranslucentSurface(const mod::ModelSurface & surface,
                 const mod::PolyVertex & src = poly->vertexes[tri.vertexes[v]];
                 ClipVertex & out = corners[v];
                 out.pos = { src.position.x, src.position.y, src.position.z, 1.0f };
-                out.st = { src.texture_s, src.texture_t, 0.0f, 0.0f };
+                out.st = { src.texture_s + scroll, src.texture_t, 0.0f, 0.0f };
                 // ref_gl draws alpha surfaces without their lightmap. Its
                 // inverse-intensity colour compensates for the pre-brightened
                 // wall palette; 64 matches the PS2 texture intensity of 2.0.
@@ -1752,6 +1756,8 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
                          const math::Mat4 & mvp, const tex::Texture & texture,
                          const u32 topologyKey, const u32 colorKey)
 {
+    const float scroll = (surface.texInfo->flags & SURF_FLOWING) != 0
+        ? effects::FlowingScroll(s_viewTime) : 0.0f;
     const int numTriangles = poly.numVerts - 2;
     for (int t = 0; t < numTriangles; ++t)
     {
@@ -1880,7 +1886,7 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
                     vu1::DrawVertex & dst = s_scratchVerts[s_scratchVertCount++];
                     dst.x = src.x; dst.y = src.y; dst.z = src.z; dst.w = 1.0f;
                     dst.rgba = src.packedColor;
-                    dst.s = src.s; dst.t = src.t; dst.q = 1.0f;
+                    dst.s = src.s + scroll; dst.t = src.t; dst.q = 1.0f;
                 }
                 PS2_STAT_INC(trisDrawn);
                 continue;
@@ -1890,7 +1896,7 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
             {
                 const CachedLitVertex & src = drawVertices[first + v];
                 corners[v].pos = { src.x, src.y, src.z, 1.0f };
-                corners[v].st = { src.s, src.t, 0.0f, 0.0f };
+                corners[v].st = { src.s + scroll, src.t, 0.0f, 0.0f };
                 corners[v].d = distances[v];
                 UnpackCachedColor(corners[v].color, src.packedColor);
             }
@@ -1912,6 +1918,8 @@ void GatherPolyCrackSeals(const mod::ModelPoly & poly,
                           const tex::Texture & texture,
                           const u32 topologyKey)
 {
+    const float scroll = (surface.texInfo->flags & SURF_FLOWING) != 0
+        ? effects::FlowingScroll(s_viewTime) : 0.0f;
     const int numTriangles = poly.numVerts - 2;
     for (int t = 0; t < numTriangles; ++t)
     {
@@ -1938,7 +1946,7 @@ void GatherPolyCrackSeals(const mod::ModelPoly & poly,
                 src.position.x, src.position.y, src.position.z, 1.0f
             };
             corner.st = {
-                src.texture_s, src.texture_t, 0.0f, 0.0f
+                src.texture_s + scroll, src.texture_t, 0.0f, 0.0f
             };
             corner.lightmap = {
                 src.lightmap_s, src.lightmap_t, 0.0f, 0.0f
@@ -2317,10 +2325,53 @@ const T * MD2DataAt(const dmdl_t & md2, int byteOffset)
     return static_cast<const T *>(aligned);
 }
 
+math::Vec3 AliasShellColor(int flags)
+{
+    // Stock ref_gl's shell colour precedence, including mission-pack flags.
+    if ((flags & (RF_SHELL_RED | RF_SHELL_GREEN | RF_SHELL_BLUE)) ==
+                 (RF_SHELL_RED | RF_SHELL_GREEN | RF_SHELL_BLUE))
+        return { 1.0f, 1.0f, 1.0f };
+    if ((flags & (RF_SHELL_RED | RF_SHELL_BLUE | RF_SHELL_DOUBLE)) != 0)
+    {
+        if ((flags & RF_SHELL_RED) != 0)
+            return { 1.0f, 0.0f, (flags & (RF_SHELL_BLUE | RF_SHELL_DOUBLE)) != 0 ? 1.0f : 0.0f };
+        if ((flags & RF_SHELL_BLUE) != 0)
+            return { 0.0f, (flags & RF_SHELL_DOUBLE) != 0 ? 1.0f : 0.0f, 1.0f };
+        return { 0.9f, 0.7f, 0.0f };
+    }
+    math::Vec3 color = (flags & RF_SHELL_HALF_DAM) != 0
+        ? math::Vec3{ 0.56f, 0.59f, 0.45f } : math::Vec3{};
+    if ((flags & RF_SHELL_GREEN) != 0) color.y = 1.0f;
+    return color;
+}
+
+math::Vec3 AliasShellOffset(u8 normalIndex)
+{
+    constexpr int count = static_cast<int>(sizeof(kAliasNormals) / sizeof(kAliasNormals[0]));
+    if (normalIndex >= count) normalIndex = 0;
+    return { kAliasNormals[normalIndex][0] * POWERSUIT_SCALE,
+             kAliasNormals[normalIndex][1] * POWERSUIT_SCALE,
+             kAliasNormals[normalIndex][2] * POWERSUIT_SCALE };
+}
+
+math::Vec4 AliasShellVertexColor(const math::Vec3 & light)
+{
+    // The neutral builtin texture emulates disabled texturing. Untextured
+    // RGB uses 255 for full intensity, not the textured-light multiplier 128.
+    return { std::max(0.0f, std::min(light.x, 1.0f)) * 255.0f,
+             std::max(0.0f, std::min(light.y, 1.0f)) * 255.0f,
+             std::max(0.0f, std::min(light.z, 1.0f)) * 255.0f, 128.0f };
+}
+
 math::Vec3 AliasModelLight(const entity_t & entity, const refdef_t & viewDef)
 {
     math::Vec3 light;
-    if ((entity.flags & RF_FULLBRIGHT) != 0)
+    const bool shell = (entity.flags & kAliasShellMask) != 0;
+    if (shell)
+    {
+        light = AliasShellColor(entity.flags);
+    }
+    else if ((entity.flags & RF_FULLBRIGHT) != 0)
     {
         light = { 1.0f, 1.0f, 1.0f };
     }
@@ -2341,7 +2392,7 @@ math::Vec3 AliasModelLight(const entity_t & entity, const refdef_t & viewDef)
     if (lightScale < 0.0f) { lightScale = 0.0f; }
     if (lightScale > 8.0f) { lightScale = 8.0f; }
 
-    if (viewDef.dlights != nullptr)
+    if (!shell && viewDef.dlights != nullptr)
     {
         for (int i = 0; i < viewDef.num_dlights; ++i)
         {
@@ -2473,6 +2524,7 @@ math::Vec4 AliasVertexColor(const math::Vec3 & modelLight,
 void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model,
                     const refdef_t & viewDef)
 {
+    const bool shell = (entity.flags & kAliasShellMask) != 0;
     PS2_Assert(model.type == mod::ModelType::AliasMD2);
     PS2_Assert(model.hunkBase != nullptr);
 
@@ -2546,7 +2598,7 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model,
                                           std::fabs(localMax));
             radiusSq += extent * extent;
         }
-        const float radius = std::sqrt(radiusSq);
+        const float radius = std::sqrt(radiusSq) + (shell ? POWERSUIT_SCALE : 0.0f);
         float mins[3];
         float maxs[3];
         for (int axisIndex = 0; axisIndex < 3; ++axisIndex)
@@ -2565,12 +2617,13 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model,
 
     const float invGsSkinW = 1.0f / static_cast<float>(GSTextureExtent(md2->skinwidth));
     const float invGsSkinH = 1.0f / static_cast<float>(GSTextureExtent(md2->skinheight));
-    const tex::Texture & texture = AliasSkin(entity, model);
+    const tex::Texture & texture = shell ? tex::BeamTexture() : AliasSkin(entity, model);
     const math::Mat4 & viewProj =
         ((entity.flags & RF_DEPTHHACK) != 0)
             ? s_weaponViewProjMatrix
             : s_viewProjMatrix;
     const bool clipViewWeapon = (entity.flags & RF_DEPTHHACK) != 0;
+    const bool clipAlias = clipViewWeapon || shell;
     const bool translucent = (entity.flags & RF_TRANSLUCENT) != 0;
     float entityAlpha = translucent ? entity.alpha : 1.0f;
     if (entityAlpha < 0.0f) { entityAlpha = 0.0f; }
@@ -2600,10 +2653,18 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model,
                     + static_cast<float>(v.v[2])  * frontScale[2],
             1.0f
         };
-        math::Vec4 color =
-            AliasVertexColor(modelLight, shadeVector, v.lightnormalindex);
+        if (shell)
+        {
+            const math::Vec3 offset = AliasShellOffset(v.lightnormalindex);
+            out.pos.x += offset.x;
+            out.pos.y += offset.y;
+            out.pos.z += offset.z;
+        }
+        math::Vec4 color = shell
+            ? AliasShellVertexColor(modelLight)
+            : AliasVertexColor(modelLight, shadeVector, v.lightnormalindex);
         color.w = entityAlpha * 128.0f;
-        if (clipViewWeapon)
+        if (clipAlias)
             out.color = color;
         else
             out.packedColor = PackFloatColor(color);
@@ -2612,7 +2673,7 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model,
     PS2_STAT_ADD(aliasCorners, md2->num_tris * 3);
 
     PS2_Assert(s_scratchVertCount == 0);
-    if (clipViewWeapon)
+    if (clipAlias)
     {
         for (int t = 0; t < md2->num_tris; ++t)
         {
@@ -2633,12 +2694,13 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model,
                 // MD2 glcmds sample texel centres. The GS extent is rounded
                 // up for NPOT skins, hence pixel coordinates divide by it.
                 out.st = {
-                    (static_cast<float>(st.s) + 0.5f) * invGsSkinW,
-                    (static_cast<float>(st.t) + 0.5f) * invGsSkinH,
+                    shell ? 0.5f : (static_cast<float>(st.s) + 0.5f) * invGsSkinW,
+                    shell ? 0.5f : (static_cast<float>(st.t) + 0.5f) * invGsSkinH,
                     0.0f,
                     0.0f
                 };
 
+                // Expanded shells, like view weapons, can cross the near plane.
                 // MD2s used to rely on the VU's whole-triangle guard rejection.
                 // That hid the missing near-plane clipping until view weapons
                 // received their proper, smaller depth-hack projection: a

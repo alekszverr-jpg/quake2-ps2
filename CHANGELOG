@@ -6,6 +6,25 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.90 - 2026-10-01 (local test build)
+
+- Restore MD2 RF_SHELL_RED/GREEN/BLUE/DOUBLE/HALF_DAM using stock ref_gl
+  colour precedence, constant untextured colour, entity alpha and 4-unit
+  expansion along current-frame normals. Reuse the builtin neutral beam texture;
+  enlarge culling bounds and clip shell triangles at the near/view planes.
+  Normal models retain their existing lighting and fast submission path.
+- Restore SURF_FLOWING scrolling on ordinary opaque and translucent BSP,
+  including inline brush models and the crack-seal pass. Match the stock
+  64-repeat/40-second speed; remove whole repeats to preserve GS coordinate
+  precision. Keep persistent geometry/lighting/UV caches unchanged. Turbulent
+  water's separate existing scroll remains unchanged.
+- Extend host regressions with shell colour combinations, full-range RGB
+  clamping, all 162 normal offsets, invalid-normal fallback, scroll period
+  and speed, and actual translucent flowing-surface submission without source
+  UV mutation. Visual confirmation and matching benchmark remain pending.
+- Existing translucent depth-write behaviour is retained; optional projected
+  shadows and music are outside this change.
+
 ## 0.1.0-alpha.89 - 2026-09-30 (local test build)
 
 - Restore the missing R_PolyBlend equivalent: draw the game-composed

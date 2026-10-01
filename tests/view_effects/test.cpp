@@ -17,6 +17,26 @@ void LerpTo(Vec4 & out, const Vec4 & a, const Vec4 & b, float t)
 }
 }
 namespace tex { struct Texture {}; }
+constexpr int RF_SHELL_RED = 1024, RF_SHELL_GREEN = 2048, RF_SHELL_BLUE = 4096;
+constexpr int RF_SHELL_DOUBLE = 65536, RF_SHELL_HALF_DAM = 131072;
+constexpr float POWERSUIT_SCALE = 4.0f;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfloat-conversion"
+constexpr float kAliasNormals[][3] = {
+    #include "client/anorms.h"
+};
+#pragma GCC diagnostic pop
+constexpr int SURF_FLOWING = 64;
+namespace mod {
+struct PolyVertex { math::Vec3 position; float texture_s, texture_t; };
+struct ModelTriangle { int vertexes[3]; };
+struct ModelPoly { int numVerts; const ModelPoly * next; PolyVertex * vertexes; ModelTriangle * triangles; };
+struct ModelTexInfo { int flags; };
+struct ModelSurface { const ModelTexInfo * texInfo; const ModelPoly * polys; };
+}
+static float s_viewTime;
+static tex::Texture surfaceTexture;
+const tex::Texture * TextureAnimation(const mod::ModelTexInfo *, int) { return &surfaceTexture; }
 struct ClipVertex { math::Vec4 pos, st, color; };
 struct Light { float intensity, color[3]; };
 static Light lights[32];
@@ -25,6 +45,8 @@ static int s_worldLightCount = 0;
 static math::Vec3 s_worldLightOrigins[32];
 static u32 s_surfaceLightMask = 0;
 static int triangles, brightVertices;
+static float lastS, lastT;
+static int lastAlpha;
 struct cvar_t { float value; };
 static cvar_t polyBlend = {1};
 const cvar_t * Cvar_Get(const char *, const char *, int) { return &polyBlend; }
@@ -43,12 +65,14 @@ void FillRect(int x, int y, int w, int h, u8 r, u8 g, u8 b, u8 a)
 u32 AddWorldLights(u32 color, const math::Vec4 & point);
 void SetClipDistances(ClipVertex &, const math::Mat4 &) {}
 void SubmitWorldTriangle(const ClipVertex (&corners)[3], const math::Mat4 &,
-                         const tex::Texture &)
+                         const tex::Texture &, bool = false, int alpha = -1)
 {
     ++triangles;
+    lastS = corners[0].st.x; lastT = corners[0].st.y; lastAlpha = alpha;
     for (const auto & corner : corners)
         if (AddWorldLights(0x80404040u, corner.pos) != 0x80404040u) ++brightVertices;
 }
+void FlushScratch(const math::Mat4 &, const tex::Texture &, bool, int) {}
 #include "effects.inc"
 
 int main()
@@ -124,5 +148,47 @@ int main()
     RenderViewBlend(view);
     assert(gs::fills == 1);
     assert(ViewBlendByte(-0.1f) == 0 && ViewBlendByte(1.5f) == 255);
+
+    const struct { int flags; math::Vec3 color; } shellCases[] = {
+        {RF_SHELL_RED, {1,0,0}}, {RF_SHELL_BLUE, {0,0,1}}, {RF_SHELL_GREEN, {0,1,0}},
+        {RF_SHELL_RED | RF_SHELL_BLUE, {1,0,1}},
+        {RF_SHELL_RED | RF_SHELL_GREEN | RF_SHELL_BLUE, {1,1,1}},
+        {RF_SHELL_DOUBLE, {0.9f,0.7f,0}},
+        {RF_SHELL_DOUBLE | RF_SHELL_RED, {1,0,1}},
+        {RF_SHELL_DOUBLE | RF_SHELL_BLUE, {0,1,1}},
+        {RF_SHELL_HALF_DAM, {0.56f,0.59f,0.45f}},
+        {RF_SHELL_HALF_DAM | RF_SHELL_GREEN, {0.56f,1,0.45f}}
+    };
+    for (const auto & item : shellCases)
+    {
+        const auto actual = AliasShellColor(item.flags);
+        assert(actual.x == item.color.x && actual.y == item.color.y && actual.z == item.color.z);
+    }
+    const auto shellColor = AliasShellVertexColor({1.2f,-0.2f,0.5f});
+    assert(shellColor.x == 255 && shellColor.y == 0 && shellColor.z == 127.5f && shellColor.w == 128);
+    for (int normal = 0; normal < 162; ++normal)
+    {
+        const auto offset = AliasShellOffset(static_cast<u8>(normal));
+        assert(std::fabs(offset.x*offset.x + offset.y*offset.y + offset.z*offset.z - 16.0f) < 0.001f);
+    }
+    assert(AliasShellOffset(255).x == AliasShellOffset(0).x);
+    assert(effects::FlowingScroll(0) == 0 && effects::FlowingScroll(40) == 0);
+    assert(effects::FlowingScroll(0.3125f) == 0.5f);
+    assert(std::fabs(effects::FlowingScroll(1) - 0.4f) < 0.00001f);
+    assert(std::fabs(effects::FlowingScroll(41) - effects::FlowingScroll(1)) < 0.00001f);
+
+    mod::PolyVertex surfaceVertices[] = { {{0,0,0},0.25f,0.75f}, {{1,0,0},1,0}, {{0,1,0},0,1} };
+    mod::ModelTriangle surfaceTriangle = {{0,1,2}};
+    mod::ModelPoly poly = {3,nullptr,surfaceVertices,&surfaceTriangle};
+    mod::ModelTexInfo info = {SURF_FLOWING};
+    mod::ModelSurface surface = {&info,&poly};
+    s_viewTime = 0.3125f;
+    DrawTranslucentSurface(surface, {}, 0, 42);
+    assert(lastS == 0.75f && lastT == 0.75f && lastAlpha == 42);
+    assert(surfaceVertices[0].texture_s == 0.25f); // no source/cache mutation
+    info.flags = 0;
+    DrawTranslucentSurface(surface, {}, 0, 42);
+    assert(lastS == 0.25f && lastT == 0.75f);
+    std::puts("Shell colours/normal expansion and flowing translucent submission passed");
     std::puts("View effects: projection, beam geometry, RGB falloff and bounded dynamic tessellation passed");
 }

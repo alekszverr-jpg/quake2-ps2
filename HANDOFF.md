@@ -29,6 +29,19 @@ checkpoint does not advance `VERSION`.
 
 ## Alpha.87 campaign archive repair accepted
 
+Alpha.90 (2026-10-01): user authorized colour shells and ordinary flowing
+textures. MD2 shells use stock mixed colours and 4-unit current-frame normal
+offsets, constant RGB via neutral BeamTexture, existing entity alpha, inflated
+culling radius and six-plane clipping even on non-weapon shells. Ordinary MD2
+fast path remains unchanged. SURF_FLOWING adds a bounded modulo-repeat offset
+only on submission: opaque cached/clipped triangles, crack seals and alpha
+surfaces (world and inline brush). No animated cache key or persistent UV
+mutation. Stock speed is 64 repeats per 40 seconds, not 64 pixels; turbulent
+water has its own different scroll and is unchanged. Runtime targets: visible
+powerup/protection shells, ordinary scrolling surfaces, clipping near camera,
+normal model appearance and matching demo1 benchmark. Own player body is hidden
+in first-person as in stock; do not infer a missing shell from that alone.
+
 2026-09-30 Alpha.89 feedback: user says everything works, including damage
 colour flashes; attached underwater view shows the composed water tint.
 Accept water appearance/damage flash on this setup. Separate lava/slime,

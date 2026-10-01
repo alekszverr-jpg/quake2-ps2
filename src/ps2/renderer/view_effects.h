@@ -5,6 +5,16 @@
 
 namespace ps2::view::effects {
 
+inline float FlowingScroll(float time)
+{
+    // ref_gl scrolls 64 texture repeats over 40 seconds. Remove whole
+    // repeats before GS STQ conversion, preserving WRAP_REPEAT while keeping
+    // coordinates near zero (large offsets lose precision or clamp on GS).
+    const float cycle = time / 40.0f;
+    const float scroll = -64.0f * (cycle - static_cast<float>(static_cast<int>(cycle)));
+    return scroll - std::floor(scroll);
+}
+
 inline void UnderwaterFov(float time, float & x, float & y)
 {
     const float wave = std::sin(time * 4.0f);
