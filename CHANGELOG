@@ -6,6 +6,22 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.97 - 2026-10-01 (local test build)
+
+- Add Game/light cache compare (6 runs): three cache ON then three OFF passes,
+  with world lighting enabled and detailed timers disabled in all six.
+- Show cache ON/OFF FPS, frame/world times and weighted Cache gain (OFF minus
+  ON). Keep gain hidden for incomplete or mismatched demo frames. Five pages
+  identify cache mode separately from the continuously enabled world lights.
+- Add ps2_world_light_cache (default1). Disabled rendering bypasses hashing,
+  lookup and insertion while keeping identical light calculations and geometry.
+  Restore all11 benchmark settings after finish/cancel/failure; ordinary modes
+  preserve the caller's cache setting.
+- Verify mode invariants, gain sign, page labels, restoration after OFF switch
+  and failure cases, plus cache-disabled colour/geometry reference comparisons.
+- Alpha.96 feedback confirms ~58% colour reuse and ~57% fewer computed light
+  pairs; matched world ON/OFF cost4.10ms vs4.08ms does not establish cache speedup.
+
 ## 0.1.0-alpha.96 - 2026-10-01 (local test build)
 
 - Reuse identical world-vertex dynamic colours through a bounded64-entry

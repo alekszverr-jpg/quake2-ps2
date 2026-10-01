@@ -101,6 +101,7 @@ static math::Vec3 s_worldLightOrigins[MAX_DLIGHTS];
 static u32 s_surfaceLightMask = 0;
 static WorldLightProfile s_lightProfile;
 static WorldLightCache s_worldLightCache;
+static bool s_worldLightCacheEnabled = true;
 
 // Adaptive BSP-lighting controls, refreshed from archived cvars each frame.
 // Large triangles are probed at most this many lightmap cells apart; within
@@ -979,10 +980,12 @@ inline u32 PackFloatColor(const math::Vec4 & color)
 u32 AddWorldLights(u32 packedColor, const math::Vec4 & position)
 {
     if (s_lightProfile.enabled) ++s_lightProfile.vertices;
-    const auto key = s_worldLightCache.MakeKey(position.x, position.y, position.z,
-                                              packedColor, s_surfaceLightMask);
+    WorldLightCache::Key key = {};
+    if (s_worldLightCacheEnabled)
+        key = s_worldLightCache.MakeKey(position.x, position.y, position.z,
+                                       packedColor, s_surfaceLightMask);
     std::uint32_t cachedColor;
-    if (s_worldLightCache.Find(key, cachedColor))
+    if (s_worldLightCacheEnabled && s_worldLightCache.Find(key, cachedColor))
     {
         if (s_lightProfile.enabled) ++s_lightProfile.colorHits;
         return static_cast<u32>(cachedColor);
@@ -1004,7 +1007,7 @@ u32 AddWorldLights(u32 packedColor, const math::Vec4 & position)
                                         s_worldLights[i].color);
     }
     timer.Stop(); // Measure light arithmetic, not cache insertion.
-    s_worldLightCache.Store(key, packedColor);
+    if (s_worldLightCacheEnabled) s_worldLightCache.Store(key, packedColor);
     return packedColor;
 }
 
@@ -3162,6 +3165,8 @@ void RenderFrame(const refdef_t & viewDef)
     s_drawStats = {};
 #endif
 
+    static const cvar_t * cacheLights = Cvar_Get("ps2_world_light_cache", "1", 0);
+    s_worldLightCacheEnabled = cacheLights->value != 0.0f;
     s_lightProfile = {};
     s_worldLightCache.Clear(); // Never reuse moving lights from a previous frame.
 #if PS2_PROFILE

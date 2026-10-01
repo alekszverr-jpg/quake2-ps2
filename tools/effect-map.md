@@ -102,3 +102,13 @@ Inline BSP brushes are included; alias-model illumination is excluded. Bounds
 counts include original source triangles and transient children. Rejected is
 per candidate light, so it can exceed Bounds calls. These are subsets of world
 and brush entity phases, not additional frame costs.
+
+To measure the net benefit of colour reuse, use **Game -> light cache compare
+(6 runs)** (Alpha.97). It runs three cache ON then three cache OFF passes with
+world lights ON throughout and detailed timers OFF. Left/Right cycles summary,
+cache ON runs, cache OFF runs, cache ON renderer details and cache OFF details.
+Send the summary and both renderer details. **Cache gain** is OFF mean frame ms
+minus ON mean frame ms; positive means faster with the cache, negative means
+slower. A matching frame count/range is required. All settings restore after
+completion, cancellation or failed playback. The ordinary world-light compare
+still tests lighting itself and retains the caller's cache setting.

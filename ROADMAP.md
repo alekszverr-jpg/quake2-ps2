@@ -52,7 +52,7 @@ enough for normal gameplay.
 - [x] Dynamic entity lights
 - [x] Dynamic world lighting: user confirmed projectile illumination on Alpha.88
 - [x] Dynamic world light cost reduction (Alpha.94: source-triangle rejection and sparse mask iteration; blaster accepted, ON36.81 vs36.03FPS)
-- [~] Reuse exact dynamic colours of shared world vertices (Alpha.96; bounded surface cache, runtime speed/hit rate pending)
+- [~] Reuse exact dynamic colours of shared world vertices (Alpha.96: ~58% reuse confirmed; Alpha.97 isolated cache ON/OFF FPS test pending)
 - [x] Detailed world-light selection/subdivision/vertex-colour profiling (Alpha.95; user ON/OFF details supplied, selection and colour are main diagnostic costs)
 - [x] RF_BEAM laser tubes: user confirmed visibility on Alpha.88
 - [x] Underwater appearance and damage colour blend: user accepted Alpha.89

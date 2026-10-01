@@ -8,12 +8,12 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.96 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.97 implementation in progress
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.96` (PROFILE CI and host tests passed; runtime FPS/cache validation pending)
+- Current source/test version: `0.1.0-alpha.97` (host tests passed; CI/install pending, previous ELF Alpha.96)
 - Current implementation commit: `91d1c26`
   (`Match memoized color output type to PS2 uint32_t`; implementation `79f0ab0`)
 - Current published release:
@@ -28,6 +28,32 @@ Local test builds may advance; no GitHub release is currently requested. This ha
 checkpoint does not advance `VERSION`.
 
 ## Alpha.87 campaign archive repair accepted
+
+2026-10-01 Alpha.96 feedback: normal world lights comparison has six matching
+688-frame passes/demo195..882. ON37.45FPS/26.70ms/world12.61ms; all3passes18.37s.
+OFF44.23FPS/22.61ms/world8.72ms;15.55/15.57/15.55s. Lightcost4.10ms vs
+Alpha.94 4.08ms; ON+1.7% but OFF+2.1%, so cache FPS benefit unconfirmed.
+Details ONworld12.61/12.60/12.60/entities8.31/8.30/8.31; OFFworld8.72/8.73/8.72,
+entities8.12/8.12/8.11. ON~16200verts/~5400tris, OFF~15792/~5264.
+Separate profile ONSelect2.83/2.85/2.85ms, Split1.05/1.06/1.06, Color1.01each;
+vertices1030.22/1039.36/1040.49; computedpairs585.38/587.75/589.00;
+hits601.70/607.49/607.75, misses428.52/431.88/432.73 (~58%reuse).
+OFFSelect0.65each/Surfaces463.38; otherlightworkzero. Confirms less duplicate
+work, not net FPS gain: Color timer excludeslookup and profile perturbs FPS.
+Alpha.96 blaster/door visual acceptance not explicitly reported in this batch.
+
+Alpha.97 adds Game/light cache compare (6 runs):3cacheON then3OFF while
+ps2_world_dlights=1 for allsix and ps2_profile_world_lights=0. Five resultpages:
+summary, cacheONruns, cacheOFFruns, cacheONdetails, cacheOFFdetails. Cachegain
+is weighted OFF mean frame time minus ON; positive means benefit, negative
+means overhead. Hidden if incomplete or demo frame counts/ranges differ.
+New ps2_world_light_cache defaults1 and renderer refreshes perframe. Disabled
+path bypasses key construction, lookup and insertion; still executes identical
+scalar light arithmetic, splitting and rendering. Ordinary tests preserve the
+caller's cache setting. All11 benchmark cvars restored on completion/cancel/
+failure. Tests cover six modes, timers/lights invariants, allfivepage labels,
+units/sign, cancellation afterOFFswitch, missing/empty/mismatched demos and
+cache-disabled colours/geometry against independent reference. Runtimepending.
 
 2026-10-01 Alpha.95 profiling screenshots accepted as diagnostic measurements.
 ON Select2.84/2.83/2.85ms, Split1.05/1.05/1.07ms, Color2.44/2.43/2.47ms.

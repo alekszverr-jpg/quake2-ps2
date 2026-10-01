@@ -2218,6 +2218,7 @@ static menuaction_s s_testmap_action;
 static menuaction_s s_benchmark_action;
 static menuaction_s s_light_benchmark_action;
 static menuaction_s s_light_profile_action;
+static menuaction_s s_cache_benchmark_action;
 static menuaction_s s_load_game_action;
 static menuaction_s s_save_game_action;
 static menuaction_s s_credits_action;
@@ -2303,6 +2304,12 @@ static void LightProfileFunc(void * unused)
 {
     (void)unused;
     CL_BenchmarkLightProfile();
+}
+
+static void CacheBenchmarkFunc(void * unused)
+{
+    (void)unused;
+    CL_BenchmarkLightCache();
 }
 
 static void SaveGameFunc(void * unused)
@@ -2403,6 +2410,14 @@ void Game_MenuInit(void)
     s_light_profile_action.generic.callback = LightProfileFunc;
     s_light_profile_action.generic.statusbar = "Diagnostic timers affect FPS; settings restored";
 
+    s_cache_benchmark_action.generic.type = MTYPE_ACTION;
+    s_cache_benchmark_action.generic.flags = QMF_LEFT_JUSTIFY;
+    s_cache_benchmark_action.generic.x = 0;
+    s_cache_benchmark_action.generic.y = 110;
+    s_cache_benchmark_action.generic.name = "light cache compare (6 runs)";
+    s_cache_benchmark_action.generic.callback = CacheBenchmarkFunc;
+    s_cache_benchmark_action.generic.statusbar = "Cache ON/OFF; lights ON, detailed timers OFF";
+
     Menu_AddItem(&s_game_menu, (void *)&s_easy_game_action);
     Menu_AddItem(&s_game_menu, (void *)&s_medium_game_action);
     Menu_AddItem(&s_game_menu, (void *)&s_hard_game_action);
@@ -2415,6 +2430,7 @@ void Game_MenuInit(void)
     Menu_AddItem(&s_game_menu, (void *)&s_benchmark_action);
     Menu_AddItem(&s_game_menu, (void *)&s_light_benchmark_action);
     Menu_AddItem(&s_game_menu, (void *)&s_light_profile_action);
+    Menu_AddItem(&s_game_menu, (void *)&s_cache_benchmark_action);
 
     Menu_Center(&s_game_menu);
 }

@@ -12,6 +12,7 @@ static WorldLightProfile s_lightProfile;
 #include "ps2/renderer/world_light_cache.h"
 using ps2::view::WorldLightCache;
 static WorldLightCache s_worldLightCache;
+static bool s_worldLightCacheEnabled = true;
 static bool referenceMode;
 
 using u32 = std::uint32_t;
@@ -174,6 +175,7 @@ int main()
     for (int scenario = 0; scenario < 160; ++scenario)
     {
         s_worldLightCache.Clear();
+        s_worldLightCacheEnabled = scenario % 3 != 0;
         s_lightProfile = {};
         s_lightProfile.enabled = scenario % 2 != 0;
         for (int i = 0; i < 32; ++i)
@@ -201,6 +203,7 @@ int main()
         assert(emitted == reference && s_surfaceLightMask == selected);
     }
     s_surfaceLightMask = 0;
+    s_worldLightCacheEnabled = true;
     s_lightProfile = {};
     AddWorldLights(0x80404040u, {});
     assert(s_lightProfile.vertices == 0 && s_lightProfile.ticks[WorldLightProfile::Color] == 0);
@@ -252,6 +255,16 @@ int main()
             assert(AddWorldLights(base^0x80000000u,point) == DirectWorldLights(base^0x80000000u,point));
         }
     }
+    s_worldLightCacheEnabled = false;
+    const int hitsBefore = s_lightProfile.colorHits;
+    for (int v = 0; v < 100; ++v) {
+        const math::Vec4 point = {float(v),0,0,1};
+        s_surfaceLightMask = 0x80000001u;
+        assert(AddWorldLights(0x80404040u,point) == DirectWorldLights(0x80404040u,point));
+        assert(AddWorldLights(0x80404040u,point) == DirectWorldLights(0x80404040u,point));
+    }
+    assert(s_lightProfile.colorHits == hitsBefore);
+    s_worldLightCacheEnabled = true;
     WorldLightCache collisionCache;
     const auto oldKey = collisionCache.MakeKey(1,2,3,0x80404040u,1);
     auto collisionKey = oldKey;

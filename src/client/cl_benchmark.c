@@ -6,7 +6,7 @@ enum { BENCH_RUNS = 6, BENCH_GROUP = 3 };
 #ifndef PS2_BUILD_VERSION
 #define PS2_BUILD_VERSION "unversioned"
 #endif
-static int lightProfile;
+static int lightProfile, cacheComparison;
 static int comparison, runLimit = BENCH_GROUP, resultWorldLights;
 static int active, pending, run, sampling, first, last;
 static int frames[BENCH_RUNS], milliseconds[BENCH_RUNS];
@@ -18,7 +18,7 @@ static char status[80] = "Select benchmark to run demo1 three times";
 static const char * const settings[] = {
     "timedemo", "paused", "ps2_show_fps", "ps2_show_memstats",
     "ps2_show_vramstats", "ps2_show_drawstats", "developer", "con_notifytime",
-    "ps2_world_dlights", "ps2_profile_world_lights"
+    "ps2_world_dlights", "ps2_profile_world_lights", "ps2_world_light_cache"
 };
 static float saved[sizeof(settings) / sizeof(settings[0])];
 
@@ -72,7 +72,9 @@ static void NextRun(void)
         return;
     }
     first = last = ready = 0;
-    if (comparison)
+    if (cacheComparison)
+        Cvar_SetValue("ps2_world_light_cache", run < BENCH_GROUP ? 1 : 0);
+    else if (comparison)
         Cvar_SetValue("ps2_world_dlights", run < BENCH_GROUP ? 1 : 0);
     Cbuf_AddText("demomap demo1.dm2\n");
 }
@@ -85,6 +87,7 @@ static void Start(int compareLights)
         return;
     comparison = compareLights != 0;
     lightProfile = compareLights == 2;
+    cacheComparison = compareLights == 3;
     runLimit = comparison ? BENCH_RUNS : BENCH_GROUP;
     detailPage = 0;
     memset(totals, 0, sizeof(totals));
@@ -106,6 +109,7 @@ static void Start(int compareLights)
         saved[i] = Cvar_VariableValue(settings[i]);
         Cvar_SetValue(settings[i], i == 0 ? 1 : 0);
     }
+    Cvar_SetValue("ps2_world_light_cache", cacheComparison ? 1 : saved[10]);
     Cvar_SetValue("ps2_profile_world_lights", lightProfile ? 1 : 0);
     resultWorldLights = comparison ? 1 : saved[8] != 0;
     Cvar_SetValue("ps2_world_dlights", comparison ? 1 : saved[8]);
@@ -115,7 +119,8 @@ static void Start(int compareLights)
     pending = sampling = run = first = last = ready = 0;
     memset(firstFrame, 0, sizeof(firstFrame));
     memset(lastFrame, 0, sizeof(lastFrame));
-    strcpy(status, comparison ? "Running: 3 lights ON, then 3 OFF..." : "Running demo1 (3 passes)...");
+    strcpy(status, cacheComparison ? "Running: 3 cache ON, then 3 OFF..." :
+        comparison ? "Running: 3 lights ON, then 3 OFF..." : "Running demo1 (3 passes)...");
     /* Explicitly leave the current session; never write a savegame. */
     Cbuf_AddText("killserver\ndemomap demo1.dm2\n");
 }
@@ -123,6 +128,7 @@ static void Start(int compareLights)
 void CL_BenchmarkStart(void) { Start(0); }
 void CL_BenchmarkWorldLights(void) { Start(1); }
 void CL_BenchmarkLightProfile(void) { Start(2); }
+void CL_BenchmarkLightCache(void) { Start(3); }
 
 int CL_BenchmarkDemoCompleted(void)
 {
@@ -228,7 +234,7 @@ void CL_BenchmarkDraw(void)
         int group;
         double mean[2] = {0,0};
         Line(45, status);
-        Line(64, "World lights: 3 ON / 3 OFF");
+        Line(64, cacheComparison ? "Color cache: 3 ON / 3 OFF" : "World lights: 3 ON / 3 OFF");
         Line(83, "Mode      FPS   Frame ms  World ms");
         for (group = 0; group < 2; ++group)
         {
@@ -251,10 +257,11 @@ void CL_BenchmarkDraw(void)
         }
         if (mean[0] && mean[1] && !strncmp(status,"Complete",8))
         {
-            Com_sprintf(text,sizeof(text),"Light cost: %+.2f ms/frame",mean[0]-mean[1]);
+            Com_sprintf(text,sizeof(text), cacheComparison ? "Cache gain: %+.2f ms/frame" : "Light cost: %+.2f ms/frame",
+                cacheComparison ? mean[1]-mean[0] : mean[0]-mean[1]);
             Line(152,text);
         }
-        Line(173,lightProfile ? "Diagnostic timers ON: FPS perturbed." : "Entity lights and styles unchanged.");
+        Line(173,cacheComparison ? "World lights ON; detailed timers OFF." : lightProfile ? "Diagnostic timers ON: FPS perturbed." : "Entity lights and styles unchanged.");
         Line(188,"Loading excluded; no extra warm-up.");
         Line(204,"Left/Right: ON/OFF runs and details");
         Line(220,"Back: return to menu");
@@ -268,7 +275,7 @@ void CL_BenchmarkDraw(void)
             "Evictions", "VRAMsync", "VU vertices", "Triangles"
         };
         Line(43, "Averages per frame (incl HUD)");
-        Line(52, comparison ? (base ? "World dynamic lights: OFF" : "World dynamic lights: ON") :
+        Line(52, cacheComparison ? (base ? "Color cache OFF; world lights ON" : "Color cache ON; world lights ON") : comparison ? (base ? "World dynamic lights: OFF" : "World dynamic lights: ON") :
             (resultWorldLights ? "World dynamic lights: ON" : "World dynamic lights: OFF"));
         Line(59, "Metric          Run1    Run2    Run3");
         for (i = 0; i < BENCH_LIGHT_SELECT; ++i)
@@ -288,7 +295,7 @@ void CL_BenchmarkDraw(void)
         Line(224, "Back: return to menu");
         return;
     }
-    Line(45, comparison ? (base ? "World lights OFF - demo1, uncapped" : "World lights ON - demo1, uncapped") : status);
+    Line(45, cacheComparison ? (base ? "Color cache OFF - world lights ON" : "Color cache ON - world lights ON") : comparison ? (base ? "World lights OFF - demo1, uncapped" : "World lights ON - demo1, uncapped") : status);
     Line(66, "Run    Frames   Seconds     FPS");
     for (i = base; i < base + BENCH_GROUP; ++i)
     {
@@ -327,6 +334,7 @@ void CL_BenchmarkInit(void)
 {
     Cvar_Get("ps2_world_dlights", "1", 0);
     Cvar_Get("ps2_profile_world_lights", "0", 0);
+    Cvar_Get("ps2_world_light_cache", "1", 0);
     Cmd_AddCommand("benchmark_next", NextRun);
     Cmd_AddCommand("benchmark_results", M_BenchmarkResults);
 }

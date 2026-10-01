@@ -32,19 +32,19 @@ void PS2_ReadBenchmarkStats(int values[BENCH_STATS_COUNT])
     values[BENCH_VERTICES] = INT_MAX;
 }
 static char queued[4096];
-static float values[10] = { 0, 0, 1, 1, 1, 1, 1, 3, 1, 1 };
+static float values[11] = { 0, 0, 1, 1, 1, 1, 1, 3, 1, 1, 1 };
 static int Setting(const char * name)
 {
     const char * names[] = { "timedemo", "paused", "ps2_show_fps", "ps2_show_memstats",
-                            "ps2_show_vramstats", "ps2_show_drawstats", "developer", "con_notifytime", "ps2_world_dlights", "ps2_profile_world_lights" };
+                            "ps2_show_vramstats", "ps2_show_drawstats", "developer", "con_notifytime", "ps2_world_dlights", "ps2_profile_world_lights", "ps2_world_light_cache" };
     int i;
-    for (i = 0; i < 10; ++i) if (!strcmp(name, names[i])) return i;
+    for (i = 0; i < 11; ++i) if (!strcmp(name, names[i])) return i;
     assert(0); return 0;
 }
 static float Cvar_VariableValue(const char * name) { return values[Setting(name)]; }
 static void Cvar_SetValue(const char * name, float value) { values[Setting(name)] = value; }
 static void Cvar_Get(const char * name, const char * value, int flags)
-{ assert(flags == 0); assert((!strcmp(name,"ps2_world_dlights") && !strcmp(value,"1")) || (!strcmp(name,"ps2_profile_world_lights") && !strcmp(value,"0"))); }
+{ assert(flags == 0); assert(((!strcmp(name,"ps2_world_dlights") || !strcmp(name,"ps2_world_light_cache")) && !strcmp(value,"1")) || (!strcmp(name,"ps2_profile_world_lights") && !strcmp(value,"0"))); }
 static void Cbuf_AddText(const char * text) { assert(strlen(queued) + strlen(text) < sizeof(queued)); strcat(queued, text); }
 static void CL_Disconnect(void) { cls.state = ca_disconnected; }
 static void SCR_EndLoadingPlaque(void) { cls.disable_screen = 0; }
@@ -208,6 +208,53 @@ int main(void)
     CL_BenchmarkLightProfile(); CL_BenchmarkDemoCompleted(); NextRun();
     assert(!active && values[9] == 0); // Empty demo restores diagnostics.
     CL_BenchmarkLightProfile(); assert(values[9] == 1); CL_BenchmarkCancel(); assert(values[9] == 0);
+    values[8] = 0; values[9] = 1; values[10] = 0;
+    CL_BenchmarkLightCache();
+    assert(cacheComparison && comparison && !lightProfile && runLimit == 6);
+    for (i = 0; i < 6; ++i) {
+        assert(values[8] == 1 && values[9] == 0 && values[10] == (i < 3 ? 1 : 0));
+        cls.state = ca_active; CL_BenchmarkServerData();
+        cl.frame.serverframe = 10; Frame(0,10);
+        cl.frame.serverframe = 11; Frame(20,i < 3 ? 30 : 40);
+        CL_BenchmarkDemoCompleted(); NextRun();
+    }
+    assert(!active && values[8] == 0 && values[9] == 1 && values[10] == 0);
+    for (i = 0; i < 5; ++i) {
+        drawn[0] = 0; assert(detailPage == i); CL_BenchmarkDraw();
+        if (!i) {
+            assert(strstr(drawn,"Color cache: 3 ON / 3 OFF"));
+            assert(strstr(drawn,"Cache gain: +5.00 ms/frame"));
+            assert(strstr(drawn,"World lights ON; detailed timers OFF"));
+            assert(!strstr(drawn,"Light cost"));
+        } else assert(strstr(drawn,i == 2 || i == 4 ? "Color cache OFF" : "Color cache ON"));
+        CL_BenchmarkTogglePage();
+    }
+    assert(detailPage == 0);
+    CL_BenchmarkLightCache(); CL_BenchmarkCancel();
+    assert(values[8] == 0 && values[9] == 1 && values[10] == 0);
+    CL_BenchmarkLightCache(); CL_BenchmarkDemoCompleted(); NextRun();
+    assert(!active && values[8] == 0 && values[9] == 1 && values[10] == 0);
+    CL_BenchmarkLightCache();
+    for (i = 0; i < 6; ++i) {
+        cls.state = ca_active; CL_BenchmarkServerData();
+        cl.frame.serverframe = i == 5 ? 9 : 10; Frame(0,10);
+        cl.frame.serverframe = 11; Frame(20,30);
+        CL_BenchmarkDemoCompleted(); NextRun();
+    }
+    drawn[0] = 0; CL_BenchmarkDraw(); assert(!strstr(drawn,"Cache gain"));
+    CL_BenchmarkWorldLights(); assert(!cacheComparison && values[10] == 0); CL_BenchmarkCancel();
+    values[10] = 1;
+    CL_BenchmarkLightCache();
+    for (i = 0; i < 3; ++i) {
+        cls.state = ca_active; CL_BenchmarkServerData();
+        cl.frame.serverframe = 10; Frame(0,10);
+        cl.frame.serverframe = 11; Frame(20,30);
+        CL_BenchmarkDemoCompleted(); NextRun();
+    }
+    assert(values[10] == 0 && values[8] == 1 && values[9] == 0);
+    CL_BenchmarkCancel(); assert(values[10] == 1 && values[8] == 0 && values[9] == 1);
+    missing = 1; CL_BenchmarkLightCache();
+    assert(!active && values[10] == 1 && values[8] == 0 && values[9] == 1);
     puts("Benchmark lifecycle, loading exclusion, cancellation and restoration PASS");
     return 0;
 }
