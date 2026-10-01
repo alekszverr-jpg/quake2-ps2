@@ -63,7 +63,8 @@ jobs:
           git init build/effect-map-tools
           git -C build/effect-map-tools fetch --depth 1 https://github.com/yquake2/maptools.git 9b7e43334646f63f25a7aebfd62070b3aebc2554
           git -C build/effect-map-tools checkout --detach FETCH_HEAD
-          make -C build/effect-map-tools -j2 qbsp3 qvis3 qrad3 CFLAGS="-O2 -fcommon -fno-strict-aliasing -Wall -MMD"
+          python3 tools/prepare_maptools.py build/effect-map-tools
+          make -C build/effect-map-tools -j2 release/qbsp3 release/qvis3 release/qrad3 CFLAGS="-O2 -fcommon -fno-strict-aliasing -Wall -MMD"
           build/effect-map-tools/release/qbsp3 -leaktest "$PWD/build/effect-map/quake2/baseq2/maps/ps2flow.map"
           build/effect-map-tools/release/qvis3 "$PWD/build/effect-map/quake2/baseq2/maps/ps2flow.bsp"
           build/effect-map-tools/release/qrad3 -threads 1 -bounce 0 -ambient 0.2 "$PWD/build/effect-map/quake2/baseq2/maps/ps2flow.bsp"
