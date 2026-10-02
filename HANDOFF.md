@@ -8,12 +8,12 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.98 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.99 implementation in progress
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.98` (PROFILE CI and host tests passed; runtime selection optimization pending)
+- Current source/test version: `0.1.0-alpha.99` (host tests passed; CI/install pending, previous ELF Alpha.98)
 - Current implementation commit: `e41501b`
   (`Reuse selected light bounds for unchanged source triangles and unroll axes`)
 - Current published release:
@@ -28,6 +28,32 @@ Local test builds may advance; no GitHub release is currently requested. This ha
 checkpoint does not advance `VERSION`.
 
 ## Alpha.87 campaign archive repair accepted
+
+2026-10-02 checkpoint: user accepted Alpha.98 blaster light on walls and doors.
+Alpha.98 normal comparison summary ON38.08FPS/26.26ms/world12.18ms;
+OFF44.20FPS/22.62ms/world8.74ms; lightcost3.64ms. Relative Alpha.96 ON37.45FPS,
+world12.61ms/cost4.10ms, OFF44.23FPS/8.72ms: ON~+1.7%, cost~-11%, controlstable.
+ProfileONSelect2.29/2.30/2.30ms, Split1.06/1.07/1.07, Color1.00/1.01/1.01;
+Surfaces463.38, Plane tests411.99; Bounds calls622.26/627.20/627.81;
+Bounds tests842.01/851.67/852.79; Rejected305.55/306.37/307.19;
+Split nodes445.21/449.61/449.29; Splits138.65/139.89/139.85;
+vertices1027.80/1035.74/1036.96; pairs583.85/586.71/587.85;
+hits600.18/605.16/605.70; misses427.62/430.58/431.26.
+Summary says Complete; run range pages not supplied. Timer results diagnostic.
+
+Alpha.99 memoizes surface-plane light masks across ordinary and biased crack-seal
+passes of one DrawTextureChains call. Fixed64-entry direct-mapped cache (~772bytes
+static on PS2), no per-map/heap allocation or change to ModelSurface layout.
+Pointer collisions recompute. Generation reset each frame and at every texture
+chain context, covering world and each transformed inline brush, repeated model
+instances and new maps/address reuse. Existing per-surface vertex-colour cache
+reset remains even on mask hit. No-lights fast path skips cache operations.
+Plane tests now counts only actuallycomputed plane/light pairs; surfaces still
+counts requests. Triangle masks/recursive pruning/cache-colour arithmetic and
+geometry unchanged. Production SelectSurfaceLights tested for empty/high-bit
+mask hits, changed light coordinates aftercontextreset, no-lights path and
+7200 masks across300surfaces/12contexts against scalar reference. Existing160
+recursive,2400selector and12000colour tests retained. Runtimegain pending.
 
 2026-10-01 Alpha.97 isolated cache comparison completed. CacheON37.46FPS,
 26.70ms/frame, world12.62ms; OFF37.13FPS,26.93ms,world12.84ms. Cachegain+0.23ms,

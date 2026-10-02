@@ -29,6 +29,7 @@
 #include "ps2/renderer/timing.h"
 #include "ps2/renderer/world_light_profile.h"
 #include "ps2/renderer/world_light_cache.h"
+#include "ps2/renderer/surface_light_cache.h"
 #include "ps2/math/vec_mat.h"
 #include "ps2/builtin/builtin.h"
 
@@ -102,6 +103,7 @@ static u32 s_surfaceLightMask = 0;
 static WorldLightProfile s_lightProfile;
 static WorldLightCache s_worldLightCache;
 static bool s_worldLightCacheEnabled = true;
+static SurfaceLightCache s_surfaceLightCache;
 
 // Adaptive BSP-lighting controls, refreshed from archived cvars each frame.
 // Large triangles are probed at most this many lightmap cells apart; within
@@ -1048,6 +1050,17 @@ void SelectSurfaceLights(const mod::ModelSurface & surface)
     s_worldLightCache.Clear(); // New surface/static colour or brush light space.
     WorldLightScope timer(s_lightProfile, WorldLightProfile::Select);
     if (s_lightProfile.enabled) ++s_lightProfile.surfaces;
+    if (s_worldLightCount == 0)
+    {
+        s_surfaceLightMask = 0;
+        return; // No light candidates: skip even cache lookup/insertion.
+    }
+    std::uint32_t cachedMask;
+    if (s_surfaceLightCache.Find(&surface, cachedMask))
+    {
+        s_surfaceLightMask = static_cast<u32>(cachedMask);
+        return;
+    }
     s_surfaceLightMask = 0;
     const cplane_t & plane = *surface.plane;
     for (int i = 0; i < s_worldLightCount; ++i)
@@ -1059,6 +1072,7 @@ void SelectSurfaceLights(const mod::ModelSurface & surface)
         if (std::fabs(distance) < s_worldLights[i].intensity)
             s_surfaceLightMask |= 1u << i;
     }
+    s_surfaceLightCache.Store(&surface, s_surfaceLightMask);
 }
 
 inline void EmitScratchVertex(const ClipVertex & v, u32 packedColor)
@@ -2052,6 +2066,10 @@ void GatherPolyCrackSeals(const mod::ModelPoly & poly,
 // Draws every texture chain built by RecursiveWorldNode and resets them.
 void DrawTextureChains(const math::Mat4 & mvp)
 {
+    // The world and each inline brush use different light coordinates. Keep
+    // masks only across the ordinary/crack-seal passes in this one context.
+    s_surfaceLightCache.Clear();
+
     // Gamepad-accessible diagnostic: use a permanent non-palettized,
     // non-mipped texture while retaining the exact BSP geometry, lighting,
     // clipping and depth path. If the reported wall strips remain, they are
@@ -3168,6 +3186,7 @@ void RenderFrame(const refdef_t & viewDef)
     static const cvar_t * cacheLights = Cvar_Get("ps2_world_light_cache", "1", 0);
     s_worldLightCacheEnabled = cacheLights->value != 0.0f;
     s_lightProfile = {};
+    s_surfaceLightCache.Clear();
     s_worldLightCache.Clear(); // Never reuse moving lights from a previous frame.
 #if PS2_PROFILE
     static const cvar_t * profileLights = Cvar_Get("ps2_profile_world_lights", "0", 0);

@@ -13,6 +13,9 @@ static WorldLightProfile s_lightProfile;
 using ps2::view::WorldLightCache;
 static WorldLightCache s_worldLightCache;
 static bool s_worldLightCacheEnabled = true;
+#include "ps2/renderer/surface_light_cache.h"
+using ps2::view::SurfaceLightCache;
+static SurfaceLightCache s_surfaceLightCache;
 static bool referenceMode;
 
 using u32 = std::uint32_t;
@@ -39,12 +42,13 @@ constexpr float kAliasNormals[][3] = {
 };
 #pragma GCC diagnostic pop
 constexpr int SURF_FLOWING = 64;
+struct cplane_t { float normal[3], dist; };
 namespace mod {
 struct PolyVertex { math::Vec3 position; float texture_s, texture_t; };
 struct ModelTriangle { int vertexes[3]; };
 struct ModelPoly { int numVerts; const ModelPoly * next; PolyVertex * vertexes; ModelTriangle * triangles; };
 struct ModelTexInfo { int flags; };
-struct ModelSurface { const ModelTexInfo * texInfo; const ModelPoly * polys; };
+struct ModelSurface { const ModelTexInfo * texInfo; const ModelPoly * polys; const cplane_t * plane = nullptr; };
 }
 static float s_viewTime;
 static tex::Texture surfaceTexture;
@@ -322,6 +326,51 @@ int main()
     assert(s_lightProfile.colorHits >= 4000 && s_lightProfile.colorMisses >= 4000);
     s_lightProfile = {}; s_worldLightCache.Clear(); s_surfaceLightMask = 0;
     std::puts("12000 cached colours match independent path; key collisions/invalidation pass");
+
+    // Production surface selector must reuse only in an unchanged light
+    // context. Both empty masks and bit31 are cacheable; a new brush/frame
+    // context must recompute even when the surface address is identical.
+    cplane_t plane = {{1,0,0},0};
+    mod::ModelSurface face = {}; face.plane = &plane;
+    s_worldLightCount = 32;
+    for (int i = 0; i < 32; ++i) {
+        lights[i].intensity = 64;
+        s_worldLightOrigins[i] = {float(i == 31 ? 0 : 1000),0,0};
+    }
+    s_surfaceLightCache.Clear(); s_lightProfile = {}; s_lightProfile.enabled = true;
+    SelectSurfaceLights(face); assert(s_surfaceLightMask == 0x80000000u);
+    SelectSurfaceLights(face); assert(s_surfaceLightMask == 0x80000000u && s_lightProfile.surfaceTests == 32);
+    s_worldLightOrigins[31].x = 1000; // transformed/new frame origins
+    s_surfaceLightCache.Clear();
+    SelectSurfaceLights(face); assert(s_surfaceLightMask == 0 && s_lightProfile.surfaceTests == 64);
+    SelectSurfaceLights(face); assert(s_surfaceLightMask == 0 && s_lightProfile.surfaceTests == 64);
+    s_worldLightCount = 0;
+    SelectSurfaceLights(face); assert(s_surfaceLightMask == 0 && s_lightProfile.surfaceTests == 64);
+    s_worldLightCount = 32;
+    mod::ModelSurface faces[300] = {};
+    cplane_t planes[300] = {};
+    for (int context = 0; context < 12; ++context) {
+        s_surfaceLightCache.Clear();
+        for (int i = 0; i < 32; ++i) {
+            s_worldLightOrigins[i] = {float(i*17-context*11),float(i*7),float(context*3)};
+            lights[i].intensity = float(20+i*3);
+        }
+        for (int pass = 0; pass < 2; ++pass)
+            for (int f = 0; f < 300; ++f) {
+                planes[f] = {{0.6f,0.8f,0},float(f*3-300)};
+                faces[f].plane = &planes[f];
+                u32 expected = 0;
+                for (int i = 0; i < 32; ++i) {
+                    const auto & o = s_worldLightOrigins[i];
+                    const float distance = o.x*planes[f].normal[0]+o.y*planes[f].normal[1]+o.z*planes[f].normal[2]-planes[f].dist;
+                    if (std::fabs(distance) < lights[i].intensity) expected |= 1u << i;
+                }
+                SelectSurfaceLights(faces[f]);
+                assert(s_surfaceLightMask == expected);
+            }
+    }
+    s_surfaceLightCache.Clear(); s_lightProfile = {}; s_surfaceLightMask = 0;
+    std::puts("7200 surface masks match scalar reference; context invalidation and reuse pass");
 
     // Use the stock water blend and a reduced viewport: tint only the 3D view.
     refdef_t view = { 10,20,320,240,0, {0.5f,0.3f,0.2f,0.4f} };
