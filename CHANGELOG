@@ -18,6 +18,8 @@ Development priorities and completion criteria are tracked in
   and remove its unnecessary left inset at320 width. Numeric tables retained.
 - Test the production DrawGlyph submission and full8-row coverage at all modes,
   native canvas transform, menu labels and previous depth-page allocation fix.
+- CI36974957048 passed all sanitizer tests/map validation/PROFILE build.
+  Installed matching Alpha.102 ELF in both project roots; version checked.
 - User confirmed palettes are visible after101 but reported unreadable240p
   characters and low HUD. This layout replacement awaits runtime validation.
 

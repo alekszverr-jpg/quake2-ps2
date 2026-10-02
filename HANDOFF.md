@@ -8,19 +8,19 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.101 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.102 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.101` (PROFILE CI and host tests passed; depth-page fix runtime validation pending)
-- Current implementation commit: `578c671`
-  (`Reserve complete depth pages for 240p and 480p and use progressive frame mode`)
+- Current source/test version: `0.1.0-alpha.102` (PROFILE CI and host tests passed; native 240p UI runtime pending)
+- Current implementation commit: `a1b11c2`
+  (`Use native 320x224 UI canvas for readable 240p fonts and safe HUD placement`)
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.101 local PROFILE ELF SHA-256 (7,777,464 bytes):
-  `E67C682D5E2F38F595074507C11A2C54C23AEE8F1B6E232A62BF5360A18A8794`
-- CI `36972968419` passed all host sanitizer tests, map validation and PROFILE build for `578c671`.
+- Alpha.102 local PROFILE ELF SHA-256 (7,779,844 bytes):
+  `E42DF3F0A70F79A4407540347FF1C4C28D9D977233501F4C1083C1E2A379BB60`
+- CI `36974957048` passed all host sanitizer tests, map validation and PROFILE build for `a1b11c2`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
@@ -41,7 +41,11 @@ withellipsis; benchmark title shorter and x0 inlowmode. Most benchmark rows
 already fit40columns; do not rescale font to4rows again.
 Tests exercise extracted actualDrawGlyph against mode coordinate mapping,
 retained8-row glyph heights, whitespace/top clipping, native menu labels and
-previous frame/depth-page tests. Runtime pending240p Game/VIDEO/HUD/crosshair/
+previous frame/depth-page tests. GNU89 syntax check passed for changed client
+C files (existing64-bit host pointer-cast warnings inentitycmpfnc only).
+CI36974957048 passed all host sanitizer tests/map validation/PROFILE build.
+Installed7,779,844-byte ELF inbothroots matchingartifact hash andAlpha.102/menu
+strings. Runtime pending240p Game/VIDEO/HUD/crosshair/
 console and480i/480p controls. User has not reported101480p result yet.
 
 ## Alpha.101 correction after first VIDEO runtime feedback
