@@ -20,6 +20,9 @@ Development priorities and completion criteria are tracked in
   44.20FPS without, cost3.64ms (Alpha.96:37.45/44.23FPS, cost4.10ms).
   Alpha.99 runtime performance and visuals remain pending.
 
+- CI36968832834 passed host sanitizer checks, map validation and PS2 PROFILE
+  build. Alpha.99 installed in both project roots with matching CI hashes.
+
 ## 0.1.0-alpha.98 - 2026-10-01 (local test build)
 
 - Reuse the source triangle's already-selected light mask when static cached

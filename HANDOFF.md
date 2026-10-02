@@ -8,19 +8,19 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.99 implementation in progress
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.99 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.99` (host tests passed; CI/install pending, previous ELF Alpha.98)
-- Current implementation commit: `e41501b`
-  (`Reuse selected light bounds for unchanged source triangles and unroll axes`)
+- Current source/test version: `0.1.0-alpha.99` (PROFILE CI and host tests passed; runtime surface-mask optimization pending)
+- Current implementation commit: `9de6953`
+  (`Reuse surface light masks across world and crack-seal passes within one context`)
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.98 local PROFILE ELF SHA-256 (7,758,308 bytes):
-  `606AD24EABBA3685624F28405FEC4AB65A52678E939FE093AE836DF4EDDD7FDB`
-- CI `36908578351` passed all host sanitizer tests, map validation and PROFILE build for `e41501b`.
+- Alpha.99 local PROFILE ELF SHA-256 (7,762,344 bytes):
+  `2D7A5A78058A02C12E59A9CAE083C481926E2EFAE3BC39440BDE6AC6C4A907D7`
+- CI `36968832834` passed all host sanitizer tests, map validation and PROFILE build for `9de6953`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
@@ -53,7 +53,13 @@ counts requests. Triangle masks/recursive pruning/cache-colour arithmetic and
 geometry unchanged. Production SelectSurfaceLights tested for empty/high-bit
 mask hits, changed light coordinates aftercontextreset, no-lights path and
 7200 masks across300surfaces/12contexts against scalar reference. Existing160
-recursive,2400selector and12000colour tests retained. Runtimegain pending.
+recursive,2400selector and12000colour tests retained. CI36968832834 passed all
+host sanitizer tests/map validation/PROFILE build. Installed7,762,344-byte ELF
+in both roots; SHA above matches CI, embedded Alpha.99 version verified. Map
+fixture assets unchanged. Runtimegain pending. User should repeat normal world
+lights compare (6 runs), then world lights profile ON page (Select ms/Plane tests
+vs Alpha.98 2.30ms/411.99). Confirm blaster on walls/movingdoors as contexts changed.
+No Alpha.99 runtime/visual acceptance yet.
 
 2026-10-01 Alpha.97 isolated cache comparison completed. CacheON37.46FPS,
 26.70ms/frame, world12.62ms; OFF37.13FPS,26.93ms,world12.84ms. Cachegain+0.23ms,
