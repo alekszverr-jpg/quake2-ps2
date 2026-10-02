@@ -13,6 +13,8 @@ Development priorities and completion criteria are tracked in
   cl_gun0 suppression and missing-model handling. Renderer geometry unchanged.
 - Regression-test production CL_AddViewWeapon at all six menu FOV values,
   model/animation/depth flags and the explicit disabled/missing-model cases.
+- CI36975727522 passed all tests/map validation/PROFILE build; Alpha.103
+  installed in both roots with matching hashes and embedded version verified.
 - User's weapon-missing screenshot/config showed FOV100 and240p. Native UI
   appears intact, but complete UI/hardware acceptance is not yet claimed.
 

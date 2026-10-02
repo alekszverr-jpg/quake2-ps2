@@ -8,19 +8,19 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.102 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.103 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.102` (PROFILE CI and host tests passed; native 240p UI runtime pending)
-- Current implementation commit: `a1b11c2`
-  (`Use native 320x224 UI canvas for readable 240p fonts and safe HUD placement`)
+- Current source/test version: `0.1.0-alpha.103` (PROFILE CI and host tests passed; wide-FOV weapon/runtime UI checks pending)
+- Current implementation commit: `5faee7f`
+  (`Keep view weapon visible across supported VIDEO field of view settings`)
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.102 local PROFILE ELF SHA-256 (7,779,844 bytes):
-  `E42DF3F0A70F79A4407540347FF1C4C28D9D977233501F4C1083C1E2A379BB60`
-- CI `36974957048` passed all host sanitizer tests, map validation and PROFILE build for `a1b11c2`.
+- Alpha.103 local PROFILE ELF SHA-256 (7,779,856 bytes):
+  `15514638491A6C68C3FD5A12C880C81401CCD32CFDE8C79432AC44CC1A5FD496`
+- CI `36975727522` passed all host sanitizer tests, map validation and PROFILE build for `5faee7f`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
@@ -35,7 +35,9 @@ returned forps->fov>90, regardless of output resolution. Remove only thatlegacy
 wide-view suppression; retaincl_gun0 and missingmodel exits. No renderer changes.
 Tests extract actualproduction CL_AddViewWeapon, verify submission for70/80/90/
 100/110/120, model/animation flags and disabled/missingmodels. Config unchanged.
-Runtime pending weaponvisible at100..120 in240p andothermodes. User102screenshot
+CI36975727522 passed allsanitizer/map/PROFILE checks; installed7,779,856-byte
+ELF inbothroots matchingdownload/hash andAlpha.103 string. cl_ents GNU89
+syntax check passed. Runtime pending weaponvisible at100..120 in240p andothermodes. User102screenshot
 shows readableFPS/HUD; no explicit full240pUI/480p/hardware acceptance yet.
 
 ## Alpha.102 native240p UI correction
