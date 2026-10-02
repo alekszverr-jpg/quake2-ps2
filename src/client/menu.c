@@ -1394,6 +1394,9 @@ VIDEO MENU
 =======================================================================
 */
 
+// PS2 video controls share the stock menu/gamepad navigation.
+#include "client/video_menu.inc"
+
 void M_Menu_Video_f(void)
 {
     VID_MenuInit();

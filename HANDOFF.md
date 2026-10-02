@@ -27,6 +27,35 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
+## Alpha.100 VIDEO and output modes
+
+User changed scope from lighting optimization to the blank VIDEO menu and
+requested 240p/480i/480p with correct UI scaling. VIDEO uses stock client menu
+controls, FOV70..120, world gamma1.2..0.3, world dlights, mipmapping, polyblend,
+FPS, defaults and Back. Cvars archived; dirty exit calls CL_WriteConfiguration.
+Changing mipmapping clears the diagnostic forced mip level. Do not expose
+viewsize until 3D subviewport rendering is supported; current world projection
+fills the complete GS buffer. Texture gamma/intensity remain startup-only.
+ps2_video_mode:0 auto (old PAL512/NTSC448),1 NTSC noninterlaced224 active,
+2 NTSC interlaced448/filter,3 HDTV480p centred640 wide. Requires full restart;
+other settings live. UI uses640x448 logical canvas in224p; GS Filled/TexturedRect
+maps Y by0.5, so menus/HUD/console/cinematics/fades share one coordinate system.
+World projection/VU offset/clear/scissor retain physical Height(). Progressive
+scanout uses circuit2 without interlaced flicker filter; 480p DISPLAY window
+centred within libgraph720 timing and restricted640 pixels to avoid overread.
+PS2SDK graph mode source consulted for signal/display constants.
+Host tests production menu sliders/spins, callback/config wiring and mode/UI
+mapping. Runtime tests pending: VIDEO controls/defaults/persistence; restart
+for each video mode; HUD/console/main menu/benchmark/crosshair and water flashes
+in240p; 480p display geometry; compare auto to previous accepted build.
+
+Alpha.99 latest user compare ON38.05FPS/26.28ms/world12.20ms;
+OFF44.14FPS/22.66ms/world8.76ms; lightcost3.62ms. ProfileSelect2.28ms each,
+plane tests259.12 each versus411.99 (~37% fewer); split1.06..1.07ms,
+colour1.01ms. Surface memoization reduces work but overall gain versus98 is
+within measurement variation. No claimed FPS win; do not add more benchmark
+modes while finishing VIDEO.
+
 ## Alpha.87 campaign archive repair accepted
 
 2026-10-02 checkpoint: user accepted Alpha.98 blaster light on walls and doors.

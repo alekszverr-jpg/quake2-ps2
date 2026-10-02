@@ -39,6 +39,8 @@
 #include <dma.h>
 #include <gs_psm.h>
 #include <gs_gp.h>
+#include <gs_privileged.h>
+#include "ps2/renderer/video_mode.h"
 #include <graph.h>
 #include <kernel.h> // SyncDCache
 #include <draw.h>
@@ -50,9 +52,7 @@
 namespace ps2::gs {
 namespace {
 
-constexpr int kWidth      = 640;
-constexpr int kNtscHeight = 448;
-constexpr int kPalHeight  = 512;
+constexpr int kWidth = 640;
 
 // Quake world textures are approximately one texel per world unit. With a
 // 640-pixel view, that reaches a roughly 1:1 texel/pixel ratio a few hundred
@@ -61,9 +61,9 @@ constexpr int kPalHeight  = 512;
 // distance doubling instead of immediately clamping everything to level 3.
 constexpr float kMipmapLodBias = -8.0f;
 
-// Selected from the console ROM region during Init. PAL exposes 64 more
-// active lines; rendering an NTSC-height buffer there leaves a black strip.
-static int s_height = kNtscHeight;
+// Startup mode selection. Logical UI height stays 448 in the 224-line mode.
+static video::Mode s_videoMode = video::Select(0.0f, false);
+static int s_height = 448;
 
 // Per-frame packet headroom. Worst observed 2D load is a full console of text
 // (~2200 glyphs at 4 qwords each); 32K qwords (512 KB) leaves ample margin.
@@ -178,6 +178,7 @@ inline RenderPacket & FramePacket()
 
 int Width()  { return kWidth; }
 int Height() { return s_height; }
+int UiHeight() { return s_videoMode.uiHeight; }
 
 int CurrentContext()
 {
@@ -207,7 +208,9 @@ void Init()
     dma_channel_initialize(DMA_CHANNEL_GIF, nullptr, 0);
     dma_channel_fast_waits(DMA_CHANNEL_GIF);
 
-    s_height = (graph_get_region() == GRAPH_MODE_PAL) ? kPalHeight : kNtscHeight;
+    s_videoMode = video::Select(Cvar_Get("ps2_video_mode", "0", CVAR_ARCHIVE)->value,
+                               graph_get_region() == GRAPH_MODE_PAL);
+    s_height = s_videoMode.height;
 
     // Two 32-bit framebuffers.
     // TODO: Consider more compact framebuffer formats to leave more vram for textures (RGB16?).
@@ -243,8 +246,28 @@ void Init()
     s_clutVramAddr = vram::Address(clutVramAddr);
     s_litClutVramAddr = vram::Address(litClutVramAddr);
 
-    // Display framebuffer 0 first; auto-detects NTSC/PAL.
-    graph_initialize(static_cast<int>(s_frame[0].address), kWidth, s_height, GS_PSM_32, 0, 0);
+    // Explicit modes override the ROM region; auto preserves the old PAL/NTSC path.
+    const int signal = s_videoMode.index == 0 ? graph_get_region()
+        : s_videoMode.index == 3 ? GRAPH_MODE_HDTV_480P : GRAPH_MODE_NTSC;
+    graph_set_mode(s_videoMode.interlaced ? GRAPH_MODE_INTERLACED : GRAPH_MODE_NONINTERLACED,
+                   signal, GRAPH_MODE_FIELD, s_videoMode.filtered ? GRAPH_ENABLE : GRAPH_DISABLE);
+    graph_set_screen(0, 0, kWidth, s_height);
+    if (s_videoMode.index == 3)
+    {
+        // libgraph's 480p timing spans 720 pixels. Center a 640-pixel window
+        // instead of letting the scanout read 80 pixels beyond our buffer.
+        *GS_REG_DISPLAY1 = GS_SET_DISPLAY(232 + 80, 35, 1, 0, 1279, 479);
+        *GS_REG_DISPLAY2 = GS_SET_DISPLAY(232 + 80, 35, 1, 0, 1279, 479);
+    }
+    graph_set_bgcolor(0, 0, 0);
+    if (s_videoMode.filtered)
+        graph_set_framebuffer_filtered(static_cast<int>(s_frame[0].address), kWidth, GS_PSM_32, 0, 0);
+    else
+    {
+        graph_set_framebuffer(0, static_cast<int>(s_frame[0].address), kWidth, GS_PSM_32, 0, 0);
+        graph_set_framebuffer(1, static_cast<int>(s_frame[0].address), kWidth, GS_PSM_32, 0, 0);
+    }
+    graph_enable_output();
 
     s_framePacket[0].Init(kPacketQwords);
     s_framePacket[1].Init(kPacketQwords);
@@ -423,10 +446,10 @@ void FillRect(int x, int y, int w, int h, u8 r, u8 g, u8 b, u8 a)
 
     rect_t rect;
     rect.v0.x = static_cast<float>(x);
-    rect.v0.y = static_cast<float>(y);
+    rect.v0.y = video::UiY(static_cast<float>(y), s_videoMode);
     rect.v0.z = 0u;
     rect.v1.x = static_cast<float>(x + w);
-    rect.v1.y = static_cast<float>(y + h);
+    rect.v1.y = video::UiY(static_cast<float>(y + h), s_videoMode);
     rect.v1.z = 0u;
     rect.color.r = r;
     rect.color.g = g;
@@ -879,12 +902,12 @@ void DrawTexturedRect(int x, int y, int w, int h,
 
     texrect_t rect;
     rect.v0.x = static_cast<float>(x);
-    rect.v0.y = static_cast<float>(y);
+    rect.v0.y = video::UiY(static_cast<float>(y), s_videoMode);
     rect.v0.z = 0u;
     rect.t0.u = static_cast<float>(u0);
     rect.t0.v = static_cast<float>(v0);
     rect.v1.x = static_cast<float>(x + w);
-    rect.v1.y = static_cast<float>(y + h);
+    rect.v1.y = video::UiY(static_cast<float>(y + h), s_videoMode);
     rect.v1.z = 0u;
     rect.t1.u = static_cast<float>(u1);
     rect.t1.v = static_cast<float>(v1);
@@ -922,9 +945,10 @@ void EndFrame()
         graph_wait_vsync();
     else if (!had2D)
         SyncGsBeforeVramReuse(); // no HUD packet supplied a GS FINISH barrier
-    graph_set_framebuffer_filtered(static_cast<int>(s_frame[s_drawCtx].address),
-                                   static_cast<int>(s_frame[s_drawCtx].width),
-                                   static_cast<int>(s_frame[s_drawCtx].psm), 0, 0);
+    if (s_videoMode.filtered)
+        graph_set_framebuffer_filtered(static_cast<int>(s_frame[s_drawCtx].address), kWidth, GS_PSM_32, 0, 0);
+    else
+        graph_set_framebuffer(1, static_cast<int>(s_frame[s_drawCtx].address), kWidth, GS_PSM_32, 0, 0);
 
     s_drawCtx ^= 1; // draw into the other buffer next frame
 

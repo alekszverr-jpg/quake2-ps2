@@ -86,9 +86,12 @@ void VID_Shutdown()
 // so there is nothing to reload here.
 void VID_CheckChanges() {}
 
-// Video menu is not implemented yet.
-void VID_MenuInit() {}
-void VID_MenuDraw() {}
-const char * VID_MenuKey(int key) { (void)key; return nullptr; }
+// Menu implementation lives alongside the stock client navigation.
+void PS2_VideoMenuInit();
+void PS2_VideoMenuDraw();
+const char * PS2_VideoMenuKey(int key);
+void VID_MenuInit() { PS2_VideoMenuInit(); }
+void VID_MenuDraw() { PS2_VideoMenuDraw(); }
+const char * VID_MenuKey(int key) { return PS2_VideoMenuKey(key); }
 
 } // extern "C"

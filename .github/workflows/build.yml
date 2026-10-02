@@ -45,6 +45,9 @@ jobs:
         run: |
           python3 tests/benchmark/run.py
 
+      - name: Check VIDEO controls and output mode scaling on host
+        run: python3 tests/video_menu/run.py
+
       - name: Check pre-BSP level purge on host
         run: python3 tests/level_purge/run.py
 

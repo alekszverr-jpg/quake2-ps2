@@ -389,7 +389,7 @@ qboolean PS2_RefInit(void * hinstance, void * wndproc)
     ps2::cin::SetPalette(nullptr);
 
     viddef.width  = ps2::gs::Width();
-    viddef.height = ps2::gs::Height();
+    viddef.height = ps2::gs::UiHeight();
 
     Com_Printf("PS2 refresh initialised: %dx%d\n", viddef.width, viddef.height);
     return true;
@@ -521,7 +521,7 @@ void PS2_DrawFill(int x, int y, int w, int h, int c)
 
 void PS2_DrawFadeScreen()
 {
-    ps2::gs::FillRect(0, 0, ps2::gs::Width(), ps2::gs::Height(), 0, 0, 0, 128);
+    ps2::gs::FillRect(0, 0, viddef.width, viddef.height, 0, 0, 0, 128);
 }
 
 // ------------------------------------------------------------------------------------------------

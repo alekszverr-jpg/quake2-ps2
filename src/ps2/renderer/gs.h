@@ -26,12 +26,14 @@ struct TimingStats
 };
 
 // Brings up the GS: allocates two 32-bit framebuffers, initialises the video
-// mode and height from the console region (640x448 NTSC, 640x512 PAL), and
+// mode from ps2_video_mode (auto region, 224p, 448i or 480p), and
 // sets up both drawing contexts. Call once.
 void Init();
 
 int Width();
 int Height();
+// Logical 2D height; UI is scaled to the physical framebuffer by the GS path.
+int UiHeight();
 
 // GS drawing context (0 or 1) being rendered into this frame. The 3D path
 // needs it for every context-indexed register it touches (TEX0/TEX1/TEST and

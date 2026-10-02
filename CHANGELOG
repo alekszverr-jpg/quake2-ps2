@@ -6,6 +6,23 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.100 - 2026-10-02 (local test build)
+
+- Populate VIDEO with output mode, FOV, world brightness, dynamic world lights,
+  world mipmapping, screen colour effects and FPS counter. Stock menu/gamepad
+  navigation, restore defaults and Back; archive settings in config.cfg on exit.
+- Add startup output modes: auto NTSC/PAL (default), 240p with 640x224 active
+  area, 480i with 640x448 active area, and centred 640x480 progressive output.
+  Mode changes require a full game restart. Other controls apply live.
+- Keep low-resolution UI in logical 640x448 coordinates and scale every 2D
+  filled/textured rectangle vertically to 224 lines, including HUD, menus,
+  console, cinematics, colour blends and overlays. 3D uses physical buffers.
+- Host tests exercise production sliders/spins, callback wiring, archival flags,
+  Back/defaults, mode selection and low-resolution UI mapping. Runtime pending.
+- Alpha.99 user comparison: ON38.05FPS/world12.20ms, OFF44.14FPS/world8.76ms,
+  light cost3.62ms. Plane tests259.12 vs411.99 previously (~37% fewer);
+  total improvement over Alpha.98 is too small to establish a speedup.
+
 ## 0.1.0-alpha.99 - 2026-10-02 (local test build)
 
 - Reuse surface-plane light masks between the normal geometry and biased
