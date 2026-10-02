@@ -47,16 +47,37 @@ static int graph_vram_allocate(int width,int height,int psm,int alignment) {
     return 0;
 }
 #include "depth.inc"
+static const int font = 1;
+static const int * s_texConchars = &font;
+constexpr int kGlyphSize = 8;
+constexpr int kUiBrightness = 128;
+namespace ps2::gs {
+static video::Mode glyphMode;
+static float gx,gy,gw,gh;
+static int glyphCalls;
+static void SetTextureFor2D(const int &) {}
+static void DrawTexturedRect(int x,int y,int w,int h,int u0,int v0,int u1,int v1,int brightness) {
+    assert(brightness==128 && u1-u0==8 && v1-v0==8);
+    gx=video::UiX(static_cast<float>(x),glyphMode);
+    gy=video::UiY(static_cast<float>(y),glyphMode);
+    gw=video::UiX(static_cast<float>(w),glyphMode);
+    gh=video::UiY(static_cast<float>(h),glyphMode);
+    ++glyphCalls;
+}
+}
+#include "glyph.inc"
 int main() {
     using namespace ps2::video;
     for(bool pal:{false,true}) {
         const Mode a=Select(0,pal), l=Select(1,pal), i=Select(2,pal), p=Select(3,pal);
         assert(a.height==(pal?512:448));
-        assert(l.height==224 && l.uiHeight==448 && !l.interlaced && !l.filtered);
+        assert(l.height==224 && l.uiHeight==224 && !l.interlaced && !l.filtered);
         assert(i.height==448 && i.interlaced && i.filtered);
         assert(p.height==480 && p.uiHeight==480 && !p.interlaced && !p.filtered && p.frameMode);
         assert(!a.frameMode && !i.frameMode && !l.frameMode);
-        assert(UiY(448,l)==224 && UiY(224,l)==112 && UiY(8,l)==4);
+        assert(UiY(224,l)==224 && UiY(112,l)==112 && UiY(8,l)==8);
+        assert(UiWidth(l)==320 && UiX(320,l)==640 && UiX(8,l)==16);
+        assert(UiWidth(a)==640 && UiX(640,a)==640);
         assert(UiY(480,p)==480 && UiY(448,i)==448);
     }
     assert(Select(NAN,false).index==0 && Select(-1,true).height==512 && Select(99,false).index==0);
@@ -73,11 +94,26 @@ int main() {
         if(height==224 || height==480) assert(lastPageEnd>640*height/2);
         else assert(allocationHeight==height);
     }
+    for(int mode:{0,1,2,3}) {
+        ps2::gs::glyphMode=Select(static_cast<float>(mode),false);
+        DrawGlyph(24,32,'A');
+        assert(ps2::gs::gh==8); // No font rows dropped in any output mode.
+        assert(ps2::gs::gw==(mode==1?16:8));
+        assert(ps2::gs::gy==32 && ps2::gs::gx==(mode==1?48:24));
+    }
+    const int calls=ps2::gs::glyphCalls;
+    DrawGlyph(0,-8,'A'); DrawGlyph(0,0,' ');
+    assert(ps2::gs::glyphCalls==calls);
+    viddef.width=320; viddef.height=224;
     vars["fov"]={100,2};
     PS2_VideoMenuInit(); PS2_VideoMenuDraw();
     assert(draws==1 && writes==0 && s_video_fov.curvalue==3 && vars["fov"].flags==3);
     for(const auto & v:vars) assert(v.second.flags&CVAR_ARCHIVE);
     assert(s_video_brightness.curvalue==5);
+    for(int n=0;n<s_video_menu.nitems;++n) {
+        const auto * item=static_cast<menucommon_s *>(s_video_menu.items[n]);
+        assert(std::strlen(item->name)<=16);
+    }
     s_video_menu.cursor=0; PS2_VideoMenuKey(K_RIGHTARROW);
     assert(vars["ps2_video_mode"].value==1);
     s_video_menu.cursor=1; PS2_VideoMenuKey(K_RIGHTARROW);

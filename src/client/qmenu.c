@@ -424,7 +424,16 @@ void Menu_DrawStatusBar(const char * string)
         int l = strlen(string);
         int maxrow = viddef.height / 8;
         int maxcol = viddef.width / 8;
-        int col = maxcol / 2 - l / 2;
+        int col;
+        char clipped[128];
+        if (l > maxcol && maxcol > 3 && maxcol < (int)sizeof(clipped))
+        {
+            memcpy(clipped, string, maxcol - 3);
+            memcpy(clipped + maxcol - 3, "...", 4);
+            string = clipped;
+            l = maxcol;
+        }
+        col = maxcol / 2 - l / 2;
 
         re.DrawFill(0, viddef.height - 8, viddef.width, 8, 4);
         Menu_DrawString(col * 8, viddef.height - 8, string);

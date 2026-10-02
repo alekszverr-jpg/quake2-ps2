@@ -34,6 +34,7 @@ int Width();
 int Height();
 // Logical 2D height; UI is scaled to the physical framebuffer by the GS path.
 int UiHeight();
+int UiWidth();
 
 // GS drawing context (0 or 1) being rendered into this frame. The 3D path
 // needs it for every context-indexed register it touches (TEX0/TEX1/TEST and

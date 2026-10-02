@@ -1,7 +1,7 @@
 # Quake II for PlayStation 2
 
 [![Build](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml/badge.svg)](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml)
-[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.101-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
+[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.102-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](LICENSE)
 
 An active continuation of the unofficial Quake II port for the Sony
@@ -210,8 +210,9 @@ saves changed settings to `baseq2/config.cfg`. Restore defaults resets VIDEO.
 Output mode options are Auto (the previous NTSC/PAL behavior), 240p (640x224
 active area), 480i (640x448 active area) and 480p (640x480). Save with Back and
 fully restart the game to apply output changes. All other VIDEO controls are
-live. In 240p, the HUD, menus, console and cinematics share the usual logical
-640x448 layout and scale vertically to the 224-line buffer.
+live. In 240p, the HUD, menus, console and cinematics share the native logical
+320x224 layout: font rows stay intact and horizontal coordinates scale to the
+640-pixel framebuffer. The HUD has an eight-line bottom safe area.
 
 For benchmark comparisons, use the same output mode, FOV and brightness.
 Runtime display/UI/persistence validation of the new modes is still pending.

@@ -16,6 +16,10 @@ gs_source = (root / "src/ps2/renderer/gs.cpp").read_text()
 depth = re.search(r"^int AllocateDepthBuffer\(.*?^\}", gs_source, re.M | re.S)
 if not depth: raise RuntimeError("AllocateDepthBuffer")
 (out / "depth.inc").write_text(depth.group(0))
+ref_source = (root / "src/ps2/renderer/ref.cpp").read_text()
+glyph = re.search(r"^void DrawGlyph\(.*?^\}", ref_source, re.M | re.S)
+if not glyph: raise RuntimeError("DrawGlyph")
+(out / "glyph.inc").write_text(glyph.group(0))
 binary = out / ("test.exe" if os.name == "nt" else "test")
 flags = [] if os.name == "nt" else ["-fsanitize=address,undefined"]
 subprocess.run([os.environ.get("CXX", "g++"), "-std=c++17", "-Wall", "-Wextra", "-Werror", *flags,

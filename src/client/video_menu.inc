@@ -61,11 +61,11 @@ void PS2_VideoMenuInit(void)
     static const char * yesno[] = {"off","on",NULL};
     static const char * modes[] = {"auto (NTSC/PAL)","240p (640x224)","480i (640x448)","480p (640x480)",NULL};
     static const char * angles[] = {"70","80","90","100","110","120",NULL};
-    static const char * names[] = {"world dynamic lights","world mipmapping","screen color effects","show FPS"};
+    static const char * names[] = {"world lighting","mipmapping","color effects","show FPS"};
     static const char * hints[] = {
-        "Projectile light on walls and moving doors",
+        "Projectile light on walls and doors",
         "Reduces texture shimmer in the distance",
-        "Water tint, damage and pickup color flashes",
+        "Water, damage and pickup color flashes",
         "Display the FPS counter during gameplay"
     };
     unsigned i;
@@ -80,13 +80,13 @@ void PS2_VideoMenuInit(void)
     for (i = 0; i < sizeof(video_cvars)/sizeof(video_cvars[0]); ++i)
         Cvar_Get(video_cvars[i],video_defaults[i],CVAR_ARCHIVE);
     s_video_menu.x = viddef.width/2;
-    s_video_menu.statusbar = "Left/Right: change; Back: save and return";
+    s_video_menu.statusbar = "Left/Right: change; Back: save";
     s_video_mode.generic.type = MTYPE_SPINCONTROL;
     s_video_mode.generic.name = "video mode";
     s_video_mode.generic.callback = VideoModeChanged;
     s_video_mode.itemnames = modes;
     s_video_mode.curvalue = (int)VideoClamp(Cvar_VariableValue("ps2_video_mode"),0,3);
-    s_video_mode.generic.statusbar = "Save with Back, then restart game to apply";
+    s_video_mode.generic.statusbar = "Back: save; restart game to apply";
     Menu_AddItem(&s_video_menu,&s_video_mode);
     s_video_fov.generic.type = MTYPE_SPINCONTROL;
     s_video_fov.generic.name = "field of view"; s_video_fov.generic.y = 12;

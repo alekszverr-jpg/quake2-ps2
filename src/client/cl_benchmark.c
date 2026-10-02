@@ -191,6 +191,7 @@ static void Line(int y, const char * text)
     int i;
     int x = (viddef.width - 320) / 2 + 8;
     y += (viddef.height - 240) / 2;
+    if (viddef.width <= 320) x = 0;
     for (i = 0; text[i]; ++i)
         re.DrawChar(x + i * 8, y, text[i]);
 }
@@ -201,7 +202,7 @@ void CL_BenchmarkDraw(void)
     int base = comparison && (detailPage == 2 || detailPage == 4 || detailPage == 6) ? BENCH_GROUP : 0;
     char text[80];
     re.DrawFill(0, 0, viddef.width, viddef.height, 0);
-    Line(25, "QUAKE II - BENCHMARK " PS2_BUILD_VERSION);
+    Line(25, viddef.width <= 320 ? "BENCHMARK " PS2_BUILD_VERSION : "QUAKE II - BENCHMARK " PS2_BUILD_VERSION);
     if (lightProfile && detailPage >= 5)
     {
         static const char * labels[] = {

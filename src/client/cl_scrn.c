@@ -997,6 +997,7 @@ void SCR_ExecuteLayoutString(char * s)
         {
             token = COM_Parse(&s);
             y = viddef.height + atoi(token);
+            if (viddef.width == 320 && viddef.height == 224) y -= 8;
             continue;
         }
         if (!strcmp(token, "yv"))

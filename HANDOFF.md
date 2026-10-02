@@ -27,6 +27,23 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
+## Alpha.102 native240p UI correction
+
+User101 screenshots now show valid HUD/font palettes, but characters missing
+half their rows and HUD too low. Replace low mode UI logical640x448->320x224;
+physical GS remains640x224. UiX multiplies2, UiY now1: eight font rows retained,
+HUD/pics become native height instead of decimated. Physical pixel aspect
+compensated horizontally. Ref viddef uses UiWidth/UiHeight; GS 3D clear,
+projection/offset/scissor retain640x224. Cameraaspect320/224 equals old640/448.
+Bottom yb HUD anchors get8-line safe area only at320x224. Game menu x32 instead
+of halfwidth, VIDEO labels/hints shortened to fit40chars; long status clipped
+withellipsis; benchmark title shorter and x0 inlowmode. Most benchmark rows
+already fit40columns; do not rescale font to4rows again.
+Tests exercise extracted actualDrawGlyph against mode coordinate mapping,
+retained8-row glyph heights, whitespace/top clipping, native menu labels and
+previous frame/depth-page tests. Runtime pending240p Game/VIDEO/HUD/crosshair/
+console and480i/480p controls. User has not reported101480p result yet.
+
 ## Alpha.101 correction after first VIDEO runtime feedback
 
 User screenshots:240p world visible but HUD/crosshair/FPS text black rectangles;

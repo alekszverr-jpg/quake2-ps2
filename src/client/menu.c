@@ -2335,7 +2335,7 @@ void Game_MenuInit(void)
       0
     };
 
-    s_game_menu.x = viddef.width * 0.50;
+    s_game_menu.x = viddef.width <= 320 ? 32 : viddef.width * 0.50;
     s_game_menu.nitems = 0;
 
     s_easy_game_action.generic.type = MTYPE_ACTION;

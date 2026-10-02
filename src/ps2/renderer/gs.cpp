@@ -179,6 +179,7 @@ inline RenderPacket & FramePacket()
 int Width()  { return kWidth; }
 int Height() { return s_height; }
 int UiHeight() { return s_videoMode.uiHeight; }
+int UiWidth() { return video::UiWidth(s_videoMode); }
 
 int CurrentContext()
 {
@@ -457,10 +458,10 @@ void FillRect(int x, int y, int w, int h, u8 r, u8 g, u8 b, u8 a)
     pkt.EnsureSpace(64);
 
     rect_t rect;
-    rect.v0.x = static_cast<float>(x);
+    rect.v0.x = video::UiX(static_cast<float>(x), s_videoMode);
     rect.v0.y = video::UiY(static_cast<float>(y), s_videoMode);
     rect.v0.z = 0u;
-    rect.v1.x = static_cast<float>(x + w);
+    rect.v1.x = video::UiX(static_cast<float>(x + w), s_videoMode);
     rect.v1.y = video::UiY(static_cast<float>(y + h), s_videoMode);
     rect.v1.z = 0u;
     rect.color.r = r;
@@ -913,12 +914,12 @@ void DrawTexturedRect(int x, int y, int w, int h,
     pkt.EnsureSpace(8);
 
     texrect_t rect;
-    rect.v0.x = static_cast<float>(x);
+    rect.v0.x = video::UiX(static_cast<float>(x), s_videoMode);
     rect.v0.y = video::UiY(static_cast<float>(y), s_videoMode);
     rect.v0.z = 0u;
     rect.t0.u = static_cast<float>(u0);
     rect.t0.v = static_cast<float>(v0);
-    rect.v1.x = static_cast<float>(x + w);
+    rect.v1.x = video::UiX(static_cast<float>(x + w), s_videoMode);
     rect.v1.y = video::UiY(static_cast<float>(y + h), s_videoMode);
     rect.v1.z = 0u;
     rect.t1.u = static_cast<float>(u1);

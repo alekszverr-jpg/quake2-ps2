@@ -6,6 +6,21 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.102 - 2026-10-02 (local test build)
+
+- Replace 240p's vertically downsampled640x448 UI with a native320x224 logical
+  canvas. Scale X to the640-pixel framebuffer while retaining all8 font rows;
+  apply the same transform to fills, pictures, HUD, console and cinematics.
+  Preserve physical3D dimensions and the previous view aspect/FOV ratio.
+- Move bottom-anchored HUD elements eight native lines up in240p for safe area.
+  Fit Game actions from the left and shorten VIDEO labels/hints for40 columns.
+  Clip overly long status hints with ellipsis; use a compact benchmark title
+  and remove its unnecessary left inset at320 width. Numeric tables retained.
+- Test the production DrawGlyph submission and full8-row coverage at all modes,
+  native canvas transform, menu labels and previous depth-page allocation fix.
+- User confirmed palettes are visible after101 but reported unreadable240p
+  characters and low HUD. This layout replacement awaits runtime validation.
+
 ## 0.1.0-alpha.101 - 2026-10-02 (local test build)
 
 - Reserve the full 64-line page grid of Z16S depth storage in 224p and 480p.

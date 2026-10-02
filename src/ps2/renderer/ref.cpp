@@ -388,7 +388,7 @@ qboolean PS2_RefInit(void * hinstance, void * wndproc)
     // sets a real one before the first frame; this covers stray draws).
     ps2::cin::SetPalette(nullptr);
 
-    viddef.width  = ps2::gs::Width();
+    viddef.width  = ps2::gs::UiWidth();
     viddef.height = ps2::gs::UiHeight();
 
     Com_Printf("PS2 refresh initialised: %dx%d\n", viddef.width, viddef.height);
