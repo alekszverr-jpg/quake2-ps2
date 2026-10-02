@@ -8,19 +8,19 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.100 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.101 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.100` (PROFILE CI and host tests passed; VIDEO/output runtime validation pending)
-- Current implementation commit: `4c4dc4d`
-  (`Add VIDEO settings and startup 240p 480i 480p output with scaled UI`)
+- Current source/test version: `0.1.0-alpha.101` (PROFILE CI and host tests passed; depth-page fix runtime validation pending)
+- Current implementation commit: `578c671`
+  (`Reserve complete depth pages for 240p and 480p and use progressive frame mode`)
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.100 local PROFILE ELF SHA-256 (7,775,764 bytes):
-  `59392684BA75D3087D0B4209805C138A263C6B5D2741B326C147CEC8D351029C`
-- CI `36971605863` passed all host sanitizer tests, map validation and PROFILE build for `4c4dc4d`.
+- Alpha.101 local PROFILE ELF SHA-256 (7,777,464 bytes):
+  `E67C682D5E2F38F595074507C11A2C54C23AEE8F1B6E232A62BF5360A18A8794`
+- CI `36972968419` passed all host sanitizer tests, map validation and PROFILE build for `578c671`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
@@ -42,6 +42,8 @@ unchanged. Set480p FFMD FRAME following official gsKit modetest:
 https://github.com/ps2dev/gsKit/blob/master/examples/modetest/modetest.c
 Small centred480p output may include emulator scaling; no claim of reproduced
 geometry/viewport corruption. Asked user whether geometry wrong or only fields.
+CI36972968419 passed all host sanitizer checks/map validation/PROFILE build.
+Installed7,777,464-byte ELF in both roots, matching CI SHA and embeddedAlpha.101.
 Runtime confirmation pending after repaired build, including HUD/font/crosshair
 and480p dimensions. Existing 240p logical UI scaling retained.
 

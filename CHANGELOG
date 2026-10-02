@@ -19,6 +19,8 @@ Development priorities and completion criteria are tracked in
 - Test the production depth allocator against every touched page of all four
   heights; demonstrate the old224/480 allocations undercount and448/512 retain
   their prior size. Recheck menu defaults/archive callbacks and UI scaling.
+- CI36972968419 passed all host sanitizer tests, map validation and PROFILE build.
+  Alpha.101 installed in both roots with identical CI hashes/version checked.
 - User reported black HUD/font rectangles in240p and480p in PCSX2; hardware
   was not tested. Small480p image/black borders remain pending verification.
 
