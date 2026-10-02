@@ -1284,9 +1284,8 @@ void CL_AddViewWeapon(player_state_t * ps, player_state_t * ops)
     if (!cl_gun->value)
         return;
 
-    // don't draw gun if in wide angle view
-    if (ps->fov > 90)
-        return;
+    // VIDEO supports FOV 70..120. Keep the view weapon at wider angles;
+    // cl_gun remains the explicit opt-out.
 
     memset(&gun, 0, sizeof(gun));
 

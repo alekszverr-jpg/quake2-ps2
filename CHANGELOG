@@ -6,6 +6,16 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.103 - 2026-10-02 (local test build)
+
+- Keep the first-person weapon visible at the VIDEO menu's FOV100/110/120.
+  Remove the legacy client early return for FOV above90; retain explicit
+  cl_gun0 suppression and missing-model handling. Renderer geometry unchanged.
+- Regression-test production CL_AddViewWeapon at all six menu FOV values,
+  model/animation/depth flags and the explicit disabled/missing-model cases.
+- User's weapon-missing screenshot/config showed FOV100 and240p. Native UI
+  appears intact, but complete UI/hardware acceptance is not yet claimed.
+
 ## 0.1.0-alpha.102 - 2026-10-02 (local test build)
 
 - Replace 240p's vertically downsampled640x448 UI with a native320x224 logical

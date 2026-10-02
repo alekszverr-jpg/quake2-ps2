@@ -27,6 +27,17 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
+## Alpha.103 view weapon at menu FOV values
+
+User reported missing weapon after102. Read test config only targeted values:
+fov100, ps2_video_mode1, hand0. Confirmed client CL_AddViewWeapon explicitly
+returned forps->fov>90, regardless of output resolution. Remove only thatlegacy
+wide-view suppression; retaincl_gun0 and missingmodel exits. No renderer changes.
+Tests extract actualproduction CL_AddViewWeapon, verify submission for70/80/90/
+100/110/120, model/animation flags and disabled/missingmodels. Config unchanged.
+Runtime pending weaponvisible at100..120 in240p andothermodes. User102screenshot
+shows readableFPS/HUD; no explicit full240pUI/480p/hardware acceptance yet.
+
 ## Alpha.102 native240p UI correction
 
 User101 screenshots now show valid HUD/font palettes, but characters missing

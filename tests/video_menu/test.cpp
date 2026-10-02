@@ -66,6 +66,22 @@ static void DrawTexturedRect(int x,int y,int w,int h,int u0,int v0,int u1,int v1
 }
 }
 #include "glyph.inc"
+struct model_s {};
+struct player_state_t { float fov; int gunindex,gunframe; float gunoffset[3],gunangles[3]; };
+struct entity_t { model_s * model; float origin[3],angles[3],oldorigin[3]; int frame,oldframe,flags; float backlerp; };
+static struct { model_s * model_draw[4]; struct {float vieworg[3],viewangles[3];} refdef; float lerpfrac; } cl;
+static Var gunCvar = {1,0};
+static Var * cl_gun = &gunCvar;
+static model_s * gun_model;
+static int gun_frame, weaponCalls;
+static entity_t lastWeapon;
+#define RF_MINLIGHT 1
+#define RF_DEPTHHACK 2
+#define RF_WEAPONMODEL 4
+static float LerpAngle(float a,float b,float f) {return a+(b-a)*f;}
+#define VectorCopy(a,b) std::memcpy(b,a,sizeof(float)*3)
+static void V_AddEntity(const entity_t * e) {lastWeapon=*e; ++weaponCalls;}
+#include "weapon.inc"
 int main() {
     using namespace ps2::video;
     for(bool pal:{false,true}) {
@@ -104,6 +120,21 @@ int main() {
     const int calls=ps2::gs::glyphCalls;
     DrawGlyph(0,-8,'A'); DrawGlyph(0,0,' ');
     assert(ps2::gs::glyphCalls==calls);
+    viddef.width=320; viddef.height=224;
+    model_s weaponModel;
+    cl.model_draw[1]=&weaponModel; cl.lerpfrac=0.5f;
+    player_state_t ps={}, ops={}; ps.gunindex=1; ps.gunframe=2; ops.gunframe=1;
+    for(int fov:{70,80,90,100,110,120}) {
+        ps.fov=static_cast<float>(fov);
+        const int before=weaponCalls;
+        CL_AddViewWeapon(&ps,&ops);
+        assert(weaponCalls==before+1 && lastWeapon.model==&weaponModel);
+        assert(lastWeapon.flags==(RF_MINLIGHT|RF_DEPTHHACK|RF_WEAPONMODEL));
+        assert(lastWeapon.frame==2 && lastWeapon.oldframe==1 && lastWeapon.backlerp==0.5f);
+    }
+    const int before=weaponCalls;
+    gunCvar.value=0; CL_AddViewWeapon(&ps,&ops); assert(weaponCalls==before);
+    gunCvar.value=1; cl.model_draw[1]=nullptr; CL_AddViewWeapon(&ps,&ops); assert(weaponCalls==before);
     viddef.width=320; viddef.height=224;
     vars["fov"]={100,2};
     PS2_VideoMenuInit(); PS2_VideoMenuDraw();
