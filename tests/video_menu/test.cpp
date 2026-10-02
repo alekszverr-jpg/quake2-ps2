@@ -35,6 +35,18 @@ static const char * Default_MenuKey(menuframework_s * m,int k) {
     return nullptr;
 }
 #include "client/video_menu.inc"
+// Emulate libgraph's linear allocator. The production depth allocation must
+// reserve every page touched by the swizzled Z16S pixel rectangle.
+#define GS_PSMZ_16S 58
+#define GRAPH_ALIGN_PAGE 2048
+#define PS2_AssertMsg(condition,message) assert(condition)
+static int allocationHeight;
+static int graph_vram_allocate(int width,int height,int psm,int alignment) {
+    assert(psm==GS_PSMZ_16S && alignment==2048 && width==640);
+    allocationHeight=height;
+    return 0;
+}
+#include "depth.inc"
 int main() {
     using namespace ps2::video;
     for(bool pal:{false,true}) {
@@ -42,11 +54,25 @@ int main() {
         assert(a.height==(pal?512:448));
         assert(l.height==224 && l.uiHeight==448 && !l.interlaced && !l.filtered);
         assert(i.height==448 && i.interlaced && i.filtered);
-        assert(p.height==480 && p.uiHeight==480 && !p.interlaced && !p.filtered);
+        assert(p.height==480 && p.uiHeight==480 && !p.interlaced && !p.filtered && p.frameMode);
+        assert(!a.frameMode && !i.frameMode && !l.frameMode);
         assert(UiY(448,l)==224 && UiY(224,l)==112 && UiY(8,l)==4);
         assert(UiY(480,p)==480 && UiY(448,i)==448);
     }
     assert(Select(NAN,false).index==0 && Select(-1,true).height==512 && Select(99,false).index==0);
+    for(int height:{224,448,480,512}) {
+        AllocateDepthBuffer(640,height);
+        const int reservedWords=640*allocationHeight/2;
+        int lastPageEnd=0;
+        for(int y=0;y<height;++y)
+            for(int x=0;x<640;++x) {
+                const int page=(y/64)*10+x/64;
+                if((page+1)*2048>lastPageEnd) lastPageEnd=(page+1)*2048;
+            }
+        assert(reservedWords==lastPageEnd);
+        if(height==224 || height==480) assert(lastPageEnd>640*height/2);
+        else assert(allocationHeight==height);
+    }
     vars["fov"]={100,2};
     PS2_VideoMenuInit(); PS2_VideoMenuDraw();
     assert(draws==1 && writes==0 && s_video_fov.curvalue==3 && vars["fov"].flags==3);
@@ -70,5 +96,5 @@ int main() {
     vars["fov"].value=999; vars["ps2_world_light_gamma"].value=-999;
     PS2_VideoMenuInit(); assert(s_video_fov.curvalue==5 && s_video_brightness.curvalue==9);
     assert(vars["fov"].value==999 && vars["ps2_world_light_gamma"].value==-999);
-    puts("Video menu callbacks, archival flags, Back/defaults and signal/UI mode tests passed");
+    puts("Video menu callbacks, archival flags, Back/defaults and signal/UI modes and non-overlapping depth page tests passed");
 }

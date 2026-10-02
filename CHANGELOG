@@ -6,6 +6,22 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.101 - 2026-10-02 (local test build)
+
+- Reserve the full 64-line page grid of Z16S depth storage in 224p and 480p.
+  The previous linear allocation missed40KiB, allowing the final depth pages
+  to overwrite fixed UI palette CLUTs and streamed textures. Preserve active
+  screen/scissor/clear dimensions and the existing logical 240p UI scaling.
+- Pass the complete GS_PSMZ_16S storage format to allocation while retaining
+  GS_ZBUF_16S in the drawing register; check allocation failure explicitly.
+- Set 480p frame/field mode to FRAME as in gsKit's progressive mode example.
+  Keep the centred640-pixel scanout window and auto/480i behavior unchanged.
+- Test the production depth allocator against every touched page of all four
+  heights; demonstrate the old224/480 allocations undercount and448/512 retain
+  their prior size. Recheck menu defaults/archive callbacks and UI scaling.
+- User reported black HUD/font rectangles in240p and480p in PCSX2; hardware
+  was not tested. Small480p image/black borders remain pending verification.
+
 ## 0.1.0-alpha.100 - 2026-10-02 (local test build)
 
 - Populate VIDEO with output mode, FOV, world brightness, dynamic world lights,

@@ -12,6 +12,10 @@ for signature in ["void Slider_DoSlide", "void SpinControl_DoSlide", "void Menu_
     if not match: raise RuntimeError(signature)
     functions.append(match.group(0))
 (out / "slide.inc").write_text("\n".join(functions))
+gs_source = (root / "src/ps2/renderer/gs.cpp").read_text()
+depth = re.search(r"^int AllocateDepthBuffer\(.*?^\}", gs_source, re.M | re.S)
+if not depth: raise RuntimeError("AllocateDepthBuffer")
+(out / "depth.inc").write_text(depth.group(0))
 binary = out / ("test.exe" if os.name == "nt" else "test")
 flags = [] if os.name == "nt" else ["-fsanitize=address,undefined"]
 subprocess.run([os.environ.get("CXX", "g++"), "-std=c++17", "-Wall", "-Wextra", "-Werror", *flags,

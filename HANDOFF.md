@@ -27,6 +27,24 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
+## Alpha.101 correction after first VIDEO runtime feedback
+
+User screenshots:240p world visible but HUD/crosshair/FPS text black rectangles;
+480p also black UI, small centred image on1920x953 screenshot. Not hardware-tested.
+Confirmed root cause: Z16S storage pages64x64, width640=10pages per row.
+Linear graph_vram_allocate(height224/480) under-reserved10240words=40KiB;
+last page row overlaps palettes/texture heap. AllocateDepthBuffer now rounds
+storage height64 and passesGS_PSMZ_16S (complete storage PSM, not register ZSM).
+Active height remains224/480; clear/scissor/projection unchanged. Host test
+extracts actual allocator, emulatesSDKlinearallocation and enumerates all
+pixel-page addresses for224/448/480/512. Old undercount shown, auto/480i size
+unchanged. Set480p FFMD FRAME following official gsKit modetest:
+https://github.com/ps2dev/gsKit/blob/master/examples/modetest/modetest.c
+Small centred480p output may include emulator scaling; no claim of reproduced
+geometry/viewport corruption. Asked user whether geometry wrong or only fields.
+Runtime confirmation pending after repaired build, including HUD/font/crosshair
+and480p dimensions. Existing 240p logical UI scaling retained.
+
 ## Alpha.100 VIDEO and output modes
 
 User changed scope from lighting optimization to the blank VIDEO menu and

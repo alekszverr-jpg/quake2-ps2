@@ -203,6 +203,17 @@ void SetClearColor(u8 r, u8 g, u8 b)
     s_clear[2] = b;
 }
 
+// Z16S pages are 64x64 pixels. libgraph counts linear pixels before
+// aligning the total size; that misses the final partial page row at 224/480.
+// Allocate using the full page grid, while scissor/clear retain active height.
+int AllocateDepthBuffer(int width, int height)
+{
+    const int storageHeight = (height + 63) & ~63;
+    const int address = graph_vram_allocate(width, storageHeight, GS_PSMZ_16S, GRAPH_ALIGN_PAGE);
+    PS2_AssertMsg(address >= 0, "Depth buffer exceeds GS VRAM");
+    return address;
+}
+
 void Init()
 {
     dma_channel_initialize(DMA_CHANNEL_GIF, nullptr, 0);
@@ -233,7 +244,7 @@ void Init()
     s_zbuffer.method  = ZTEST_METHOD_GREATER_EQUAL;
     s_zbuffer.mask    = 0;
     s_zbuffer.zsm     = GS_ZBUF_16S;
-    s_zbuffer.address = static_cast<unsigned int>(graph_vram_allocate(kWidth, s_height, GS_ZBUF_16S, GRAPH_ALIGN_PAGE));
+    s_zbuffer.address = static_cast<unsigned int>(AllocateDepthBuffer(kWidth, s_height));
 
     // Two fixed palette CLUTs: UI/effects use gamma only, while world/model
     // textures use ref_gl's intensity preprocessing as well. The streamed
@@ -250,7 +261,8 @@ void Init()
     const int signal = s_videoMode.index == 0 ? graph_get_region()
         : s_videoMode.index == 3 ? GRAPH_MODE_HDTV_480P : GRAPH_MODE_NTSC;
     graph_set_mode(s_videoMode.interlaced ? GRAPH_MODE_INTERLACED : GRAPH_MODE_NONINTERLACED,
-                   signal, GRAPH_MODE_FIELD, s_videoMode.filtered ? GRAPH_ENABLE : GRAPH_DISABLE);
+                   signal, s_videoMode.frameMode ? GRAPH_MODE_FRAME : GRAPH_MODE_FIELD,
+                   s_videoMode.filtered ? GRAPH_ENABLE : GRAPH_DISABLE);
     graph_set_screen(0, 0, kWidth, s_height);
     if (s_videoMode.index == 3)
     {
