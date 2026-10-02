@@ -200,3 +200,18 @@ port and its modifications remain under the GNU GPL version 2; see [LICENSE](LIC
   [glampert/quake2-ps2](https://github.com/glampert/quake2-ps2)
 - PlayStation 2 open-source toolchain:
   [PS2DEV](https://github.com/ps2dev)
+
+### VIDEO settings (Alpha.100)
+
+VIDEO offers FOV, world brightness, world dynamic lights, world mipmapping,
+screen colour effects and FPS. Left/Right changes the selected option; Back
+saves changed settings to `baseq2/config.cfg`. Restore defaults resets VIDEO.
+
+Output mode options are Auto (the previous NTSC/PAL behavior), 240p (640x224
+active area), 480i (640x448 active area) and 480p (640x480). Save with Back and
+fully restart the game to apply output changes. All other VIDEO controls are
+live. In 240p, the HUD, menus, console and cinematics share the usual logical
+640x448 layout and scale vertically to the 224-line buffer.
+
+For benchmark comparisons, use the same output mode, FOV and brightness.
+Runtime display/UI/persistence validation of the new modes is still pending.

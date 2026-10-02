@@ -19,6 +19,8 @@ Development priorities and completion criteria are tracked in
   console, cinematics, colour blends and overlays. 3D uses physical buffers.
 - Host tests exercise production sliders/spins, callback wiring, archival flags,
   Back/defaults, mode selection and low-resolution UI mapping. Runtime pending.
+- CI36971605863 passed all sanitizer tests, map validation and PROFILE build.
+  Alpha.100 installed in both roots with matching hashes/version strings.
 - Alpha.99 user comparison: ON38.05FPS/world12.20ms, OFF44.14FPS/world8.76ms,
   light cost3.62ms. Plane tests259.12 vs411.99 previously (~37% fewer);
   total improvement over Alpha.98 is too small to establish a speedup.

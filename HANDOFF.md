@@ -8,19 +8,19 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.99 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.100 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.99` (PROFILE CI and host tests passed; runtime surface-mask optimization pending)
-- Current implementation commit: `9de6953`
-  (`Reuse surface light masks across world and crack-seal passes within one context`)
+- Current source/test version: `0.1.0-alpha.100` (PROFILE CI and host tests passed; VIDEO/output runtime validation pending)
+- Current implementation commit: `4c4dc4d`
+  (`Add VIDEO settings and startup 240p 480i 480p output with scaled UI`)
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.99 local PROFILE ELF SHA-256 (7,762,344 bytes):
-  `2D7A5A78058A02C12E59A9CAE083C481926E2EFAE3BC39440BDE6AC6C4A907D7`
-- CI `36968832834` passed all host sanitizer tests, map validation and PROFILE build for `9de6953`.
+- Alpha.100 local PROFILE ELF SHA-256 (7,775,764 bytes):
+  `59392684BA75D3087D0B4209805C138A263C6B5D2741B326C147CEC8D351029C`
+- CI `36971605863` passed all host sanitizer tests, map validation and PROFILE build for `4c4dc4d`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
@@ -43,7 +43,11 @@ maps Y by0.5, so menus/HUD/console/cinematics/fades share one coordinate system.
 World projection/VU offset/clear/scissor retain physical Height(). Progressive
 scanout uses circuit2 without interlaced flicker filter; 480p DISPLAY window
 centred within libgraph720 timing and restricted640 pixels to avoid overread.
-PS2SDK graph mode source consulted for signal/display constants.
+PS2SDK graph mode source consulted for signal/display constants:
+https://github.com/ps2dev/ps2sdk/blob/master/ee/graph/src/graph_mode.c
+CI36971605863 passed, downloaded ELF installed in both roots, matching hashes
+and embedded version/menu strings checked. Full menu.c GNU89 syntax check passed.
+No hardware/emulator runtime claimed before user validation.
 Host tests production menu sliders/spins, callback/config wiring and mode/UI
 mapping. Runtime tests pending: VIDEO controls/defaults/persistence; restart
 for each video mode; HUD/console/main menu/benchmark/crosshair and water flashes
