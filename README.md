@@ -241,3 +241,8 @@ Alpha.106 also reuses indexed texture coordinates per MD2 draw, preserving UV
 seams, shell constants and the scalar fallback for oversized coordinate tables.
 Compare against Alpha.105 with identical VIDEO settings; new runtime results
 and visual skin/weapon validation are pending.
+
+Alpha.107 reuses exact shared BSP positions when preparing clip distances for
+cached subdivisions. Its8KiB scratch cache is invalidated per polygon, including
+moving brushes. Compare the ordinary benchmark FPS and World time against106
+with the same VIDEO settings; runtime performance and visual checks are pending.

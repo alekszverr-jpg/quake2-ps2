@@ -6,7 +6,7 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
-## 0.1.0-alpha.107 - 2026-10-03 (local test build)
+## 0.1.0-alpha.107 - 2026-10-04 (local test build)
 
 - Reuse guard-plane distances and outside masks for exact shared positions in
   cached BSP subdivisions. A bounded8KiB scratch cache is invalidated per polygon,
@@ -15,6 +15,11 @@ Development priorities and completion criteria are tracked in
 - Differential-test12,000 cached results against direct transforms, including
   moving contexts, colour/UV independence, collision replacement and epoch wrap.
   Runtime speed improvement and visual validation are pending.
+- Fetch VCL preprocessor submodules in CI; the current upstream tool requires
+  external/parse-utils and a shallow clone alone no longer builds it.
+- CI37146299810 passed all sanitizer tests, map validation and PROFILE build.
+  Installed matching7,834,800-byte Alpha.107 ELF in both roots; hash and embedded
+  version verified against downloaded artifact. Runtime comparison pending.
 - Alpha.106 normal benchmark39.27FPS/25.45ms; Tris/clip2.83ms vs105's2.87ms.
   Clean world-light compare: ON39.26FPS/25.47ms/world12.14ms,
   OFF45.86FPS/21.81ms/world8.70ms, cost3.66ms. Diagnostic light profile results

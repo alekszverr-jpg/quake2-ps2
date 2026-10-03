@@ -8,19 +8,19 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.106 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.107 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.106` (PROFILE CI and host tests passed; indexed UV runtime pending; Alpha.105 clipping accepted; Alpha.103 weapon/UI and supported TV modes accepted; 480p hardware unverified)
-- Current implementation commit: `8b05391`
-  (`Reuse indexed MD2 texture coordinates across triangle corners`)
+- Current source/test version: `0.1.0-alpha.107` (PROFILE CI and host tests passed; BSP clip-cache runtime pending; Alpha.105 clipping accepted; Alpha.103 weapon/UI and supported TV modes accepted; 480p hardware unverified)
+- Current implementation commit: `32aa233`
+  (`Reuse exact shared BSP positions during clipping preparation`); CI fix `b344f3e`.
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.106 local PROFILE ELF SHA-256 (7,832,408 bytes):
-  `7DDBB9A215C6563D0BD08188C45523640C038A5BBDE90950997C0C9C2C7C2335`
-- CI `37115435861` passed all host sanitizer tests, map validation and PROFILE build for `8b05391`.
+- Alpha.107 local PROFILE ELF SHA-256 (7,834,800 bytes):
+  `8B8B8A93AE81B62A1AACD4D1D4D033522BAFF2E7C516740E88B548C5B409EDF8`
+- CI `37146299810` passed all host sanitizer tests, map validation and PROFILE build for `b344f3e`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
@@ -39,6 +39,10 @@ transforms retain their direct path. Geometry order, dynamic-light subdivision,
 flowing coordinates and crack-seal pass unchanged.12,000 results match direct
 distances/masks, including context changes, collisions, colour/UV changes and wrap.
 Runtime comparison and visible edges/doors/sky checks required before acceptance.
+First CI37146185534 failed before compiling the game: upstream vclpp now needs
+external/parse-utils. CI clone now uses --recurse-submodules (b344f3e); repeat
+CI37146299810 passed all checks and PROFILE build. Installed7,834,800-byte ELF
+in both test roots, matching downloaded SHA256 and embedded107. No release made.
 
 ## Alpha.106 indexed texture coordinates (runtime results received)
 
