@@ -6,6 +6,22 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.105 - 2026-10-03 (local test build)
+
+- Reuse six guard-plane distances and packed colours per unique MD2 vertex for
+  weapons, shells and translucent models. Classify triangles with cached masks;
+  emit fully inside triangles directly, reject common-plane outside triangles,
+  and retain the exact generic six-plane clipper for crossing triangles.
+- Keep NPOT skin texel-centre coordinates, shell UVs, interpolated colours,
+  translucency, triangle order and batch boundaries. Opaque model path unchanged.
+  Use one bounded64KiB static cache shared between entities; no heap allocation.
+- Differential-test32,000 triangles against production generic clipping,
+  including shared vertices, epsilon/near-plane boundaries, alpha and flushes.
+  Tests compare complete emitted vertices/statistics and count shared transforms.
+- Alpha.104 user's profile baseline: Setup/cull1.36ms, Lighting0.17ms,
+  Verts~1.02ms, Tris/clip3.78ms, Submit1.31..1.33ms. Runtime Alpha.105 comparison
+  and visual checks still pending; no FPS gain claimed from host tests.
+
 ## 0.1.0-alpha.104 - 2026-10-03 (local test build)
 
 - Add GAME -> model profile (3 runs), preserving world lighting/cache settings

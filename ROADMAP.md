@@ -134,7 +134,8 @@ play on a retail console.
 - [~] Validate GS completion barriers for streamed textures under zero-free-VRAM churn
 - [~] Add release builds with permanent profiling/diagnostics disabled
 - [x] Profile and optimize first-pass model interpolation and BSP lighting
-- [~] MD2 phase/count benchmark, including view weapon (Alpha.104; runtime results pending)
+- [x] MD2 phase/count benchmark, including view weapon (Alpha.104; stable three-run profile received)
+- [~] Reuse indexed MD2 clipping distances/colours and emit inside triangles directly (Alpha.105; host differential tests passed, runtime pending)
 - [~] Validate long sessions for EE RAM, IOP RAM and VRAM leaks
 - [ ] Target a stable 30 FPS minimum, with 60 FPS where practical
 

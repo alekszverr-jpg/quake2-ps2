@@ -45,6 +45,9 @@ jobs:
         run: |
           python3 tests/benchmark/run.py
 
+      - name: Check indexed MD2 clipping against generic clipper
+        run: python3 tests/alias_clip/run.py
+
       - name: Check MD2 diagnostic phase accounting on host
         run: python3 tests/model_profile/run.py
 

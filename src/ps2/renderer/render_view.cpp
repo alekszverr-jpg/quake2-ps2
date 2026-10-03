@@ -821,6 +821,16 @@ struct alignas(16) ClipVertex
 };
 static_assert(sizeof(ClipVertex) == 96, "ClipVertex must be exactly six quadwords");
 
+// Reused for one MD2 at a time; 32 bytes per maximum indexed vertex (64 KiB).
+// The spare distance lanes instead retain the packed colour and outside mask.
+struct alignas(16) AliasClipData {
+    float distances[kNumClipPlanes];
+    u32 packedColor;
+    u32 outsideMask;
+};
+static_assert(sizeof(AliasClipData) == 32, "Bound MD2 clipping scratch storage");
+static AliasClipData s_aliasClipData[MAX_VERTS];
+
 void SetClipDistances(ClipVertex & vertex, const math::Mat4 & mvp);
 
 // Camera-independent output of adaptive BSP lighting. Position.w and st.zw are
@@ -2618,6 +2628,76 @@ math::Vec4 AliasVertexColor(const math::Vec3 & modelLight,
     };
 }
 
+// Transform shared MD2 positions once, preserving the exact guard/epsilon tests.
+void PrepareAliasClipData(int vertexCount, const math::Mat4 & mvp)
+{
+    for (int i = 0; i < vertexCount; ++i) {
+        const PreparedAliasVertex & vertex = s_preparedAliasVerts[i];
+        AliasClipData & out = s_aliasClipData[i];
+        ClipDists distances;
+        SetClipDistances(distances, vertex.pos, mvp);
+        out.outsideMask = 0;
+        for (int p = 0; p < kNumClipPlanes; ++p) {
+            out.distances[p] = distances.f[p];
+            // Use the complement of >=, matching the old path even for NaNs.
+            if (!(distances.f[p] >= 0.0f)) out.outsideMask |= 1u << p;
+        }
+        out.packedColor = PackFloatColor(vertex.color);
+    }
+}
+
+void SubmitAliasTriangle(const dtriangle_t & triangle, const dstvert_t * stVerts,
+                         int vertexCount, int stCount, float invSkinW, float invSkinH,
+                         bool shell, const math::Mat4 & mvp,
+                         const tex::Texture & texture, bool translucent)
+{
+    u32 anyOutside = 0, allOutside = (1u << kNumClipPlanes) - 1u;
+    for (int corner = 0; corner < 3; ++corner) {
+        const int index = triangle.index_xyz[corner];
+        PS2_Assert(index >= 0 && index < vertexCount);
+        PS2_Assert(triangle.index_st[corner] >= 0 && triangle.index_st[corner] < stCount);
+        anyOutside |= s_aliasClipData[index].outsideMask;
+        allOutside &= s_aliasClipData[index].outsideMask;
+    }
+    if (allOutside != 0) {
+        PS2_STAT_INC(trisCulled);
+        return;
+    }
+    if (anyOutside == 0) {
+        if (s_scratchVertCount + 3 > kScratchMaxVerts) FlushScratch(mvp, texture, translucent);
+        for (int corner = 0; corner < 3; ++corner) {
+            const int index = triangle.index_xyz[corner];
+            const PreparedAliasVertex & prepared = s_preparedAliasVerts[index];
+            const dstvert_t & st = stVerts[triangle.index_st[corner]];
+            vu1::DrawVertex & out = s_scratchVerts[s_scratchVertCount++];
+            out.x = prepared.pos.x; out.y = prepared.pos.y; out.z = prepared.pos.z; out.w = 1.0f;
+            const u32 color = s_aliasClipData[index].packedColor;
+            out.rgba = s_surfaceLightMask != 0 ? AddWorldLights(color, prepared.pos) : color;
+            out.s = shell ? 0.5f : (static_cast<float>(st.s) + 0.5f) * invSkinW;
+            out.t = shell ? 0.5f : (static_cast<float>(st.t) + 0.5f) * invSkinH;
+            out.q = 1.0f;
+        }
+        PS2_STAT_INC(trisDrawn);
+        return;
+    }
+    // Only boundary-crossing triangles need the full interpolation payload.
+    ClipVertex corners[3] = {};
+    for (int corner = 0; corner < 3; ++corner) {
+        const int index = triangle.index_xyz[corner];
+        const PreparedAliasVertex & prepared = s_preparedAliasVerts[index];
+        const dstvert_t & st = stVerts[triangle.index_st[corner]];
+        corners[corner].pos = prepared.pos;
+        corners[corner].color = prepared.color;
+        corners[corner].st = {
+            shell ? 0.5f : (static_cast<float>(st.s) + 0.5f) * invSkinW,
+            shell ? 0.5f : (static_cast<float>(st.t) + 0.5f) * invSkinH, 0.0f, 0.0f
+        };
+        for (int p = 0; p < kNumClipPlanes; ++p)
+            corners[corner].d.f[p] = s_aliasClipData[index].distances[p];
+    }
+    SubmitWorldTriangle(corners, mvp, texture, translucent);
+}
+
 void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model,
                     const refdef_t & viewDef)
 {
@@ -2783,43 +2863,10 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model,
     PS2_Assert(s_scratchVertCount == 0);
     if (clipAlias)
     {
+        PrepareAliasClipData(md2->num_xyz, mvp);
         for (int t = 0; t < md2->num_tris; ++t)
-        {
-            ClipVertex corners[3] = {};
-            for (int corner = 0; corner < 3; ++corner)
-            {
-                const int vertexIndex = triangles[t].index_xyz[corner];
-                const int stIndex     = triangles[t].index_st[corner];
-                PS2_Assert(vertexIndex >= 0 && vertexIndex < md2->num_xyz);
-                PS2_Assert(stIndex >= 0 && stIndex < md2->num_st);
-
-                const PreparedAliasVertex & prepared =
-                    s_preparedAliasVerts[vertexIndex];
-                const dstvert_t & st = stVerts[stIndex];
-                ClipVertex & out = corners[corner];
-                out.pos = prepared.pos;
-                out.color = prepared.color;
-                // MD2 glcmds sample texel centres. The GS extent is rounded
-                // up for NPOT skins, hence pixel coordinates divide by it.
-                out.st = {
-                    shell ? 0.5f : (static_cast<float>(st.s) + 0.5f) * invGsSkinW,
-                    shell ? 0.5f : (static_cast<float>(st.t) + 0.5f) * invGsSkinH,
-                    0.0f,
-                    0.0f
-                };
-
-                // Expanded shells, like view weapons, can cross the near plane.
-                // MD2s used to rely on the VU's whole-triangle guard rejection.
-                // That hid the missing near-plane clipping until view weapons
-                // received their proper, smaller depth-hack projection: a
-                // vertex close to w=0 then survived and exploded after the
-                // perspective divide. Feed view weapons through the same
-                // six-plane EE clipper as the BSP world, interpolating position,
-                // texture coordinates and lighting at every cut.
-                SetClipDistances(out, mvp);
-            }
-            SubmitWorldTriangle(corners, mvp, texture, translucent);
-        }
+            SubmitAliasTriangle(triangles[t], stVerts, md2->num_xyz, md2->num_st,
+                                invGsSkinW, invGsSkinH, shell, mvp, texture, translucent);
     }
     else
     {

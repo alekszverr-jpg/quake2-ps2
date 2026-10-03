@@ -27,7 +27,25 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.104 MD2 diagnostic benchmark (runtime pending)
+## Alpha.105 indexed clipping optimization (runtime pending)
+
+Generic clipping already had an inside fast path; repeated matrix transforms,
+colour packing, distance tests and full ClipVertex payload construction per MD2
+corner remained. New path prepares six exact distances, packed colour and mask
+once per unique vertex, only for clipAlias (weapon/shell/translucent). Common
+outside masks reject; all-inside emits directly; crossings reconstruct the same
+payload and use unchanged SubmitWorldTriangle. Preserve NPOT UVs, shell UVs,
+world-light modulation behavior, alpha, source order and batch boundaries.
+One static AliasClipData[MAX_VERTS] cache is64KiB, reused immediately per model,
+no heap/per-level allocation. Original opaque path and all matrices untouched.
+Preparation remains in the profiler Tris/clip phase for comparison with104.
+32,000 differential triangles match production generic emitted vertices/stats/
+batches with near/epsilon crossings, shared indices and alpha. Host transforms
+are counted to prove unique reuse, not to infer hardware speedup.
+Need ordinary benchmark, MD2 profile and visual weapon/near-wall/motion tests
+at same mode/FOV/lights as104 before accepting performance/rendering changes.
+
+## Alpha.104 MD2 diagnostic benchmark (runtime screenshot received)
 
 User agreed to model profiling before further optimization. GAME -> model profile
 (3 runs) uses the same loading-excluded demo1 range, preserves world lights/cache,
@@ -45,7 +63,10 @@ Host coordinator tests validate restoration, old light pages and 320x224 bounds;
 new model_profile test exercises real FlushScratch and deterministic clocks.
 CI37112580663 passed all sanitizer/map/PROFILE checks; installed7,819,772-byte
 ELF inbothroots matchingdownload/hash and embeddedAlpha.104/MD2 profile strings.
-Runtime profile screenshots still required; do not claim speed improvement.
+User screenshot: Setup/cull1.36ms, Lighting0.17ms, Verts~1.02ms,
+Tris/clip3.78ms, Submit1.32/1.31/1.33ms; Models26.24/Culled12.39,
+Unique verts1456.00/1455.83/1456.00, Source tris2731.14/2730.76/2731.14,
+Batches10.33. Three runs stable. Largest phase Tris/clip; no FPS gain claimed.
 
 ## Alpha.103 view weapon at menu FOV values
 
