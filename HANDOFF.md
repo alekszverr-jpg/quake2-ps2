@@ -8,26 +8,26 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.108 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.109 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.108` (PROFILE CI and host tests passed; World phase measurements pending; Alpha.107 performance measured, explicit visual acceptance pending; Alpha.105 clipping accepted; Alpha.103 weapon/UI and supported TV modes accepted; 480p hardware unverified)
-- Current implementation commit: `ab52a78`
-  (`Add exclusive World phase profiling benchmark`); CI submodule fix `b344f3e` retained.
+- Current source/test version: `0.1.0-alpha.109` (PROFILE CI and host tests passed; Geometry breakdown measurements pending; Alpha.108 World phases measured; Alpha.107 performance measured, explicit visual acceptance pending; Alpha.105 clipping accepted; Alpha.103 weapon/UI and supported TV modes accepted; 480p hardware unverified)
+- Current implementation commit: `6ee73e8`
+  (`Profile exclusive World geometry preparation stages`); CI submodule fix `b344f3e` retained.
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.108 local PROFILE ELF SHA-256 (7,865,608 bytes):
-  `F1F5094D98E3C67AE719C01F99CD51E832C8228315F728A9D87DF22EB80404B9`
-- CI `37147924808` passed all host sanitizer tests, map validation and PROFILE build for `ab52a78`.
+- Alpha.109 local PROFILE ELF SHA-256 (7,880,108 bytes):
+  `A4AF3595913835DAF2541898686087EBA37BB726BFC3D2349B99CE51FAC5A93F`
+- CI `37148546708` passed all host sanitizer tests, map validation and PROFILE build for `6ee73e8`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.109 World Geometry breakdown (build pending)
+## Alpha.109 World Geometry breakdown (runtime pending)
 
 Same GAME world profile (3 runs), now4 pages; Right three times opens World
 Geometry breakdown. Nested WorldDetailScope categories partition Geometry only:
@@ -42,6 +42,9 @@ Disabled clocks and contexts outside Geometry do nothing. No rendering algorithm
 change. Host timing tests cover nested same-category recurrence with submission,
 and coordinator tests cover the fourth page and both native240p tables.
 Next: screenshot of World Geometry breakdown; diagnostic FPS is perturbed.
+CI37148546708 passed all sanitizer checks, map validation and PROFILE build.
+Installed7,880,108-byte ELF in both test roots; SHA256 matches the downloaded
+artifact and embedded109 version is present. No new release made.
 
 ## Alpha.108 World phase profiling (runtime results received)
 

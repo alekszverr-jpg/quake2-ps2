@@ -17,6 +17,9 @@ Development priorities and completion criteria are tracked in
   Geometry order and renderer output remain unchanged.
 - Alpha.108 user profile: BSP/PVS1.07ms, Sky0.30ms, Geometry9.25..9.27ms,
   Submit1.01..1.04ms. Geometry is about79% of the measured World pass.
+- CI37148546708 passed all host sanitizer tests, map validation and PROFILE build.
+  Installed matching7,880,108-byte Alpha.109 ELF in both test roots; SHA256 and
+  embedded version verified against downloaded artifact. Geometry results pending.
 
 ## 0.1.0-alpha.108 - 2026-10-04 (local test build)
 
