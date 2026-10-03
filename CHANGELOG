@@ -21,6 +21,9 @@ Development priorities and completion criteria are tracked in
   lighting algorithm changed; optimization decisions await runtime results.
 - Host tests pass for benchmark lifecycle/settings, exclusive nested timing,
   production submission boundary and existing VIDEO/view effects/transparency.
+- CI37112580663 passed all sanitizer tests, map validation and PROFILE build.
+  Installed matching7,819,772-byte Alpha.104 ELF in both roots; SHA256 and
+  embedded version/profile-page strings verified. Runtime results pending.
 - User accepted Alpha.103 weapon/UI fixes and checked supported TV modes.
   480p hardware validation remains unavailable because their TV does not support it.
 

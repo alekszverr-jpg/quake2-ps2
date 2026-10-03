@@ -8,26 +8,26 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.103 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.104 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.103` (PROFILE CI and host tests passed; weapon/UI and supported TV modes accepted; 480p hardware unverified)
-- Current implementation commit: `5faee7f`
-  (`Keep view weapon visible across supported VIDEO field of view settings`)
+- Current source/test version: `0.1.0-alpha.104` (PROFILE CI and host tests passed; model profile runtime pending; Alpha.103 weapon/UI and supported TV modes accepted; 480p hardware unverified)
+- Current implementation commit: `4537881`
+  (`Add gamepad MD2 phase profiling benchmark`)
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.103 local PROFILE ELF SHA-256 (7,779,856 bytes):
-  `15514638491A6C68C3FD5A12C880C81401CCD32CFDE8C79432AC44CC1A5FD496`
-- CI `36975727522` passed all host sanitizer tests, map validation and PROFILE build for `5faee7f`.
+- Alpha.104 local PROFILE ELF SHA-256 (7,819,772 bytes):
+  `5E6323EB346C5812F8946074B1BD70F84BDB38A6EF52AEC1F19C779F4506BDC5`
+- CI `37112580663` passed all host sanitizer tests, map validation and PROFILE build for `4537881`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.104 MD2 diagnostic benchmark (source in progress)
+## Alpha.104 MD2 diagnostic benchmark (runtime pending)
 
 User agreed to model profiling before further optimization. GAME -> model profile
 (3 runs) uses the same loading-excluded demo1 range, preserves world lights/cache,
@@ -43,6 +43,8 @@ source tris and batches are per measured frame. View weapons and shells included
 brush/sprite entities/HUD excluded. All phases disabled without extra clock reads.
 Host coordinator tests validate restoration, old light pages and 320x224 bounds;
 new model_profile test exercises real FlushScratch and deterministic clocks.
+CI37112580663 passed all sanitizer/map/PROFILE checks; installed7,819,772-byte
+ELF inbothroots matchingdownload/hash and embeddedAlpha.104/MD2 profile strings.
 Runtime profile screenshots still required; do not claim speed improvement.
 
 ## Alpha.103 view weapon at menu FOV values

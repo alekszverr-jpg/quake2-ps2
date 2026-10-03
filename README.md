@@ -215,4 +215,17 @@ live. In 240p, the HUD, menus, console and cinematics share the native logical
 640-pixel framebuffer. The HUD has an eight-line bottom safe area.
 
 For benchmark comparisons, use the same output mode, FOV and brightness.
-Runtime display/UI/persistence validation of the new modes is still pending.
+User accepted the weapon/UI fixes and supported TV modes on Alpha.103.
+480p remains unverified on real hardware; the test television does not support it.
+
+### MD2 model profiling (Alpha.104)
+
+In a PROFILE build, select GAME -> model profile (3 runs). After demo1 finishes,
+press Left/Right twice to reach MD2 profile (incl view weapon). The table reports
+per-frame averages for setup/culling, model lighting, animation plus vertex color,
+triangle expansion/clipping and CPU submission, alongside model/geometry counts.
+Submission time is excluded from triangle time, and does not measure asynchronous
+VU/GS completion outside that call. Brush/sprite entities and HUD are excluded.
+
+Diagnostic timers affect FPS; use the ordinary benchmark for performance comparisons.
+World lighting/cache settings are preserved, all diagnostics restored after the run.
