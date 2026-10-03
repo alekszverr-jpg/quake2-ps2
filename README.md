@@ -229,3 +229,8 @@ VU/GS completion outside that call. Brush/sprite entities and HUD are excluded.
 
 Diagnostic timers affect FPS; use the ordinary benchmark for performance comparisons.
 World lighting/cache settings are preserved, all diagnostics restored after the run.
+
+Alpha.105 reuses clipping data per unique vertex for weapons, shells and translucent
+MD2 models. Fully visible triangles skip the full clipping payload; boundary
+triangles retain the existing clipper. Compare the same VIDEO settings using the
+ordinary benchmark and the model profile; runtime speed improvement is unverified.

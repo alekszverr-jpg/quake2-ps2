@@ -18,6 +18,9 @@ Development priorities and completion criteria are tracked in
 - Differential-test32,000 triangles against production generic clipping,
   including shared vertices, epsilon/near-plane boundaries, alpha and flushes.
   Tests compare complete emitted vertices/statistics and count shared transforms.
+- CI37113596231 passed all host sanitizer tests, map validation and PROFILE build.
+  Installed matching7,828,328-byte Alpha.105 ELF in both test roots; hash/version
+  verified against downloaded artifact.
 - Alpha.104 user's profile baseline: Setup/cull1.36ms, Lighting0.17ms,
   Verts~1.02ms, Tris/clip3.78ms, Submit1.31..1.33ms. Runtime Alpha.105 comparison
   and visual checks still pending; no FPS gain claimed from host tests.

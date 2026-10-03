@@ -8,19 +8,19 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.104 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.105 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.104` (PROFILE CI and host tests passed; model profile runtime pending; Alpha.103 weapon/UI and supported TV modes accepted; 480p hardware unverified)
-- Current implementation commit: `4537881`
-  (`Add gamepad MD2 phase profiling benchmark`)
+- Current source/test version: `0.1.0-alpha.105` (PROFILE CI and host tests passed; indexed clipping runtime pending; Alpha.103 weapon/UI and supported TV modes accepted; 480p hardware unverified)
+- Current implementation commit: `8c95593`
+  (`Reuse indexed MD2 clipping data and directly emit inside triangles`)
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.104 local PROFILE ELF SHA-256 (7,819,772 bytes):
-  `5E6323EB346C5812F8946074B1BD70F84BDB38A6EF52AEC1F19C779F4506BDC5`
-- CI `37112580663` passed all host sanitizer tests, map validation and PROFILE build for `4537881`.
+- Alpha.105 local PROFILE ELF SHA-256 (7,828,328 bytes):
+  `26E16561860B1B37C86267702527825443AFA00BF1CA3FF5664F07C0807C8ACF`
+- CI `37113596231` passed all host sanitizer tests, map validation and PROFILE build for `8c95593`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
@@ -44,6 +44,8 @@ batches with near/epsilon crossings, shared indices and alpha. Host transforms
 are counted to prove unique reuse, not to infer hardware speedup.
 Need ordinary benchmark, MD2 profile and visual weapon/near-wall/motion tests
 at same mode/FOV/lights as104 before accepting performance/rendering changes.
+CI37113596231 passed all sanitizer tests/map validation/PROFILE ELF build.
+Installed7,828,328-byte ELF in both roots, matching artifact SHA256 and embedded105.
 
 ## Alpha.104 MD2 diagnostic benchmark (runtime screenshot received)
 
