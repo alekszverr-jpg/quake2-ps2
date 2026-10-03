@@ -8,26 +8,26 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.107 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.108 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.107` (PROFILE CI and host tests passed; BSP clip-cache runtime pending; Alpha.105 clipping accepted; Alpha.103 weapon/UI and supported TV modes accepted; 480p hardware unverified)
-- Current implementation commit: `32aa233`
-  (`Reuse exact shared BSP positions during clipping preparation`); CI fix `b344f3e`.
+- Current source/test version: `0.1.0-alpha.108` (PROFILE CI and host tests passed; World phase measurements pending; Alpha.107 performance measured, explicit visual acceptance pending; Alpha.105 clipping accepted; Alpha.103 weapon/UI and supported TV modes accepted; 480p hardware unverified)
+- Current implementation commit: `ab52a78`
+  (`Add exclusive World phase profiling benchmark`); CI submodule fix `b344f3e` retained.
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.107 local PROFILE ELF SHA-256 (7,834,800 bytes):
-  `8B8B8A93AE81B62A1AACD4D1D4D033522BAFF2E7C516740E88B548C5B409EDF8`
-- CI `37146299810` passed all host sanitizer tests, map validation and PROFILE build for `b344f3e`.
+- Alpha.108 local PROFILE ELF SHA-256 (7,865,608 bytes):
+  `F1F5094D98E3C67AE719C01F99CD51E832C8228315F728A9D87DF22EB80404B9`
+- CI `37147924808` passed all host sanitizer tests, map validation and PROFILE build for `ab52a78`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.108 World phase profiling (build pending)
+## Alpha.108 World phase profiling (runtime pending)
 
 GAME -> world profile (3 runs) runs demo1 three times with existing world-light
 and cache settings. Right twice opens World profile (opaque pass + sky).
@@ -40,6 +40,9 @@ Counters snapshot draw stats before entities. No clocks when disabled or outside
 world context. All diagnostic settings restored after completion/cancel/failure.
 Native320x224 table bounds and exclusive timing covered by host tests. Next runtime
 request: screenshot of World profile page; use ordinary benchmark for real FPS.
+CI37147924808 passed; installed7,865,608-byte PROFILE ELF in both test roots.
+Both copies match the downloaded artifact SHA256 and embedded108 version.
+No new release made; runtime World phase measurements remain pending.
 
 ## Alpha.107 cached BSP clipping positions (runtime results received)
 

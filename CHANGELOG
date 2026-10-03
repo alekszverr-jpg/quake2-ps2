@@ -18,6 +18,9 @@ Development priorities and completion criteria are tracked in
 - Alpha.107 user measurements:40.27FPS/24.83ms vs106's39.27FPS/25.45ms;
   World11.56..11.59ms vs12.13..12.15ms, Entities7.34..7.35ms.
   Explicit visual acceptance remains pending. Alpha.108 adds measurement only.
+- CI37147924808 passed all host sanitizer tests, map validation and PROFILE build.
+  Installed matching7,865,608-byte ELF in both test roots; SHA256 and embedded108
+  version verified against the downloaded artifact. Runtime phase results pending.
 
 ## 0.1.0-alpha.107 - 2026-10-04 (local test build)
 
