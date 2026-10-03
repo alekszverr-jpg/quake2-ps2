@@ -12,9 +12,11 @@ static struct { int state, disable_screen, disable_servercount; } cls;
 static struct { int refresh_prepped; struct { int valid, serverframe; } frame; } cl;
 static struct { int width, height; } viddef;
 static char drawn[8192];
+static int checkCanvas;
 static void DrawChar(int x, int y, int c)
 {
     size_t n = strlen(drawn);
+    if (checkCanvas) { assert(x >= 0 && x + 8 <= viddef.width); assert(y >= 0 && y + 8 <= viddef.height); }
     (void)x; (void)y;
     assert(n+1 < sizeof(drawn)); drawn[n] = (char)c; drawn[n+1] = 0;
 }
@@ -32,19 +34,19 @@ void PS2_ReadBenchmarkStats(int values[BENCH_STATS_COUNT])
     values[BENCH_VERTICES] = INT_MAX;
 }
 static char queued[4096];
-static float values[11] = { 0, 0, 1, 1, 1, 1, 1, 3, 1, 1, 1 };
+static float values[12] = { 0, 0, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1 };
 static int Setting(const char * name)
 {
     const char * names[] = { "timedemo", "paused", "ps2_show_fps", "ps2_show_memstats",
-                            "ps2_show_vramstats", "ps2_show_drawstats", "developer", "con_notifytime", "ps2_world_dlights", "ps2_profile_world_lights", "ps2_world_light_cache" };
+                            "ps2_show_vramstats", "ps2_show_drawstats", "developer", "con_notifytime", "ps2_world_dlights", "ps2_profile_world_lights", "ps2_world_light_cache", "ps2_profile_models" };
     int i;
-    for (i = 0; i < 11; ++i) if (!strcmp(name, names[i])) return i;
+    for (i = 0; i < 12; ++i) if (!strcmp(name, names[i])) return i;
     assert(0); return 0;
 }
 static float Cvar_VariableValue(const char * name) { return values[Setting(name)]; }
 static void Cvar_SetValue(const char * name, float value) { values[Setting(name)] = value; }
 static void Cvar_Get(const char * name, const char * value, int flags)
-{ assert(flags == 0); assert(((!strcmp(name,"ps2_world_dlights") || !strcmp(name,"ps2_world_light_cache")) && !strcmp(value,"1")) || (!strcmp(name,"ps2_profile_world_lights") && !strcmp(value,"0"))); }
+{ assert(flags == 0); assert(((!strcmp(name,"ps2_world_dlights") || !strcmp(name,"ps2_world_light_cache")) && !strcmp(value,"1")) || ((!strcmp(name,"ps2_profile_world_lights") || !strcmp(name,"ps2_profile_models")) && !strcmp(value,"0"))); }
 static void Cbuf_AddText(const char * text) { assert(strlen(queued) + strlen(text) < sizeof(queued)); strcat(queued, text); }
 static void CL_Disconnect(void) { cls.state = ca_disconnected; }
 static void SCR_EndLoadingPlaque(void) { cls.disable_screen = 0; }
@@ -72,7 +74,7 @@ int main(void)
     assert(!active && resultScreens == 1 && !queued[0]);
     missing = 0;
     CL_BenchmarkStart();
-    assert(active && values[0] == 1 && values[5] == 0);
+    assert(active && values[0] == 1 && values[5] == 0 && values[11] == 0);
     queued[0] = 0;
     CL_Drop(); /* SV_InitGame normally drops an already-disconnected client. */
     assert(active && values[0] == 1 && !queued[0]);
@@ -255,6 +257,39 @@ int main(void)
     CL_BenchmarkCancel(); assert(values[10] == 1 && values[8] == 0 && values[9] == 1);
     missing = 1; CL_BenchmarkLightCache();
     assert(!active && values[10] == 1 && values[8] == 0 && values[9] == 1);
+    missing = 0;
+    CL_BenchmarkModelProfile();
+    assert(modelProfile && !comparison && !lightProfile && !cacheComparison && runLimit == 3);
+    for (i = 0; i < 3; ++i) {
+        assert(values[11] == 1 && values[8] == 0 && values[9] == 0 && values[10] == 1);
+        cls.state = ca_active; CL_BenchmarkServerData();
+        cl.frame.serverframe = 10; Frame(0,10);
+        cl.frame.serverframe = 11; Frame(20,30);
+        CL_BenchmarkDemoCompleted(); NextRun();
+    }
+    assert(!active && values[11] == 1 && values[8] == 0 && values[9] == 1 && values[10] == 1);
+    viddef.width = 320; viddef.height = 224;
+    for (i = 0; i < 3; ++i) {
+        checkCanvas = i == 2;
+        drawn[0] = 0; assert(detailPage == i); CL_BenchmarkDraw();
+        if (i == 0) assert(strstr(drawn, "Model timers ON"));
+        if (i == 1) assert(strstr(drawn, "Left/Right: MD2 profile"));
+        if (i == 2) {
+            assert(strstr(drawn, "MD2 profile (incl view weapon)"));
+            assert(strstr(drawn, "Setup/cull ms   28.00"));
+            assert(strstr(drawn, "Batches      "));
+            assert(strstr(drawn, "Tris/clip excludes Submit CPU time"));
+        }
+        CL_BenchmarkTogglePage();
+    }
+    assert(detailPage == 0);
+    values[11] = 0;
+    CL_BenchmarkModelProfile(); CL_BenchmarkCancel(); assert(values[11] == 0);
+    CL_BenchmarkModelProfile(); CL_BenchmarkDemoCompleted(); NextRun();
+    assert(!active && values[11] == 0 && values[9] == 1);
+    missing = 1; CL_BenchmarkModelProfile(); assert(!active && values[11] == 0);
+    missing = 0; values[11] = 1;
+    CL_BenchmarkStart(); assert(values[11] == 0); CL_BenchmarkCancel(); assert(values[11] == 1);
     puts("Benchmark lifecycle, loading exclusion, cancellation and restoration PASS");
     return 0;
 }

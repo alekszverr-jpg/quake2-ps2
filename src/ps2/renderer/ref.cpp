@@ -612,6 +612,17 @@ extern "C" void PS2_ReadBenchmarkStats(int values[BENCH_STATS_COUNT])
     values[BENCH_LIGHT_VERTEX_TESTS] = light.vertexTests;
     values[BENCH_LIGHT_COLOR_HITS] = light.colorHits;
     values[BENCH_LIGHT_COLOR_MISSES] = light.colorMisses;
+    const auto & models = ps2::view::GetModelProfile();
+    values[BENCH_MODEL_SETUP] = models.Micros(ps2::view::ModelProfile::Setup);
+    values[BENCH_MODEL_LIGHTING] = models.Micros(ps2::view::ModelProfile::Lighting);
+    values[BENCH_MODEL_VERTICES_MS] = models.Micros(ps2::view::ModelProfile::Vertices);
+    values[BENCH_MODEL_TRIANGLES_MS] = models.Micros(ps2::view::ModelProfile::Triangles);
+    values[BENCH_MODEL_SUBMIT] = models.Micros(ps2::view::ModelProfile::Submit);
+    values[BENCH_MODEL_COUNT] = models.models;
+    values[BENCH_MODEL_CULLED] = models.culled;
+    values[BENCH_MODEL_VERTICES] = models.vertices;
+    values[BENCH_MODEL_TRIANGLES] = models.triangles;
+    values[BENCH_MODEL_BATCHES] = models.batches;
 
 }
 

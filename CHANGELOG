@@ -6,6 +6,24 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.104 - 2026-10-03 (local test build)
+
+- Add GAME -> model profile (3 runs), preserving world lighting/cache settings
+  and restoring diagnostics on completion/cancellation/failure. Normal benchmarks
+  explicitly disable the new model timers. Three result pages include FPS,
+  renderer details and MD2 averages; native240p table bounds are regression-tested.
+- Measure MD2 setup/culling, model lighting, animation plus vertex color,
+  triangle expansion/clipping and CPU submission. Include view weapons/shells;
+  exclude brush/sprite entities, async VU/GS completion after submission and HUD.
+  Subtract nested submission ticks from triangle time before conversion.
+- Count models considered/culled, prepared unique vertices, source triangles and
+  submitted batches. Disabled diagnostics read no extra clocks. No geometry or
+  lighting algorithm changed; optimization decisions await runtime results.
+- Host tests pass for benchmark lifecycle/settings, exclusive nested timing,
+  production submission boundary and existing VIDEO/view effects/transparency.
+- User accepted Alpha.103 weapon/UI fixes and checked supported TV modes.
+  480p hardware validation remains unavailable because their TV does not support it.
+
 ## 0.1.0-alpha.103 - 2026-10-02 (local test build)
 
 - Keep the first-person weapon visible at the VIDEO menu's FOV100/110/120.

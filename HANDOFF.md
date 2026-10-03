@@ -13,7 +13,7 @@ before changing renderer, audio or memory-management code.
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.103` (PROFILE CI and host tests passed; wide-FOV weapon/runtime UI checks pending)
+- Current source/test version: `0.1.0-alpha.103` (PROFILE CI and host tests passed; weapon/UI and supported TV modes accepted; 480p hardware unverified)
 - Current implementation commit: `5faee7f`
   (`Keep view weapon visible across supported VIDEO field of view settings`)
 - Current published release:
@@ -27,6 +27,24 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
+## Alpha.104 MD2 diagnostic benchmark (source in progress)
+
+User agreed to model profiling before further optimization. GAME -> model profile
+(3 runs) uses the same loading-excluded demo1 range, preserves world lights/cache,
+disables world-light detailed timers and enables ps2_profile_models only for the
+run. All settings restored on completion/cancel/failure. Normal benchmarks force
+model profiling off. Left/Right cycles FPS -> renderer details -> MD2 profile.
+MD2 phases: setup/cull (includes skin lookup and matrices), model lighting,
+vertices (animation plus vertex color), triangles (expansion/EE clipping), submit
+(CPU packet/texture/waits issued in vu1::DrawTriangles). Submit is nested in the
+triangle phase and subtracted in ticks before conversion; deferred VU/GS work
+is not a complete GPU timing. Models considered/culled, prepared unique vertices,
+source tris and batches are per measured frame. View weapons and shells included;
+brush/sprite entities/HUD excluded. All phases disabled without extra clock reads.
+Host coordinator tests validate restoration, old light pages and 320x224 bounds;
+new model_profile test exercises real FlushScratch and deterministic clocks.
+Runtime profile screenshots still required; do not claim speed improvement.
+
 ## Alpha.103 view weapon at menu FOV values
 
 User reported missing weapon after102. Read test config only targeted values:
@@ -37,8 +55,8 @@ Tests extract actualproduction CL_AddViewWeapon, verify submission for70/80/90/
 100/110/120, model/animation flags and disabled/missingmodels. Config unchanged.
 CI36975727522 passed allsanitizer/map/PROFILE checks; installed7,779,856-byte
 ELF inbothroots matchingdownload/hash andAlpha.103 string. cl_ents GNU89
-syntax check passed. Runtime pending weaponvisible at100..120 in240p andothermodes. User102screenshot
-shows readableFPS/HUD; no explicit full240pUI/480p/hardware acceptance yet.
+syntax check passed. User subsequently confirmed everything works and tested available TV modes.
+480p cannot be tested on their television; keep hardware480p unverified.
 
 ## Alpha.102 native240p UI correction
 

@@ -101,6 +101,8 @@ static int s_worldLightCount = 0;
 static math::Vec3 s_worldLightOrigins[MAX_DLIGHTS];
 static u32 s_surfaceLightMask = 0;
 static WorldLightProfile s_lightProfile;
+static ModelProfile s_modelProfile;
+static bool s_modelSubmitActive;
 static WorldLightCache s_worldLightCache;
 static bool s_worldLightCacheEnabled = true;
 static SurfaceLightCache s_surfaceLightCache;
@@ -763,6 +765,8 @@ inline void FlushScratch(const math::Mat4 & mvp, const tex::Texture & texture,
 {
     if (s_scratchVertCount > 0)
     {
+        ModelScope submit(s_modelProfile, ModelProfile::Submit, s_modelSubmitActive);
+        if (s_modelSubmitActive) ++s_modelProfile.batches;
         PS2_STAT_INC(drawBatches);
         vu1::DrawTriangles(mvp, texture, s_scratchVerts, s_scratchVertCount,
                            alphaBlend, fixedAlpha);
@@ -2617,6 +2621,9 @@ math::Vec4 AliasVertexColor(const math::Vec3 & modelLight,
 void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model,
                     const refdef_t & viewDef)
 {
+    ModelSubmitContext context(s_modelSubmitActive, s_modelProfile.enabled);
+    ModelScope timer(s_modelProfile, ModelProfile::Setup);
+    if (s_modelProfile.enabled) ++s_modelProfile.models;
     const bool shell = (entity.flags & kAliasShellMask) != 0;
     PS2_Assert(model.type == mod::ModelType::AliasMD2);
     PS2_Assert(model.hunkBase != nullptr);
@@ -2701,6 +2708,7 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model,
         }
         if (ShouldCullBBox(mins, maxs))
         {
+            if (s_modelProfile.enabled) ++s_modelProfile.culled;
             return;
         }
     }
@@ -2722,6 +2730,7 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model,
     if (entityAlpha < 0.0f) { entityAlpha = 0.0f; }
     if (entityAlpha > 1.0f) { entityAlpha = 1.0f; }
     const math::Mat4 mvp = EntityModelMatrix(entity) * viewProj;
+    timer.Switch(ModelProfile::Lighting);
     const math::Vec3 modelLight = AliasModelLight(entity, viewDef);
     const float shadeAngle = math::DegToRad(-entity.angles[YAW]);
     constexpr float kInvSqrt2 = 0.70710678118f;
@@ -2731,6 +2740,7 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model,
         kInvSqrt2
     };
 
+    timer.Switch(ModelProfile::Vertices);
     PS2_Assert(md2->num_xyz <= MAX_VERTS);
     for (int vertexIndex = 0; vertexIndex < md2->num_xyz; ++vertexIndex)
     {
@@ -2761,6 +2771,11 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model,
             out.color = color;
         else
             out.packedColor = PackFloatColor(color);
+    }
+    timer.Switch(ModelProfile::Triangles);
+    if (s_modelProfile.enabled) {
+        s_modelProfile.vertices += md2->num_xyz;
+        s_modelProfile.triangles += md2->num_tris;
     }
     PS2_STAT_ADD(aliasUniqueVerts, md2->num_xyz);
     PS2_STAT_ADD(aliasCorners, md2->num_tris * 3);
@@ -3155,6 +3170,8 @@ const WorldLightProfile & GetWorldLightProfile()
     return s_lightProfile;
 }
 
+const ModelProfile & GetModelProfile() { return s_modelProfile; }
+
 const DrawStats & GetDrawStats()
 {
     return s_drawStats;
@@ -3186,11 +3203,15 @@ void RenderFrame(const refdef_t & viewDef)
     static const cvar_t * cacheLights = Cvar_Get("ps2_world_light_cache", "1", 0);
     s_worldLightCacheEnabled = cacheLights->value != 0.0f;
     s_lightProfile = {};
+    s_modelProfile = {};
+    s_modelSubmitActive = false;
     s_surfaceLightCache.Clear();
     s_worldLightCache.Clear(); // Never reuse moving lights from a previous frame.
 #if PS2_PROFILE
     static const cvar_t * profileLights = Cvar_Get("ps2_profile_world_lights", "0", 0);
     s_lightProfile.enabled = profileLights->value != 0.0f;
+    static const cvar_t * profileModels = Cvar_Get("ps2_profile_models", "0", 0);
+    s_modelProfile.enabled = profileModels->value != 0.0f;
 #endif
 
     // Alpha.12 deliberately releases the previous renderer world before the

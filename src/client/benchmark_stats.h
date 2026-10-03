@@ -2,7 +2,8 @@
 #define CL_BENCHMARK_STATS_H
 
 /* First seven fields and LIGHT_SELECT/SPLIT/COLOR are microseconds;
- * other fields are event counts. Light timings require diagnostic mode.
+ * MODEL_SETUP through MODEL_SUBMIT are microseconds too.
+ * Other fields are event counts. Light timings require diagnostic mode.
  * Wait timings overlap the world/entity phases and must not be added to them. */
 enum {
     BENCH_WORLD, BENCH_ENTITIES, BENCH_SETUP, BENCH_PARTICLES,
@@ -14,6 +15,10 @@ enum {
     BENCH_LIGHT_BOUNDS_TESTS, BENCH_LIGHT_REJECTED, BENCH_LIGHT_NODES,
     BENCH_LIGHT_SPLITS, BENCH_LIGHT_VERTICES, BENCH_LIGHT_VERTEX_TESTS,
     BENCH_LIGHT_COLOR_HITS, BENCH_LIGHT_COLOR_MISSES,
+    BENCH_MODEL_SETUP, BENCH_MODEL_LIGHTING, BENCH_MODEL_VERTICES_MS,
+    BENCH_MODEL_TRIANGLES_MS, BENCH_MODEL_SUBMIT, BENCH_MODEL_COUNT,
+    BENCH_MODEL_CULLED, BENCH_MODEL_VERTICES, BENCH_MODEL_TRIANGLES,
+    BENCH_MODEL_BATCHES,
     BENCH_STATS_COUNT
 };
 #ifdef __cplusplus

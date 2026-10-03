@@ -7,6 +7,7 @@ void CL_BenchmarkStart(void);
 void CL_BenchmarkWorldLights(void);
 void CL_BenchmarkLightProfile(void);
 void CL_BenchmarkLightCache(void);
+void CL_BenchmarkModelProfile(void);
 void CL_BenchmarkCancel(void);
 int CL_BenchmarkDemoCompleted(void);
 void CL_BenchmarkServerData(void);

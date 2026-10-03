@@ -45,6 +45,9 @@ jobs:
         run: |
           python3 tests/benchmark/run.py
 
+      - name: Check MD2 diagnostic phase accounting on host
+        run: python3 tests/model_profile/run.py
+
       - name: Check VIDEO controls and output mode scaling on host
         run: python3 tests/video_menu/run.py
 

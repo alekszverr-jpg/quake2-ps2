@@ -23,7 +23,7 @@ Status markers:
 - [x] Textured BSP world geometry
 - [x] Animated MD2 enemies, corpses and first-person weapons
 - [x] NTSC/PAL framebuffer selection
-- [~] VIDEO controls, archived settings, 240p/480i/480p output and scaled 240p UI (Alpha.102 uses native 240p UI; runtime pending)
+- [~] VIDEO controls, archived settings, 240p/480i/480p output and scaled 240p UI (Alpha.103 weapon/UI and supported modes accepted; 480p hardware unverified)
 - [~] Texture streaming within the PS2's 4 MB GS VRAM
 - [~] Adaptive BSP vertex/lightmap lighting with depth-biased source-triangle crack sealing
 - [x] MD2 vertex lighting
@@ -134,6 +134,7 @@ play on a retail console.
 - [~] Validate GS completion barriers for streamed textures under zero-free-VRAM churn
 - [~] Add release builds with permanent profiling/diagnostics disabled
 - [x] Profile and optimize first-pass model interpolation and BSP lighting
+- [~] MD2 phase/count benchmark, including view weapon (Alpha.104; runtime results pending)
 - [~] Validate long sessions for EE RAM, IOP RAM and VRAM leaks
 - [ ] Target a stable 30 FPS minimum, with 60 FPS where practical
 
