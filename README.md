@@ -1,7 +1,7 @@
 # Quake II for PlayStation 2
 
 [![Build](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml/badge.svg)](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml)
-[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.107-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
+[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.108-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](LICENSE)
 
 An active continuation of the unofficial Quake II port for the Sony
@@ -244,5 +244,20 @@ and visual skin/weapon validation are pending.
 
 Alpha.107 reuses exact shared BSP positions when preparing clip distances for
 cached subdivisions. Its8KiB scratch cache is invalidated per polygon, including
-moving brushes. Compare the ordinary benchmark FPS and World time against106
-with the same VIDEO settings; runtime performance and visual checks are pending.
+moving brushes. User measurements: ordinary benchmark40.27FPS/24.83ms vs106's
+39.27FPS/25.45ms; World11.56..11.59ms vs12.13..12.15ms. Explicit visual acceptance
+of the BSP clipping change remains pending.
+
+### World phase profiling (Alpha.108)
+
+In a PROFILE build, select GAME -> world profile (3 runs), then press Right twice
+to reach World profile (opaque pass + sky). BSP/PVS measures cluster setup, leaf
+visibility and traversal; Sky measures sky preparation; Geometry includes opaque
+geometry preparation, lighting, clipping, crack seals and texture prefetch.
+Submit measures CPU time inside triangle submission, excluded from Sky/Geometry.
+Deferred waits outside submission, entities, late translucent surfaces and HUD
+are excluded. Nodes, surfaces, emitted triangles and batches are per-frame counts.
+
+World light/cache settings are preserved; detailed light/MD2 timers are disabled
+during the run and all diagnostics restored afterwards. Timers affect FPS: use
+the ordinary benchmark for speed comparisons. The table fits the native240p UI.

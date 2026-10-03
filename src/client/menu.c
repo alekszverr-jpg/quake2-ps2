@@ -2223,6 +2223,7 @@ static menuaction_s s_light_benchmark_action;
 static menuaction_s s_light_profile_action;
 static menuaction_s s_cache_benchmark_action;
 static menuaction_s s_model_profile_action;
+static menuaction_s s_world_profile_action;
 static menuaction_s s_load_game_action;
 static menuaction_s s_save_game_action;
 static menuaction_s s_credits_action;
@@ -2308,6 +2309,12 @@ static void LightProfileFunc(void * unused)
 {
     (void)unused;
     CL_BenchmarkLightProfile();
+}
+
+static void WorldProfileFunc(void * unused)
+{
+    (void)unused;
+    CL_BenchmarkWorldProfile();
 }
 
 static void ModelProfileFunc(void * unused)
@@ -2435,6 +2442,13 @@ void Game_MenuInit(void)
     s_model_profile_action.generic.name = "model profile (3 runs)";
     s_model_profile_action.generic.callback = ModelProfileFunc;
     s_model_profile_action.generic.statusbar = "Diagnostic timers affect FPS; settings restored";
+    s_world_profile_action.generic.type = MTYPE_ACTION;
+    s_world_profile_action.generic.flags = QMF_LEFT_JUSTIFY;
+    s_world_profile_action.generic.x = 0;
+    s_world_profile_action.generic.y = 130;
+    s_world_profile_action.generic.name = "world profile (3 runs)";
+    s_world_profile_action.generic.callback = WorldProfileFunc;
+    s_world_profile_action.generic.statusbar = "Diagnostic timers affect FPS; settings restored";
 
     Menu_AddItem(&s_game_menu, (void *)&s_easy_game_action);
     Menu_AddItem(&s_game_menu, (void *)&s_medium_game_action);
@@ -2450,6 +2464,7 @@ void Game_MenuInit(void)
     Menu_AddItem(&s_game_menu, (void *)&s_light_profile_action);
     Menu_AddItem(&s_game_menu, (void *)&s_cache_benchmark_action);
     Menu_AddItem(&s_game_menu, (void *)&s_model_profile_action);
+    Menu_AddItem(&s_game_menu, (void *)&s_world_profile_action);
 
     Menu_Center(&s_game_menu);
 }

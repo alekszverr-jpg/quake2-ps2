@@ -102,6 +102,7 @@ static math::Vec3 s_worldLightOrigins[MAX_DLIGHTS];
 static u32 s_surfaceLightMask = 0;
 static WorldLightProfile s_lightProfile;
 static ModelProfile s_modelProfile;
+static WorldProfile s_worldProfile;
 static bool s_modelSubmitActive;
 static WorldLightCache s_worldLightCache;
 static bool s_worldLightCacheEnabled = true;
@@ -774,6 +775,7 @@ inline void FlushScratch(const math::Mat4 & mvp, const tex::Texture & texture,
     if (s_scratchVertCount > 0)
     {
         ModelScope submit(s_modelProfile, ModelProfile::Submit, s_modelSubmitActive);
+        WorldSubmitScope worldSubmit(s_worldProfile);
         if (s_modelSubmitActive) ++s_modelProfile.batches;
         PS2_STAT_INC(drawBatches);
         vu1::DrawTriangles(mvp, texture, s_scratchVerts, s_scratchVertCount,
@@ -3231,6 +3233,7 @@ void RenderWorldModel(const refdef_t & viewDef)
     const mod::ModelInstance * world = mod::GetWorldModel();
     PS2_AssertMsg(world != nullptr, "RenderFrame without a world model!");
 
+    WorldScope timer(s_worldProfile, WorldProfile::Visibility);
     SetUpViewClusters(viewDef, *world);
     MarkLeaves(*world);
     RecursiveWorldNode(viewDef, *world, world->nodes, 0x0F);
@@ -3241,8 +3244,15 @@ void RenderWorldModel(const refdef_t & viewDef)
     // This ordering matters with reversed Z16S: a very distant wall and the
     // exact far sky can both quantise to Z=0, and GREATER_EQUAL lets the later
     // primitive win on equality. With sky first, the wall always wins.
+    timer.Switch(WorldProfile::Sky);
     DrawSkyBox(viewDef);
+    timer.Switch(WorldProfile::Geometry);
     DrawTextureChains(s_viewProjMatrix);
+    if (s_worldProfile.enabled) {
+        s_worldProfile.nodes = s_drawStats.nodesWalked;
+        s_worldProfile.surfaces = s_drawStats.surfaces;
+        s_worldProfile.triangles = s_drawStats.trisDrawn;
+    }
 }
 
 u8 ViewBlendByte(float value)
@@ -3292,6 +3302,7 @@ const WorldLightProfile & GetWorldLightProfile()
 }
 
 const ModelProfile & GetModelProfile() { return s_modelProfile; }
+const WorldProfile & GetWorldProfile() { return s_worldProfile; }
 
 const DrawStats & GetDrawStats()
 {
@@ -3325,6 +3336,7 @@ void RenderFrame(const refdef_t & viewDef)
     s_worldLightCacheEnabled = cacheLights->value != 0.0f;
     s_lightProfile = {};
     s_modelProfile = {};
+    s_worldProfile = {};
     s_modelSubmitActive = false;
     s_surfaceLightCache.Clear();
     s_worldLightCache.Clear(); // Never reuse moving lights from a previous frame.
@@ -3333,6 +3345,8 @@ void RenderFrame(const refdef_t & viewDef)
     s_lightProfile.enabled = profileLights->value != 0.0f;
     static const cvar_t * profileModels = Cvar_Get("ps2_profile_models", "0", 0);
     s_modelProfile.enabled = profileModels->value != 0.0f;
+    static const cvar_t * profileWorld = Cvar_Get("ps2_profile_world", "0", 0);
+    s_worldProfile.enabled = profileWorld->value != 0.0f;
 #endif
 
     // Alpha.12 deliberately releases the previous renderer world before the

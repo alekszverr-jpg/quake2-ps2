@@ -6,6 +6,19 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.108 - 2026-10-04 (local test build)
+
+- Add GAME -> world profile (3 runs), with per-frame BSP/PVS, Sky, Geometry
+  and CPU Submit timings plus nodes, surfaces, triangles and batch counts.
+  Subtract nested submission before converting phase times; deferred waits,
+  entities, late translucent surfaces and HUD remain outside this profile.
+- Preserve world-light/cache settings, disable other diagnostic timers during
+  the run and restore all settings on completion, cancellation or failure.
+  Test exclusive timing, disabled clocks, restoration and native240p table bounds.
+- Alpha.107 user measurements:40.27FPS/24.83ms vs106's39.27FPS/25.45ms;
+  World11.56..11.59ms vs12.13..12.15ms, Entities7.34..7.35ms.
+  Explicit visual acceptance remains pending. Alpha.108 adds measurement only.
+
 ## 0.1.0-alpha.107 - 2026-10-04 (local test build)
 
 - Reuse guard-plane distances and outside masks for exact shared positions in

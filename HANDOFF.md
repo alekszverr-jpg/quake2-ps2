@@ -27,7 +27,21 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.107 cached BSP clipping positions (runtime pending)
+## Alpha.108 World phase profiling (build pending)
+
+GAME -> world profile (3 runs) runs demo1 three times with existing world-light
+and cache settings. Right twice opens World profile (opaque pass + sky).
+ps2_profile_world is non-archived/default0; only PROFILE builds enable its clocks.
+WorldScope measures BSP/PVS, Sky and Geometry inside RenderWorldModel; nested
+FlushScratch CPU Submit is subtracted from the parent before microsecond conversion.
+Geometry includes lighting, clipping, crack seals and texture prefetch. Deferred
+waits outside submission, entities, late alpha surfaces and HUD are excluded.
+Counters snapshot draw stats before entities. No clocks when disabled or outside
+world context. All diagnostic settings restored after completion/cancel/failure.
+Native320x224 table bounds and exclusive timing covered by host tests. Next runtime
+request: screenshot of World profile page; use ordinary benchmark for real FPS.
+
+## Alpha.107 cached BSP clipping positions (runtime results received)
 
 Exact xyz bit keys reuse SetClipDistances output and six-plane outside masks
 within GatherPolyTriangles. BeginWorldClipCache advances an epoch per polygon;
@@ -38,7 +52,10 @@ use the helper, with implicit w1; sky, seals, MD2 and recursive light midpoint
 transforms retain their direct path. Geometry order, dynamic-light subdivision,
 flowing coordinates and crack-seal pass unchanged.12,000 results match direct
 distances/masks, including context changes, collisions, colour/UV changes and wrap.
-Runtime comparison and visible edges/doors/sky checks required before acceptance.
+User supplied matching demo1 runs:40.27FPS/24.83ms combined vs10639.27FPS/25.45ms.
+World11.57/11.56/11.59ms vs10612.15/12.13/12.15ms, Entities7.34..7.35ms.
+Frame improves0.62ms and World about0.57ms; explicit visible edges/doors/sky
+acceptance has not been supplied. Do not treat screenshot measurements as visual acceptance.
 First CI37146185534 failed before compiling the game: upstream vclpp now needs
 external/parse-utils. CI clone now uses --recurse-submodules (b344f3e); repeat
 CI37146299810 passed all checks and PROFILE build. Installed7,834,800-byte ELF

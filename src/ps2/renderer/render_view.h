@@ -9,6 +9,7 @@
 #include "ps2/common.h"
 #include "ps2/renderer/world_light_profile.h"
 #include "ps2/renderer/model_profile.h"
+#include "ps2/renderer/world_profile.h"
 
 namespace ps2::view
 {
@@ -48,6 +49,7 @@ struct DrawStats
 const DrawStats & GetDrawStats();
 const WorldLightProfile & GetWorldLightProfile();
 const ModelProfile & GetModelProfile();
+const WorldProfile & GetWorldProfile();
 
 // Resets the cached view clusters. Call when a new map loads
 // (PS2_BeginRegistration) so stale PVS state cannot leak across maps.

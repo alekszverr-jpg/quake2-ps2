@@ -34,19 +34,19 @@ void PS2_ReadBenchmarkStats(int values[BENCH_STATS_COUNT])
     values[BENCH_VERTICES] = INT_MAX;
 }
 static char queued[4096];
-static float values[12] = { 0, 0, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1 };
+static float values[13] = { 0, 0, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1 };
 static int Setting(const char * name)
 {
     const char * names[] = { "timedemo", "paused", "ps2_show_fps", "ps2_show_memstats",
-                            "ps2_show_vramstats", "ps2_show_drawstats", "developer", "con_notifytime", "ps2_world_dlights", "ps2_profile_world_lights", "ps2_world_light_cache", "ps2_profile_models" };
+                            "ps2_show_vramstats", "ps2_show_drawstats", "developer", "con_notifytime", "ps2_world_dlights", "ps2_profile_world_lights", "ps2_world_light_cache", "ps2_profile_models", "ps2_profile_world" };
     int i;
-    for (i = 0; i < 12; ++i) if (!strcmp(name, names[i])) return i;
+    for (i = 0; i < 13; ++i) if (!strcmp(name, names[i])) return i;
     assert(0); return 0;
 }
 static float Cvar_VariableValue(const char * name) { return values[Setting(name)]; }
 static void Cvar_SetValue(const char * name, float value) { values[Setting(name)] = value; }
 static void Cvar_Get(const char * name, const char * value, int flags)
-{ assert(flags == 0); assert(((!strcmp(name,"ps2_world_dlights") || !strcmp(name,"ps2_world_light_cache")) && !strcmp(value,"1")) || ((!strcmp(name,"ps2_profile_world_lights") || !strcmp(name,"ps2_profile_models")) && !strcmp(value,"0"))); }
+{ assert(flags == 0); assert(((!strcmp(name,"ps2_world_dlights") || !strcmp(name,"ps2_world_light_cache")) && !strcmp(value,"1")) || ((!strcmp(name,"ps2_profile_world_lights") || !strcmp(name,"ps2_profile_models") || !strcmp(name,"ps2_profile_world")) && !strcmp(value,"0"))); }
 static void Cbuf_AddText(const char * text) { assert(strlen(queued) + strlen(text) < sizeof(queued)); strcat(queued, text); }
 static void CL_Disconnect(void) { cls.state = ca_disconnected; }
 static void SCR_EndLoadingPlaque(void) { cls.disable_screen = 0; }
@@ -290,6 +290,39 @@ int main(void)
     missing = 1; CL_BenchmarkModelProfile(); assert(!active && values[11] == 0);
     missing = 0; values[11] = 1;
     CL_BenchmarkStart(); assert(values[11] == 0); CL_BenchmarkCancel(); assert(values[11] == 1);
+    checkCanvas = 0;
+    CL_BenchmarkWorldProfile();
+    assert(worldProfile && !modelProfile && !comparison && runLimit == 3);
+    for (i = 0; i < 3; ++i) {
+        assert(values[12] == 1 && values[11] == 0 && values[9] == 0);
+        assert(values[8] == 0 && values[10] == 1);
+        cls.state = ca_active; CL_BenchmarkServerData();
+        cl.frame.serverframe = 10; Frame(0,10);
+        cl.frame.serverframe = 11; Frame(20,30);
+        CL_BenchmarkDemoCompleted(); NextRun();
+    }
+    assert(!active && values[12] == 1 && values[11] == 1 && values[9] == 1);
+    for (i = 0; i < 3; ++i) {
+        checkCanvas = i == 2;
+        drawn[0] = 0; assert(detailPage == i); CL_BenchmarkDraw();
+        if (i == 0) assert(strstr(drawn, "World timers ON"));
+        if (i == 1) assert(strstr(drawn, "Left/Right: World profile"));
+        if (i == 2) {
+            assert(strstr(drawn, "World profile (opaque pass + sky)"));
+            assert(strstr(drawn, "BSP/PVS ms      38.00"));
+            assert(strstr(drawn, "Batches       45000.00"));
+            assert(strstr(drawn, "Submit excluded from Sky/Geometry"));
+        }
+        CL_BenchmarkTogglePage();
+    }
+    assert(detailPage == 0);
+    values[12] = 0;
+    CL_BenchmarkWorldProfile(); CL_BenchmarkCancel(); assert(values[12] == 0);
+    CL_BenchmarkWorldProfile(); CL_BenchmarkDemoCompleted(); NextRun();
+    assert(!active && values[12] == 0 && values[11] == 1 && values[9] == 1);
+    missing = 1; CL_BenchmarkWorldProfile(); assert(!active && values[12] == 0);
+    missing = 0; values[12] = 1;
+    CL_BenchmarkStart(); assert(values[12] == 0); CL_BenchmarkCancel(); assert(values[12] == 1);
     puts("Benchmark lifecycle, loading exclusion, cancellation and restoration PASS");
     return 0;
 }

@@ -1,6 +1,7 @@
 #include <cassert>
 #include <cstdio>
 #include "ps2/renderer/model_profile.h"
+#include "ps2/renderer/world_profile.h"
 namespace math { struct Mat4 {}; }
 namespace tex { struct Texture {}; }
 namespace vu1 {
@@ -12,6 +13,7 @@ void DrawTriangles(const math::Mat4 &, const tex::Texture &, int *, int, bool, i
 }
 using namespace ps2::view;
 static ModelProfile s_modelProfile;
+static WorldProfile s_worldProfile;
 static bool s_modelSubmitActive;
 static int s_scratchVertCount;
 static int s_scratchVerts[12];
@@ -62,5 +64,37 @@ int main() {
     }
     assert(ps2::timing::reads == reads && !s_modelSubmitActive);
     assert(s_modelProfile.Micros(ModelProfile::Submit) == 0);
-    puts("MD2 exclusive phase timing, submission context and disabled clocks PASS");
+    ps2::timing::now = 0;
+    s_worldProfile.enabled = true;
+    {
+        WorldScope timer(s_worldProfile, WorldProfile::Visibility);
+        ps2::timing::now += 10;
+        timer.Switch(WorldProfile::Sky);
+        ps2::timing::now += 20;
+        s_scratchVertCount = 3;
+        FlushScratch(matrix, texture);
+        timer.Switch(WorldProfile::Geometry);
+        ps2::timing::now += 40;
+        s_scratchVertCount = 3;
+        FlushScratch(matrix, texture);
+        timer.Stop(); timer.Stop();
+    }
+    assert(s_worldProfile.Micros(WorldProfile::Visibility) == 10);
+    assert(s_worldProfile.Micros(WorldProfile::Sky) == 20);
+    assert(s_worldProfile.Micros(WorldProfile::Geometry) == 40);
+    assert(s_worldProfile.Micros(WorldProfile::Submit) == 60);
+    assert(s_worldProfile.batches == 2);
+    reads = ps2::timing::reads;
+    s_scratchVertCount = 3;
+    FlushScratch(matrix, texture); // entities/late alpha outside world context
+    assert(ps2::timing::reads == reads && s_worldProfile.batches == 2);
+    s_worldProfile = {};
+    {
+        WorldScope timer(s_worldProfile, WorldProfile::Visibility);
+        timer.Switch(WorldProfile::Geometry);
+        s_scratchVertCount = 3;
+        FlushScratch(matrix, texture);
+    }
+    assert(ps2::timing::reads == reads && s_worldProfile.batches == 0);
+    puts("MD2/World exclusive phase timing, submission context and disabled clocks PASS");
 }

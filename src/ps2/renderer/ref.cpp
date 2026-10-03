@@ -623,6 +623,15 @@ extern "C" void PS2_ReadBenchmarkStats(int values[BENCH_STATS_COUNT])
     values[BENCH_MODEL_VERTICES] = models.vertices;
     values[BENCH_MODEL_TRIANGLES] = models.triangles;
     values[BENCH_MODEL_BATCHES] = models.batches;
+    const auto & world = ps2::view::GetWorldProfile();
+    values[BENCH_WORLD_VISIBILITY_MS] = world.Micros(ps2::view::WorldProfile::Visibility);
+    values[BENCH_WORLD_SKY_MS] = world.Micros(ps2::view::WorldProfile::Sky);
+    values[BENCH_WORLD_GEOMETRY_MS] = world.Micros(ps2::view::WorldProfile::Geometry);
+    values[BENCH_WORLD_SUBMIT_MS] = world.Micros(ps2::view::WorldProfile::Submit);
+    values[BENCH_WORLD_NODES] = world.nodes;
+    values[BENCH_WORLD_SURFACES] = world.surfaces;
+    values[BENCH_WORLD_DRAW_TRIANGLES] = world.triangles;
+    values[BENCH_WORLD_BATCHES] = world.batches;
 
 }
 
