@@ -12,10 +12,10 @@ def function(prefix):
     if not match: raise RuntimeError(prefix)
     return match.group(0)
 parts = []
-for prefix in ['union ClipDists', 'struct alignas(16) ClipVertex', 'struct alignas(16) AliasClipData', 'struct alignas(16) PreparedAliasVertex']:
+for prefix in ['union ClipDists', 'struct alignas(16) ClipVertex', 'struct alignas(16) AliasClipData', 'struct alignas(16) PreparedAliasVertex', 'struct AliasTexCoord']:
     parts.append(function(prefix) + ';')
 (out/'types.inc').write_text('\n'.join(parts))
-for name, prefixes in [('generic.inc',['int ClipAgainstPlane(', 'inline u32 PackFloatColor(', 'inline void EmitScratchVertex(const ClipVertex & v,', 'inline void EmitScratchVertex(const ClipVertex & v)', 'void SubmitWorldTriangle(', 'void SetClipDistances(ClipDists &']), ('alias.inc',['void PrepareAliasClipData(', 'void SubmitAliasTriangle('])]:
+for name, prefixes in [('generic.inc',['int ClipAgainstPlane(', 'inline u32 PackFloatColor(', 'inline void EmitScratchVertex(const ClipVertex & v,', 'inline void EmitScratchVertex(const ClipVertex & v)', 'void SubmitWorldTriangle(', 'void SetClipDistances(ClipDists &']), ('alias.inc',['void PrepareAliasTexCoords(', 'inline AliasTexCoord AliasTexCoordsAt(', 'inline void SubmitOpaqueAliasTriangle(', 'void PrepareAliasClipData(', 'void SubmitAliasTriangle('])]:
     (out/name).write_text('\n'.join(function(prefix) for prefix in prefixes))
 binary = out / ('test.exe' if os.name == 'nt' else 'test')
 flags = [] if os.name == 'nt' else ['-fsanitize=address,undefined']

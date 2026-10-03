@@ -27,7 +27,21 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.105 indexed clipping optimization (runtime pending)
+## Alpha.106 indexed texture coordinates (runtime pending)
+
+Prepare MD2 ST coordinates once per model draw, reuse in opaque/inside/partial
+paths. Keep exact (short+0.5)*inverseGSTextureExtent order. Separate ST indices
+preserve UV seams; shell uses0.5 constants. BoundedMAX_VERTS (2048) UV scratch
+is16KiB; tables larger than2048 use scalar fallback (loader does not cap num_st).
+No heap allocation, stored pointer or reuse between model draws. Preparation
+stays inside Tris/clip diagnostic phase; batching and clipping policy unchanged.
+Production opaque emitter now independently tested along with clipped emitters:
+32,000 opaque plus32,000 clipped triangles compare whole output and batches,
+with cache/fallback paths, signed ST values, shell coordinates and limit cases.
+Need same VIDEO settings/ordinary benchmark/model profile as105 plus visual
+skin/weapon/near-plane checks before claiming any new performance improvement.
+
+## Alpha.105 indexed clipping optimization (accepted)
 
 Generic clipping already had an inside fast path; repeated matrix transforms,
 colour packing, distance tests and full ClipVertex payload construction per MD2
@@ -42,8 +56,12 @@ Preparation remains in the profiler Tris/clip phase for comparison with104.
 32,000 differential triangles match production generic emitted vertices/stats/
 batches with near/epsilon crossings, shared indices and alpha. Host transforms
 are counted to prove unique reuse, not to infer hardware speedup.
-Need ordinary benchmark, MD2 profile and visual weapon/near-wall/motion tests
-at same mode/FOV/lights as104 before accepting performance/rendering changes.
+User reported no visual problems and supplied105 profile: Setup/cull1.36ms,
+Lighting0.17ms, Verts1.09ms, Tris/clip2.87ms, Submit1.33/1.32/1.33ms;
+Models26.24/Culled12.39, Unique verts1436.03, Source tris2731.14, Batches14.33.
+Ordinary benchmark688 frames195..882 per pass:39.22/39.15/39.22FPS,
+combined39.21FPS/25.50ms. Tris/clip down0.91ms (~24%) vs104. No matched104
+ordinary FPS baseline; do not quantify totalFPS improvement. User accepted105.
 CI37113596231 passed all sanitizer tests/map validation/PROFILE ELF build.
 Installed7,828,328-byte ELF in both roots, matching artifact SHA256 and embedded105.
 

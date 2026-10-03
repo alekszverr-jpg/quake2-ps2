@@ -174,6 +174,14 @@ static_assert(sizeof(PreparedAliasVertex) == 32,
               "MD2 colour reuse must not grow the scratch buffer");
 alignas(16) static PreparedAliasVertex s_preparedAliasVerts[MAX_VERTS];
 
+// Per-draw indexed UV scratch: 16 KiB, independent of animation/seam vertices.
+struct AliasTexCoord
+{
+    float s, t;
+};
+static AliasTexCoord s_preparedAliasTexCoords[MAX_VERTS];
+static bool s_aliasTexCoordsPrepared;
+
 // Performance counters for the frame, reset by RenderFrame and read through
 // GetDrawStats() by the ps2_show_drawstats overlay.
 static DrawStats s_drawStats = {};
@@ -2628,6 +2636,49 @@ math::Vec4 AliasVertexColor(const math::Vec3 & modelLight,
     };
 }
 
+void PrepareAliasTexCoords(const dstvert_t * stVerts, int stCount,
+                           float invSkinW, float invSkinH, bool shell)
+{
+    s_aliasTexCoordsPrepared = !shell && stCount > 0 && stCount <= MAX_VERTS;
+    if (!s_aliasTexCoordsPrepared) return;
+    for (int i = 0; i < stCount; ++i) {
+        s_preparedAliasTexCoords[i] = {
+            (static_cast<float>(stVerts[i].s) + 0.5f) * invSkinW,
+            (static_cast<float>(stVerts[i].t) + 0.5f) * invSkinH
+        };
+    }
+}
+
+inline AliasTexCoord AliasTexCoordsAt(int index, const dstvert_t * stVerts,
+                                    float invSkinW, float invSkinH, bool shell)
+{
+    if (shell) return {0.5f, 0.5f};
+    if (s_aliasTexCoordsPrepared) return s_preparedAliasTexCoords[index];
+    // MD2 loaders do not impose MAX_VERTS on the separate ST index table.
+    return {(static_cast<float>(stVerts[index].s) + 0.5f) * invSkinW,
+            (static_cast<float>(stVerts[index].t) + 0.5f) * invSkinH};
+}
+
+inline void SubmitOpaqueAliasTriangle(const dtriangle_t & triangle, const dstvert_t * stVerts,
+                                     int vertexCount, int stCount, float invSkinW, float invSkinH,
+                                     const math::Mat4 & mvp, const tex::Texture & texture)
+{
+    if (s_scratchVertCount + 3 > kScratchMaxVerts) FlushScratch(mvp, texture);
+    for (int corner = 0; corner < 3; ++corner) {
+        const int index = triangle.index_xyz[corner];
+        const int stIndex = triangle.index_st[corner];
+        PS2_Assert(index >= 0 && index < vertexCount);
+        PS2_Assert(stIndex >= 0 && stIndex < stCount);
+        const PreparedAliasVertex & prepared = s_preparedAliasVerts[index];
+        const AliasTexCoord uv = AliasTexCoordsAt(stIndex, stVerts, invSkinW, invSkinH, false);
+        vu1::DrawVertex & out = s_scratchVerts[s_scratchVertCount++];
+        out.x = prepared.pos.x; out.y = prepared.pos.y; out.z = prepared.pos.z; out.w = 1.0f;
+        out.rgba = prepared.packedColor;
+        out.s = uv.s; out.t = uv.t; out.q = 1.0f;
+    }
+    PS2_STAT_INC(trisDrawn);
+}
+
 // Transform shared MD2 positions once, preserving the exact guard/epsilon tests.
 void PrepareAliasClipData(int vertexCount, const math::Mat4 & mvp)
 {
@@ -2668,13 +2719,13 @@ void SubmitAliasTriangle(const dtriangle_t & triangle, const dstvert_t * stVerts
         for (int corner = 0; corner < 3; ++corner) {
             const int index = triangle.index_xyz[corner];
             const PreparedAliasVertex & prepared = s_preparedAliasVerts[index];
-            const dstvert_t & st = stVerts[triangle.index_st[corner]];
+            const AliasTexCoord uv = AliasTexCoordsAt(triangle.index_st[corner], stVerts, invSkinW, invSkinH, shell);
             vu1::DrawVertex & out = s_scratchVerts[s_scratchVertCount++];
             out.x = prepared.pos.x; out.y = prepared.pos.y; out.z = prepared.pos.z; out.w = 1.0f;
             const u32 color = s_aliasClipData[index].packedColor;
             out.rgba = s_surfaceLightMask != 0 ? AddWorldLights(color, prepared.pos) : color;
-            out.s = shell ? 0.5f : (static_cast<float>(st.s) + 0.5f) * invSkinW;
-            out.t = shell ? 0.5f : (static_cast<float>(st.t) + 0.5f) * invSkinH;
+            out.s = uv.s;
+            out.t = uv.t;
             out.q = 1.0f;
         }
         PS2_STAT_INC(trisDrawn);
@@ -2685,12 +2736,11 @@ void SubmitAliasTriangle(const dtriangle_t & triangle, const dstvert_t * stVerts
     for (int corner = 0; corner < 3; ++corner) {
         const int index = triangle.index_xyz[corner];
         const PreparedAliasVertex & prepared = s_preparedAliasVerts[index];
-        const dstvert_t & st = stVerts[triangle.index_st[corner]];
+        const AliasTexCoord uv = AliasTexCoordsAt(triangle.index_st[corner], stVerts, invSkinW, invSkinH, shell);
         corners[corner].pos = prepared.pos;
         corners[corner].color = prepared.color;
         corners[corner].st = {
-            shell ? 0.5f : (static_cast<float>(st.s) + 0.5f) * invSkinW,
-            shell ? 0.5f : (static_cast<float>(st.t) + 0.5f) * invSkinH, 0.0f, 0.0f
+            uv.s, uv.t, 0.0f, 0.0f
         };
         for (int p = 0; p < kNumClipPlanes; ++p)
             corners[corner].d.f[p] = s_aliasClipData[index].distances[p];
@@ -2860,6 +2910,7 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model,
     PS2_STAT_ADD(aliasUniqueVerts, md2->num_xyz);
     PS2_STAT_ADD(aliasCorners, md2->num_tris * 3);
 
+    PrepareAliasTexCoords(stVerts, md2->num_st, invGsSkinW, invGsSkinH, shell);
     PS2_Assert(s_scratchVertCount == 0);
     if (clipAlias)
     {
@@ -2871,34 +2922,8 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model,
     else
     {
         for (int t = 0; t < md2->num_tris; ++t)
-        {
-            if (s_scratchVertCount + 3 > kScratchMaxVerts)
-            {
-                FlushScratch(mvp, texture, translucent);
-            }
-            for (int corner = 0; corner < 3; ++corner)
-            {
-                const int vertexIndex = triangles[t].index_xyz[corner];
-                const int stIndex     = triangles[t].index_st[corner];
-                PS2_Assert(vertexIndex >= 0 && vertexIndex < md2->num_xyz);
-                PS2_Assert(stIndex >= 0 && stIndex < md2->num_st);
-
-                const PreparedAliasVertex & prepared =
-                    s_preparedAliasVerts[vertexIndex];
-                const dstvert_t & st = stVerts[stIndex];
-                vu1::DrawVertex & out =
-                    s_scratchVerts[s_scratchVertCount++];
-                out.x = prepared.pos.x;
-                out.y = prepared.pos.y;
-                out.z = prepared.pos.z;
-                out.w = 1.0f;
-                out.rgba = prepared.packedColor;
-                out.s = (static_cast<float>(st.s) + 0.5f) * invGsSkinW;
-                out.t = (static_cast<float>(st.t) + 0.5f) * invGsSkinH;
-                out.q = 1.0f;
-            }
-            PS2_STAT_INC(trisDrawn);
-        }
+            SubmitOpaqueAliasTriangle(triangles[t], stVerts, md2->num_xyz, md2->num_st,
+                                      invGsSkinW, invGsSkinH, mvp, texture);
     }
     FlushScratch(mvp, texture, translucent);
 }

@@ -6,6 +6,21 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.106 - 2026-10-03 (local test build)
+
+- Prepare indexed MD2 texture coordinates once per draw instead of repeating
+  short-to-float conversion, half-texel offsets and GS extent scaling for every
+  triangle corner. Reuse in opaque, inside and boundary-clipped paths.
+- Keep shell UVs constant; preserve oversized ST tables through the original
+  scalar calculation. One shared16KiB static scratch table, no heap allocation
+  or retained model/texture pointers. Preparation stays in Tris/clip timing.
+- Expand differential tests to32,000 opaque triangles as well as32,000 clipped
+  triangles, matching complete emitted vertices and batch boundaries. Check
+  shells, seam indices, signed ST ranges, table limits and large-table fallback.
+- User accepted Alpha.105 visually: Tris/clip2.87ms vs104's3.78ms (~24% lower),
+  other phases stable. Ordinary demo1 benchmark39.21FPS/25.50ms; no matched104
+  ordinary baseline, so total FPS improvement is not quantified.
+
 ## 0.1.0-alpha.105 - 2026-10-03 (local test build)
 
 - Reuse six guard-plane distances and packed colours per unique MD2 vertex for
@@ -22,8 +37,8 @@ Development priorities and completion criteria are tracked in
   Installed matching7,828,328-byte Alpha.105 ELF in both test roots; hash/version
   verified against downloaded artifact.
 - Alpha.104 user's profile baseline: Setup/cull1.36ms, Lighting0.17ms,
-  Verts~1.02ms, Tris/clip3.78ms, Submit1.31..1.33ms. Runtime Alpha.105 comparison
-  and visual checks still pending; no FPS gain claimed from host tests.
+  Verts~1.02ms, Tris/clip3.78ms, Submit1.31..1.33ms. User subsequently
+  accepted105 visually with Tris/clip2.87ms and ordinary39.21FPS/25.50ms.
 
 ## 0.1.0-alpha.104 - 2026-10-03 (local test build)
 

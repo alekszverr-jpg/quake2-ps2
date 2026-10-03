@@ -31,6 +31,8 @@ struct dstvert_t { short s,t; };
 #include "types.inc"
 static PreparedAliasVertex s_preparedAliasVerts[MAX_VERTS];
 static AliasClipData s_aliasClipData[MAX_VERTS];
+static AliasTexCoord s_preparedAliasTexCoords[MAX_VERTS];
+static bool s_aliasTexCoordsPrepared;
 static vu1::DrawVertex s_scratchVerts[kScratchMaxVerts];
 static int s_scratchVertCount;
 static u32 s_surfaceLightMask;
@@ -56,7 +58,7 @@ static void Reset() {
 int main() {
     std::mt19937 random(105);
     std::uniform_real_distribution<float> position(-4.0f,4.0f), color(0.0f,128.0f);
-    dstvert_t st[6] = {{0,0},{63,47},{94,-8},{-3,16},{17,29},{120,71}};
+    dstvert_t st[MAX_VERTS+1] = {{0,0},{63,47},{94,-8},{-3,16},{17,29},{120,71}};
     tex::Texture texture;
     int cases = 0, drawnCases = 0, clippedCases = 0, culledCases = 0;
     for (int scenario=0;scenario<400;++scenario) {
@@ -84,6 +86,7 @@ int main() {
         triangles[3]={{0,5,6},{3,4,5}};
         const math::Mat4 matrix={scenario%2 ? 0.0f : 0.31f};
         const bool shell=(scenario%3 == 0), translucent=(scenario%2 == 0);
+        const int stCount=scenario%7 == 0 ? MAX_VERTS+1 : 6;
         s_surfaceLightMask=scenario%5 == 0 ? 1u : 0u;
         Reset();
         for (const auto & triangle : triangles) {
@@ -105,20 +108,59 @@ int main() {
         drawnCases+=drawn; culledCases+=culled; clippedCases+=clipped;
         Reset(); transforms=0;
         PrepareAliasClipData(32,matrix);
+        PrepareAliasTexCoords(st,stCount,1.0f/128.0f,1.0f/64.0f,shell);
         assert(transforms == 32);
         for (const auto & triangle : triangles)
-            SubmitAliasTriangle(triangle,st,32,6,1.0f/128.0f,1.0f/64.0f,shell,matrix,texture,translucent);
+            SubmitAliasTriangle(triangle,st,32,stCount,1.0f/128.0f,1.0f/64.0f,shell,matrix,texture,translucent);
         FlushScratch(matrix,texture,translucent);
         assert(transforms == 32); // 240 per-corner transforms replaced by 32 shared transforms.
         assert(trisDrawn == drawn && trisCulled == culled && trisClipped == clipped);
         assert(batches == referenceBatches && emitted.size() == reference.size());
         assert(std::memcmp(emitted.data(),reference.data(),emitted.size()*sizeof(vu1::DrawVertex)) == 0);
+        // Opaque corners use packed colours, independent of world modulation.
+        for (int i=0;i<32;++i) s_preparedAliasVerts[i].packedColor=PackFloatColor(s_preparedAliasVerts[i].color);
+        Reset();
+        for (const auto & triangle : triangles) {
+            if (s_scratchVertCount+3 > kScratchMaxVerts) FlushScratch(matrix,texture);
+            for (int c=0;c<3;++c) {
+                const auto & v=s_preparedAliasVerts[triangle.index_xyz[c]];
+                const auto & uv=st[triangle.index_st[c]];
+                auto & out=s_scratchVerts[s_scratchVertCount++];
+                out={v.pos.x,v.pos.y,v.pos.z,1.0f,v.packedColor,
+                    (static_cast<float>(uv.s)+0.5f)/128.0f,
+                    (static_cast<float>(uv.t)+0.5f)/64.0f,1.0f};
+            }
+        }
+        FlushScratch(matrix,texture);
+        const auto opaqueReference=emitted;
+        const auto opaqueBatches=batches;
+        Reset(); PrepareAliasTexCoords(st,stCount,1.0f/128.0f,1.0f/64.0f,false);
+        for (const auto & triangle : triangles)
+            SubmitOpaqueAliasTriangle(triangle,st,32,stCount,1.0f/128.0f,1.0f/64.0f,matrix,texture);
+        FlushScratch(matrix,texture);
+        assert(trisDrawn == 80 && batches == opaqueBatches && emitted.size() == opaqueReference.size());
+        assert(std::memcmp(emitted.data(),opaqueReference.data(),emitted.size()*sizeof(vu1::DrawVertex)) == 0);
         cases += 80;
     }
     assert(drawnCases && clippedCases && culledCases);
+    // Seam indices need not match XYZ indices; oversized tables retain fallback.
+    std::vector<dstvert_t> largeST(32768);
+    for (int i=0;i<32768;++i) largeST[i]={static_cast<short>(i-16384),static_cast<short>(32767-i)};
+    for (int count : {1,MAX_VERTS,MAX_VERTS+1,32768}) {
+        for (bool shell : {false,true}) {
+            PrepareAliasTexCoords(largeST.data(),count,1.0f/512.0f,1.0f/256.0f,shell);
+            assert(s_aliasTexCoordsPrepared == (!shell && count<=MAX_VERTS));
+            for (int i=0;i<count;++i) {
+                const auto uv=AliasTexCoordsAt(i,largeST.data(),1.0f/512.0f,1.0f/256.0f,shell);
+                assert(uv.s == (shell ? 0.5f : (static_cast<float>(largeST[i].s)+0.5f)/512.0f));
+                assert(uv.t == (shell ? 0.5f : (static_cast<float>(largeST[i].t)+0.5f)/256.0f));
+            }
+        }
+    }
+    assert(sizeof(s_preparedAliasTexCoords) == 16384);
     // Full maximum-index cache and replacement between different model matrices.
     PrepareAliasClipData(MAX_VERTS,math::Mat4{0.0f});
     PrepareAliasClipData(MAX_VERTS,math::Mat4{1.0f});
     assert(sizeof(s_aliasClipData) == 65536);
-    std::printf("%d MD2 triangles match production clipper, colours, UVs, batches and alpha; shared transforms PASS\n",cases);
+    std::printf("%d MD2 triangles match production clipper, colours, UVs, batches and alpha; shared transforms, opaque UV reuse and oversized fallback PASS\n",cases);
 }
