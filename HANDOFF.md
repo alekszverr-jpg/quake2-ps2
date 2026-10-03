@@ -8,19 +8,19 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.105 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.106 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.105` (PROFILE CI and host tests passed; indexed clipping runtime pending; Alpha.103 weapon/UI and supported TV modes accepted; 480p hardware unverified)
-- Current implementation commit: `8c95593`
-  (`Reuse indexed MD2 clipping data and directly emit inside triangles`)
+- Current source/test version: `0.1.0-alpha.106` (PROFILE CI and host tests passed; indexed UV runtime pending; Alpha.105 clipping accepted; Alpha.103 weapon/UI and supported TV modes accepted; 480p hardware unverified)
+- Current implementation commit: `8b05391`
+  (`Reuse indexed MD2 texture coordinates across triangle corners`)
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.105 local PROFILE ELF SHA-256 (7,828,328 bytes):
-  `26E16561860B1B37C86267702527825443AFA00BF1CA3FF5664F07C0807C8ACF`
-- CI `37113596231` passed all host sanitizer tests, map validation and PROFILE build for `8c95593`.
+- Alpha.106 local PROFILE ELF SHA-256 (7,832,408 bytes):
+  `7DDBB9A215C6563D0BD08188C45523640C038A5BBDE90950997C0C9C2C7C2335`
+- CI `37115435861` passed all host sanitizer tests, map validation and PROFILE build for `8b05391`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
@@ -40,6 +40,8 @@ Production opaque emitter now independently tested along with clipped emitters:
 with cache/fallback paths, signed ST values, shell coordinates and limit cases.
 Need same VIDEO settings/ordinary benchmark/model profile as105 plus visual
 skin/weapon/near-plane checks before claiming any new performance improvement.
+CI37115435861 passed all sanitizer tests/map validation/PROFILE ELF build.
+Installed7,832,408-byte ELF in both roots; SHA256 and embedded106 verified.
 
 ## Alpha.105 indexed clipping optimization (accepted)
 
@@ -85,8 +87,8 @@ CI37112580663 passed all sanitizer/map/PROFILE checks; installed7,819,772-byte
 ELF inbothroots matchingdownload/hash and embeddedAlpha.104/MD2 profile strings.
 User screenshot: Setup/cull1.36ms, Lighting0.17ms, Verts~1.02ms,
 Tris/clip3.78ms, Submit1.32/1.31/1.33ms; Models26.24/Culled12.39,
-Unique verts1456.00/1455.83/1456.00, Source tris2731.14/2730.76/2731.14,
-Batches10.33. Three runs stable. Largest phase Tris/clip; no FPS gain claimed.
+Unique verts1436.00/1435.83/1436.00, Source tris2731.14/2730.76/2731.14,
+Batches14.33. Three runs stable. Largest phase Tris/clip; no FPS gain claimed.
 
 ## Alpha.103 view weapon at menu FOV values
 

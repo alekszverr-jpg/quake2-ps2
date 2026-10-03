@@ -17,6 +17,9 @@ Development priorities and completion criteria are tracked in
 - Expand differential tests to32,000 opaque triangles as well as32,000 clipped
   triangles, matching complete emitted vertices and batch boundaries. Check
   shells, seam indices, signed ST ranges, table limits and large-table fallback.
+- CI37115435861 passed all sanitizer tests, map validation and PROFILE build.
+  Installed matching7,832,408-byte Alpha.106 ELF in both roots; hash and embedded
+  version checked against downloaded artifact. Runtime comparison pending.
 - User accepted Alpha.105 visually: Tris/clip2.87ms vs104's3.78ms (~24% lower),
   other phases stable. Ordinary demo1 benchmark39.21FPS/25.50ms; no matched104
   ordinary baseline, so total FPS improvement is not quantified.

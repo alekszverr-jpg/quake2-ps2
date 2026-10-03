@@ -233,4 +233,11 @@ World lighting/cache settings are preserved, all diagnostics restored after the 
 Alpha.105 reuses clipping data per unique vertex for weapons, shells and translucent
 MD2 models. Fully visible triangles skip the full clipping payload; boundary
 triangles retain the existing clipper. Compare the same VIDEO settings using the
-ordinary benchmark and the model profile; runtime speed improvement is unverified.
+ordinary benchmark and the model profile. Alpha.105 was visually accepted, with
+Tris/clip reduced from3.78 to2.87ms; its ordinary benchmark measured39.21FPS.
+A matching Alpha.104 ordinary result was not supplied, so total FPS gain is unquantified.
+
+Alpha.106 also reuses indexed texture coordinates per MD2 draw, preserving UV
+seams, shell constants and the scalar fallback for oversized coordinate tables.
+Compare against Alpha.105 with identical VIDEO settings; new runtime results
+and visual skin/weapon validation are pending.
