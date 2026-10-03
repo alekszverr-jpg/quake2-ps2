@@ -632,6 +632,10 @@ extern "C" void PS2_ReadBenchmarkStats(int values[BENCH_STATS_COUNT])
     values[BENCH_WORLD_SURFACES] = world.surfaces;
     values[BENCH_WORLD_DRAW_TRIANGLES] = world.triangles;
     values[BENCH_WORLD_BATCHES] = world.batches;
+    values[BENCH_WORLD_PREP_MS] = world.DetailMicros(ps2::view::WorldProfile::Preparation);
+    values[BENCH_WORLD_CLIP_MS] = world.DetailMicros(ps2::view::WorldProfile::Clip);
+    values[BENCH_WORLD_TEXTURE_MS] = world.DetailMicros(ps2::view::WorldProfile::Textures);
+    values[BENCH_WORLD_SEAL_MS] = world.DetailMicros(ps2::view::WorldProfile::Seals);
 
 }
 

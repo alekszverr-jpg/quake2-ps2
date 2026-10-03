@@ -5,6 +5,10 @@
 #include <cstdio>
 #include <vector>
 #include <random>
+#include "ps2/renderer/world_profile.h"
+using ps2::view::WorldProfile;
+using ps2::view::WorldDetailScope;
+static WorldProfile s_worldProfile;
 using u32 = std::uint32_t;
 constexpr int MAX_VERTS = 2048, kNumClipPlanes = 6, kScratchMaxVerts = 24;
 constexpr float kClipEpsilon = 0.01f;

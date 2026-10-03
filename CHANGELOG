@@ -6,6 +6,18 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.109 - 2026-10-04 (local test build)
+
+- Add a fourth World profile page, World Geometry breakdown: Prep/light,
+  Clip/emit, Tex fetch and Seal prep. Nested categories and CPU submission
+  are subtracted before time conversion, including recursive lighting and
+  repeated categories. Per-bind texture work remains in Submit.
+- Preserve the original World summary and its counters. Test recursive exclusive
+  accounting, disabled/out-of-context clocks and both native240p profile pages.
+  Geometry order and renderer output remain unchanged.
+- Alpha.108 user profile: BSP/PVS1.07ms, Sky0.30ms, Geometry9.25..9.27ms,
+  Submit1.01..1.04ms. Geometry is about79% of the measured World pass.
+
 ## 0.1.0-alpha.108 - 2026-10-04 (local test build)
 
 - Add GAME -> world profile (3 runs), with per-frame BSP/PVS, Sky, Geometry

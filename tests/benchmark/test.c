@@ -302,8 +302,8 @@ int main(void)
         CL_BenchmarkDemoCompleted(); NextRun();
     }
     assert(!active && values[12] == 1 && values[11] == 1 && values[9] == 1);
-    for (i = 0; i < 3; ++i) {
-        checkCanvas = i == 2;
+    for (i = 0; i < 4; ++i) {
+        checkCanvas = i >= 2;
         drawn[0] = 0; assert(detailPage == i); CL_BenchmarkDraw();
         if (i == 0) assert(strstr(drawn, "World timers ON"));
         if (i == 1) assert(strstr(drawn, "Left/Right: World profile"));
@@ -312,6 +312,12 @@ int main(void)
             assert(strstr(drawn, "BSP/PVS ms      38.00"));
             assert(strstr(drawn, "Batches       45000.00"));
             assert(strstr(drawn, "Submit excluded from Sky/Geometry"));
+        }
+        if (i == 3) {
+            assert(strstr(drawn, "World Geometry breakdown"));
+            assert(strstr(drawn, "Prep/light ms   46.00"));
+            assert(strstr(drawn, "Seal prep ms    49.00"));
+            assert(strstr(drawn, "Exclusive times; Submit excluded."));
         }
         CL_BenchmarkTogglePage();
     }

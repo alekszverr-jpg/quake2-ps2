@@ -96,5 +96,55 @@ int main() {
         FlushScratch(matrix, texture);
     }
     assert(ps2::timing::reads == reads && s_worldProfile.batches == 0);
+    // Recursive detail categories must be exclusive even when a category
+    // recurs through another one, and submission must be subtracted once.
+    s_worldProfile.enabled = true;
+    ps2::timing::now = 0;
+    {
+        WorldScope geometry(s_worldProfile, WorldProfile::Geometry);
+        WorldDetailScope prep(s_worldProfile, WorldProfile::Preparation);
+        ps2::timing::now += 10;
+        {
+            WorldDetailScope textures(s_worldProfile, WorldProfile::Textures);
+            ps2::timing::now += 20;
+            textures.Stop(); textures.Stop();
+        }
+        {
+            WorldDetailScope clip(s_worldProfile, WorldProfile::Clip);
+            ps2::timing::now += 40;
+            {
+                WorldDetailScope dynamicLight(s_worldProfile, WorldProfile::Preparation);
+                ps2::timing::now += 50;
+                {
+                    WorldDetailScope nestedLight(s_worldProfile, WorldProfile::Preparation);
+                    ps2::timing::now += 60;
+                    WorldDetailScope leafClip(s_worldProfile, WorldProfile::Clip);
+                    ps2::timing::now += 70;
+                    s_scratchVertCount = 3;
+                    FlushScratch(matrix, texture);
+                }
+            }
+        }
+        {
+            WorldDetailScope seals(s_worldProfile, WorldProfile::Seals);
+            ps2::timing::now += 80;
+        }
+    }
+    assert(s_worldProfile.DetailMicros(WorldProfile::Preparation) == 120);
+    assert(s_worldProfile.DetailMicros(WorldProfile::Textures) == 20);
+    assert(s_worldProfile.DetailMicros(WorldProfile::Clip) == 110);
+    assert(s_worldProfile.DetailMicros(WorldProfile::Seals) == 80);
+    assert(s_worldProfile.Micros(WorldProfile::Geometry) == 330);
+    assert(s_worldProfile.Micros(WorldProfile::Submit) == 30);
+    assert(s_worldProfile.activeDetail == WorldProfile::DetailCount);
+    reads = ps2::timing::reads;
+    { WorldDetailScope outside(s_worldProfile, WorldProfile::Clip); }
+    assert(ps2::timing::reads == reads);
+    s_worldProfile = {};
+    {
+        WorldScope disabled(s_worldProfile, WorldProfile::Geometry);
+        WorldDetailScope detail(s_worldProfile, WorldProfile::Preparation);
+    }
+    assert(ps2::timing::reads == reads);
     puts("MD2/World exclusive phase timing, submission context and disabled clocks PASS");
 }

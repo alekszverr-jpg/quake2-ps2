@@ -27,7 +27,23 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.108 World phase profiling (runtime pending)
+## Alpha.109 World Geometry breakdown (build pending)
+
+Same GAME world profile (3 runs), now4 pages; Right three times opens World
+Geometry breakdown. Nested WorldDetailScope categories partition Geometry only:
+Preparation covers DrawTextureChains housekeeping, caches, surface/triangle light
+selection and dynamic subdivision; Clip covers cached guard planes and full
+SubmitWorldTriangle clipping/emission; Textures covers planned resident-prefix
+prefetch; Seals covers corner prep/colour lookup/plane transforms, excluding its
+clip/emission children. Per-bind texture work remains in Submit. All detail scopes
+subtract whole child duration, even repeated categories through recursive dynamic
+lighting. WorldSubmitScope subtracts from the active detail and World phase once.
+Disabled clocks and contexts outside Geometry do nothing. No rendering algorithm
+change. Host timing tests cover nested same-category recurrence with submission,
+and coordinator tests cover the fourth page and both native240p tables.
+Next: screenshot of World Geometry breakdown; diagnostic FPS is perturbed.
+
+## Alpha.108 World phase profiling (runtime results received)
 
 GAME -> world profile (3 runs) runs demo1 three times with existing world-light
 and cache settings. Right twice opens World profile (opaque pass + sky).
@@ -42,7 +58,11 @@ Native320x224 table bounds and exclusive timing covered by host tests. Next runt
 request: screenshot of World profile page; use ordinary benchmark for real FPS.
 CI37147924808 passed; installed7,865,608-byte PROFILE ELF in both test roots.
 Both copies match the downloaded artifact SHA256 and embedded108 version.
-No new release made; runtime World phase measurements remain pending.
+No new release made. User profile: BSP/PVS1.07/1.07/1.07ms, Sky0.30ms each,
+Geometry9.27/9.26/9.25ms, Submit1.04/1.01/1.04ms. Nodes327.94 each,
+surfaces214.66 each, triangles2140.69/2139.86/2139.37, batches39.38 each.
+Geometry accounts for about79% of measured World pass; this does not identify
+its dominant sub-operation. Added109 detail scopes to resolve that question.
 
 ## Alpha.107 cached BSP clipping positions (runtime results received)
 

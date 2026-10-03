@@ -20,5 +20,5 @@ for name, prefixes in [('generic.inc',['int ClipAgainstPlane(', 'inline u32 Pack
 (out/'worldclip.inc').write_text(function('void BeginWorldClipCache(') + '\n' + function('u32 CachedWorldClipDistances('))
 binary = out / ('test.exe' if os.name == 'nt' else 'test')
 flags = [] if os.name == 'nt' else ['-fsanitize=address,undefined']
-subprocess.run([os.environ.get('CXX','g++'), '-std=c++17','-Wall','-Wextra','-Werror', *flags, '-I'+str(out), str(root/'tests/alias_clip/test.cpp'), '-o',str(binary)],check=True)
+subprocess.run([os.environ.get('CXX','g++'), '-std=c++17','-Wall','-Wextra','-Werror', *flags, '-I'+str(root/'src'), '-I'+str(out), str(root/'tests/alias_clip/test.cpp'), '-o',str(binary)],check=True)
 subprocess.run([str(binary)],check=True)

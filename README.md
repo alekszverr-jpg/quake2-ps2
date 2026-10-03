@@ -1,7 +1,7 @@
 # Quake II for PlayStation 2
 
 [![Build](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml/badge.svg)](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml)
-[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.108-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
+[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.109-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](LICENSE)
 
 An active continuation of the unofficial Quake II port for the Sony
@@ -261,3 +261,16 @@ are excluded. Nodes, surfaces, emitted triangles and batches are per-frame count
 World light/cache settings are preserved; detailed light/MD2 timers are disabled
 during the run and all diagnostics restored afterwards. Timers affect FPS: use
 the ordinary benchmark for speed comparisons. The table fits the native240p UI.
+
+Alpha.108 user measurements: BSP/PVS1.07ms, Sky0.30ms, Geometry9.25..9.27ms,
+Submit1.01..1.04ms. Geometry is about79% of the measured World pass.
+
+Alpha.109 adds a fourth page: press Right three times for World Geometry breakdown.
+Prep/light includes chain setup, cached geometry preparation and dynamic lighting;
+Clip/emit includes guard planes, clipping and scratch vertex emission. Tex fetch
+measures the resident-prefix prefetch and planned texture use setup; per-bind work
+remains in Submit. Seal prep measures seal corners, colour lookup and their plane
+transforms; seal clipping/emission belongs to Clip/emit. All four categories exclude
+nested categories and CPU Submit, including recursive lighting. They partition
+Geometry with small scope-boundary overhead; use these diagnostic results to pick
+an optimization, then measure actual FPS with the ordinary benchmark.

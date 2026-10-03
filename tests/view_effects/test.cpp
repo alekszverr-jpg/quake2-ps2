@@ -9,6 +9,10 @@
 using ps2::view::WorldLightProfile;
 using ps2::view::WorldLightScope;
 static WorldLightProfile s_lightProfile;
+#include "ps2/renderer/world_profile.h"
+using ps2::view::WorldProfile;
+using ps2::view::WorldDetailScope;
+static WorldProfile s_worldProfile;
 #include "ps2/renderer/world_light_cache.h"
 using ps2::view::WorldLightCache;
 static WorldLightCache s_worldLightCache;

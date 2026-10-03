@@ -1218,6 +1218,7 @@ void SubmitWorldTriangle(const ClipVertex (&corners)[3], const math::Mat4 & mvp,
                          const tex::Texture & texture, bool alphaBlend = false,
                          int fixedAlpha = -1)
 {
+    WorldDetailScope clipTimer(s_worldProfile, WorldProfile::Clip);
     int insidePerPlane[kNumClipPlanes] = {};
     for (const ClipVertex & corner : corners)
     {
@@ -1299,6 +1300,7 @@ void SubmitDynamicallyLitTriangle(const ClipVertex (&corners)[3],
                                   const tex::Texture & texture, int depth = 0,
                                   bool boundsSelected = false)
 {
+    WorldDetailScope lightTimer(s_worldProfile, WorldProfile::Preparation);
     if (s_lightProfile.enabled) ++s_lightProfile.nodes;
     const u32 surfaceMask = s_surfaceLightMask;
     if (surfaceMask == 0)
@@ -2024,6 +2026,7 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
 
         for (int first = 0; first < drawVertexCount; first += 3)
         {
+            WorldDetailScope clipTimer(s_worldProfile, WorldProfile::Clip);
             // Interior triangles only need plane distances. Defer the full
             // interpolation records (288 bytes) until clipping is required.
             ClipDists distances[3];
@@ -2080,6 +2083,7 @@ void GatherPolyCrackSeals(const mod::ModelPoly & poly,
                           const tex::Texture & texture,
                           const u32 topologyKey)
 {
+    WorldDetailScope sealTimer(s_worldProfile, WorldProfile::Seals);
     const float scroll = (surface.texInfo->flags & SURF_FLOWING) != 0
         ? effects::FlowingScroll(s_viewTime) : 0.0f;
     const int numTriangles = poly.numVerts - 2;
@@ -2139,6 +2143,7 @@ void GatherPolyCrackSeals(const mod::ModelPoly & poly,
 // Draws every texture chain built by RecursiveWorldNode and resets them.
 void DrawTextureChains(const math::Mat4 & mvp)
 {
+    WorldDetailScope preparationTimer(s_worldProfile, WorldProfile::Preparation);
     // The world and each inline brush use different light coordinates. Keep
     // masks only across the ordinary/crack-seal passes in this one context.
     s_surfaceLightCache.Clear();
@@ -2172,6 +2177,7 @@ void DrawTextureChains(const math::Mat4 & mvp)
     // chain and one FINISH before their dependent PATH1 geometry. The helper
     // never evicts a texture already used in this frame; overflow remains on
     // the established per-bind streaming path.
+    WorldDetailScope textureTimer(s_worldProfile, WorldProfile::Textures);
     static const tex::Texture * prefetchTextures[kMaxChainTextures];
     int prefetchCount = 0;
     const int checkerMode = static_cast<int>(worldChecker->value);
@@ -2196,6 +2202,7 @@ void DrawTextureChains(const math::Mat4 & mvp)
     }
     vram::BeginPlannedTextureUses(prefetchTextures, prefetchCount);
     gs::PrefetchTextures(prefetchTextures, prefetchCount);
+    textureTimer.Stop();
 
     for (int i = 0; i < s_chainTextureCount; ++i)
     {

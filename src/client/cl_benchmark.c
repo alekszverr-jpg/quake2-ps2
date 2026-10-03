@@ -210,6 +210,32 @@ void CL_BenchmarkDraw(void)
     char text[80];
     re.DrawFill(0, 0, viddef.width, viddef.height, 0);
     Line(25, viddef.width <= 320 ? "BENCHMARK " PS2_BUILD_VERSION : "QUAKE II - BENCHMARK " PS2_BUILD_VERSION);
+    if (worldProfile && detailPage == 3)
+    {
+        static const char * labels[] = {
+            "Prep/light ms", "Clip/emit ms", "Tex fetch ms", "Seal prep ms"
+        };
+        Line(43, "World Geometry breakdown");
+        Line(59, "Metric          Run1    Run2    Run3");
+        for (i = BENCH_WORLD_PREP_MS; i <= BENCH_WORLD_SEAL_MS; ++i)
+        {
+            double average[3];
+            int j;
+            for (j = 0; j < BENCH_GROUP; ++j)
+                average[j] = frames[j] ? (double)totals[j][i] / frames[j] / 1000.0 : 0;
+            Com_sprintf(text, sizeof(text), "%-13s %7.2f %7.2f %7.2f",
+                labels[i-BENCH_WORLD_PREP_MS], average[0], average[1], average[2]);
+            Line(73+(i-BENCH_WORLD_PREP_MS)*12, text);
+        }
+        Line(137, "Exclusive times; Submit excluded.");
+        Line(149, "Prep: cache, lights, chain setup.");
+        Line(161, "Clip: planes, clipping + emission.");
+        Line(173, "Tex: prefetch; binds in Submit.");
+        Line(185, "Seals: corner prep, light lookup.");
+        Line(200, "Timers affect FPS; use normal bench.");
+        Line(214, "Left/Right: pages; Back: menu");
+        return;
+    }
     if (worldProfile && detailPage == 2)
     {
         static const char * labels[] = {
@@ -218,7 +244,7 @@ void CL_BenchmarkDraw(void)
         };
         Line(43, "World profile (opaque pass + sky)");
         Line(59, "Metric          Run1    Run2    Run3");
-        for (i = BENCH_WORLD_VISIBILITY_MS; i < BENCH_STATS_COUNT; ++i)
+        for (i = BENCH_WORLD_VISIBILITY_MS; i <= BENCH_WORLD_BATCHES; ++i)
         {
             double average[3];
             int j;
@@ -388,7 +414,7 @@ void CL_BenchmarkDraw(void)
 
 void CL_BenchmarkTogglePage(void)
 {
-    detailPage = (detailPage + 1) % (worldProfile || modelProfile ? 3 : lightProfile ? 7 : comparison ? 5 : 2);
+    detailPage = (detailPage + 1) % (worldProfile ? 4 : modelProfile ? 3 : lightProfile ? 7 : comparison ? 5 : 2);
 }
 
 void CL_BenchmarkInit(void)
