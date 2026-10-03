@@ -6,6 +6,20 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.107 - 2026-10-03 (local test build)
+
+- Reuse guard-plane distances and outside masks for exact shared positions in
+  cached BSP subdivisions. A bounded8KiB scratch cache is invalidated per polygon,
+  preserving world/brush matrices, dynamic lighting, flowing UVs and crack seals.
+  Hash collisions recompute; epoch invalidation requires no ordinary table clear.
+- Differential-test12,000 cached results against direct transforms, including
+  moving contexts, colour/UV independence, collision replacement and epoch wrap.
+  Runtime speed improvement and visual validation are pending.
+- Alpha.106 normal benchmark39.27FPS/25.45ms; Tris/clip2.83ms vs105's2.87ms.
+  Clean world-light compare: ON39.26FPS/25.47ms/world12.14ms,
+  OFF45.86FPS/21.81ms/world8.70ms, cost3.66ms. Diagnostic light profile results
+  are perturbed by timers and must not be used as ordinary FPS comparisons.
+
 ## 0.1.0-alpha.106 - 2026-10-03 (local test build)
 
 - Prepare indexed MD2 texture coordinates once per draw instead of repeating

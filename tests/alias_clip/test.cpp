@@ -33,6 +33,8 @@ static PreparedAliasVertex s_preparedAliasVerts[MAX_VERTS];
 static AliasClipData s_aliasClipData[MAX_VERTS];
 static AliasTexCoord s_preparedAliasTexCoords[MAX_VERTS];
 static bool s_aliasTexCoordsPrepared;
+static WorldClipEntry s_worldClipCache[128];
+static u32 s_worldClipEpoch;
 static vu1::DrawVertex s_scratchVerts[kScratchMaxVerts];
 static int s_scratchVertCount;
 static u32 s_surfaceLightMask;
@@ -51,6 +53,7 @@ void FlushScratch(const math::Mat4 &, const tex::Texture &, bool alphaBlend = fa
 }
 #include "generic.inc"
 #include "alias.inc"
+#include "worldclip.inc"
 static void Reset() {
     s_scratchVertCount = trisDrawn = trisCulled = trisClipped = 0;
     emitted.clear(); batches.clear();
@@ -162,5 +165,38 @@ int main() {
     PrepareAliasClipData(MAX_VERTS,math::Mat4{0.0f});
     PrepareAliasClipData(MAX_VERTS,math::Mat4{1.0f});
     assert(sizeof(s_aliasClipData) == 65536);
+    // World/brush MVP contexts invalidate exact shared positions without
+    // retaining colour or texture state. Hash collisions must recompute.
+    int reuseHits = 0;
+    for (int context=0;context<100;++context) {
+        BeginWorldClipCache();
+        const math::Mat4 matrix={static_cast<float>(context)*0.07f};
+        for (int i=0;i<120;++i) {
+            CachedLitVertex vertex={position(random),position(random),position(random),0,0,0};
+            if (i==0) vertex={0,0,0,0,0,0};
+            if (i==1) vertex={-0.0f,0,0,0,0,0};
+            ClipDists reference, cached;
+            SetClipDistances(reference,{vertex.x,vertex.y,vertex.z,1},matrix);
+            u32 referenceMask=0;
+            for (int p=0;p<6;++p) if (!(reference.f[p]>=0.0f)) referenceMask |= 1u<<p;
+            assert(CachedWorldClipDistances(cached,vertex,matrix) == referenceMask);
+            assert(std::memcmp(&cached,&reference,sizeof(cached)) == 0);
+            const int before=transforms;
+            vertex.packedColor=0x80808080u; vertex.s=3.0f; // key depends only on position
+            assert(CachedWorldClipDistances(cached,vertex,matrix) == referenceMask);
+            assert(transforms == before && std::memcmp(&cached,&reference,sizeof(cached)) == 0);
+            ++reuseHits;
+        }
+    }
+    s_worldClipEpoch=UINT32_MAX;
+    BeginWorldClipCache(); assert(s_worldClipEpoch == 1);
+    ClipDists cached, reference;
+    const CachedLitVertex origin={0,0,0,0,0,0};
+    const math::Mat4 moved={3.0f};
+    SetClipDistances(reference,{0,0,0,1},moved);
+    CachedWorldClipDistances(cached,origin,moved);
+    assert(std::memcmp(&cached,&reference,sizeof(cached)) == 0);
+    assert(sizeof(s_worldClipCache) == 8192 && reuseHits == 12000);
+    std::puts("12000 world/brush clip-cache results match direct transforms; context and epoch wrap PASS");
     std::printf("%d MD2 triangles match production clipper, colours, UVs, batches and alpha; shared transforms, opaque UV reuse and oversized fallback PASS\n",cases);
 }

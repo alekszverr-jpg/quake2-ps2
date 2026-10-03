@@ -136,7 +136,8 @@ play on a retail console.
 - [x] Profile and optimize first-pass model interpolation and BSP lighting
 - [x] MD2 phase/count benchmark, including view weapon (Alpha.104; stable three-run profile received)
 - [x] Reuse indexed MD2 clipping distances/colours and emit inside triangles directly (Alpha.105; visuals accepted, Tris/clip3.78->2.87ms)
-- [~] Reuse indexed MD2 texture coordinates in opaque/clipped paths (Alpha.106; host differential tests passed, runtime pending)
+- [~] Reuse indexed MD2 texture coordinates in opaque/clipped paths (Alpha.106; Tris/clip2.87->2.83ms, visual acceptance pending)
+- [~] Reuse exact shared positions during cached BSP clipping (Alpha.107; host differential tests passed, runtime pending)
 - [~] Validate long sessions for EE RAM, IOP RAM and VRAM leaks
 - [ ] Target a stable 30 FPS minimum, with 60 FPS where practical
 

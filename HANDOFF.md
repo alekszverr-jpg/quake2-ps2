@@ -27,7 +27,20 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.106 indexed texture coordinates (runtime pending)
+## Alpha.107 cached BSP clipping positions (runtime pending)
+
+Exact xyz bit keys reuse SetClipDistances output and six-plane outside masks
+within GatherPolyTriangles. BeginWorldClipCache advances an epoch per polygon;
+no cross-MVP reuse for moving brushes.128 direct-mapped64-byte entries total8KiB,
+no heap allocation or retained model pointers. Collisions recompute. UInt epoch
+wrap clears tags; no ordinary frame/poly table memset. Only cached BSP positions
+use the helper, with implicit w1; sky, seals, MD2 and recursive light midpoint
+transforms retain their direct path. Geometry order, dynamic-light subdivision,
+flowing coordinates and crack-seal pass unchanged.12,000 results match direct
+distances/masks, including context changes, collisions, colour/UV changes and wrap.
+Runtime comparison and visible edges/doors/sky checks required before acceptance.
+
+## Alpha.106 indexed texture coordinates (runtime results received)
 
 Prepare MD2 ST coordinates once per model draw, reuse in opaque/inside/partial
 paths. Keep exact (short+0.5)*inverseGSTextureExtent order. Separate ST indices
@@ -42,6 +55,14 @@ Need same VIDEO settings/ordinary benchmark/model profile as105 plus visual
 skin/weapon/near-plane checks before claiming any new performance improvement.
 CI37115435861 passed all sanitizer tests/map validation/PROFILE ELF build.
 Installed7,832,408-byte ELF in both roots; SHA256 and embedded106 verified.
+User supplied106 profile: Tris/clip2.83ms vs105's2.87ms; other phases stable.
+Ordinary benchmark39.27FPS/25.45ms vs105's39.21FPS/25.50ms: difference small,
+do not claim a decisive total FPS gain. Renderer details World12.13..12.15ms,
+Entities7.37..7.38ms; wait counters overlap phases. Clean world-light compare
+ON39.26FPS/25.47ms/world12.14ms, OFF45.86FPS/21.81ms/world8.70ms,
+frame-cost3.66ms. Earlier7.75ms cost came from diagnostic light profile timers.
+Focus now shifts to cached world geometry preparation.106 visual acceptance
+was not explicitly supplied with these screenshots; do not infer a full check.
 
 ## Alpha.105 indexed clipping optimization (accepted)
 

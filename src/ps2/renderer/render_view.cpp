@@ -857,6 +857,19 @@ struct CachedLitVertex
 static_assert(sizeof(CachedLitVertex) == 24,
               "CachedLitVertex must remain compact");
 
+// Shared subdivision positions within one polygon use the same MVP. Exact
+// position bits prevent false reuse; collisions only replace an entry.
+struct WorldClipEntry
+{
+    ClipDists distances;
+    u32 positionBits[3];
+    u32 epoch;
+    u32 outsideMask;
+};
+static_assert(sizeof(WorldClipEntry) == 64, "Bound world clipping scratch storage");
+static WorldClipEntry s_worldClipCache[128];
+static u32 s_worldClipEpoch;
+
 constexpr int kMaxCachedVertsPerTriangle =
     3 * (1 << kMaxFineLightSubdivideDepth);
 // Adaptive lighting can otherwise cache every visible subdivided BSP triangle
@@ -1540,6 +1553,44 @@ void SetClipDistances(ClipVertex & vertex, const math::Mat4 & mvp)
     SetClipDistances(vertex.d, vertex.pos, mvp);
 }
 
+void BeginWorldClipCache()
+{
+    // Epoch invalidation avoids clearing 8 KiB for every visible polygon.
+    if (++s_worldClipEpoch == 0) {
+        for (WorldClipEntry & entry : s_worldClipCache) entry.epoch = 0;
+        s_worldClipEpoch = 1;
+    }
+}
+
+u32 CachedWorldClipDistances(ClipDists & distances, const CachedLitVertex & vertex,
+                             const math::Mat4 & mvp)
+{
+    const float coordinates[3] = {vertex.x, vertex.y, vertex.z};
+    u32 bits[3];
+    std::memcpy(bits, coordinates, sizeof(bits));
+    u32 hash = bits[0] * 0x9e3779b1u;
+    hash ^= bits[1] * 0x85ebca6bu;
+    hash ^= bits[2] * 0xc2b2ae35u;
+    hash ^= hash >> 16;
+    WorldClipEntry & entry = s_worldClipCache[hash & 127u];
+    if (entry.epoch == s_worldClipEpoch &&
+        entry.positionBits[0] == bits[0] && entry.positionBits[1] == bits[1] &&
+        entry.positionBits[2] == bits[2]) {
+        distances = entry.distances;
+        return entry.outsideMask;
+    }
+    const math::Vec4 position = {vertex.x, vertex.y, vertex.z, 1.0f};
+    SetClipDistances(distances, position, mvp);
+    u32 outsideMask = 0;
+    for (int plane = 0; plane < kNumClipPlanes; ++plane)
+        if (!(distances.f[plane] >= 0.0f)) outsideMask |= 1u << plane;
+    entry.distances = distances;
+    std::memcpy(entry.positionBits, bits, sizeof(bits));
+    entry.epoch = s_worldClipEpoch;
+    entry.outsideMask = outsideMask;
+    return outsideMask;
+}
+
 ClipVertex MakeSkyVertex(float s, float t, int axis, const refdef_t & viewDef,
                          const tex::Texture & texture, const math::Mat4 & mvp)
 {
@@ -1849,6 +1900,7 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
                          const math::Mat4 & mvp, const tex::Texture & texture,
                          const u32 topologyKey, const u32 colorKey)
 {
+    BeginWorldClipCache(); // Includes moving brushes; no reuse across MVPs.
     const u32 surfaceMask = s_surfaceLightMask;
     const float scroll = (surface.texInfo->flags & SURF_FLOWING) != 0
         ? effects::FlowingScroll(s_viewTime) : 0.0f;
@@ -1977,10 +2029,7 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
             for (int v = 0; v < 3; ++v)
             {
                 const CachedLitVertex & src = drawVertices[first + v];
-                const math::Vec4 position = { src.x, src.y, src.z, 1.0f };
-                SetClipDistances(distances[v], position, mvp);
-                for (int plane = 0; plane < kNumClipPlanes; ++plane)
-                    fullyInside &= (distances[v].f[plane] >= 0.0f);
+                fullyInside &= CachedWorldClipDistances(distances[v], src, mvp) == 0;
             }
             // Cached colours are already rounded to GS bytes. Interior
             // triangles need no colour interpolation or unpack/repack cycle.
