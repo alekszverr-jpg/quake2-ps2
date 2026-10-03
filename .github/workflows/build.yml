@@ -106,7 +106,7 @@ jobs:
         run: |
           cd /tmp
           rm -rf vclpp openvcl
-          git clone --depth 1 https://github.com/glampert/vclpp.git
+          git clone --depth 1 --recurse-submodules https://github.com/glampert/vclpp.git
           cd vclpp
           make
           install -Dm755 vclpp "$PS2DEV/bin/vclpp"
