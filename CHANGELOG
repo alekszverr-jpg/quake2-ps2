@@ -6,6 +6,18 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.117 - 2026-10-04 (local test build)
+
+- Add an eighth World profile page with an empty nested timer reference:
+  64 trials/frame using production sample/detail scopes on a separate profile.
+  Show exclusive planes/emission/rest and total microseconds per trial, without
+  subtracting the reference from real measurements. No rendering policy change.
+- Test simulated clock-read cost, real-stat isolation, disabled clocks,
+  averaging, zero denominators and native240p page bounds.
+- Alpha.116 user results: about1999.61 roots and62.48 samples/frame; planes
+  about3.66us, emission2.61us, residual5.20us/sample. These include clock overhead;
+  no ordinary116 speed benchmark or explicit visual acceptance was supplied.
+
 ## 0.1.0-alpha.116 - 2026-10-04 (local test build)
 
 - Sample one in32 root BSP triangle operations for fine diagnostic clocks;

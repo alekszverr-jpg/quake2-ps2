@@ -206,4 +206,29 @@ int main() {
     }
     for (int count:chosen) assert(count==1);
     puts("1/32 rotating root samples, nested selection, full counters and skipped clocks PASS");
+    const auto before = s_worldProfile;
+    reads = ps2::timing::reads;
+    ps2::timing::readCost = 1;
+    CalibrateWorldTimers(s_worldProfile);
+    ps2::timing::readCost = 0;
+    assert(ps2::timing::reads-reads == 64*6);
+    assert(s_worldProfile.emptyCount == 64);
+    assert(s_worldProfile.emptyMicros[0] == 64 && s_worldProfile.emptyMicros[1] == 64);
+    assert(s_worldProfile.emptyMicros[2] == 192 && s_worldProfile.emptyMicros[3] == 320);
+    assert(s_worldProfile.sampleCursor == before.sampleCursor);
+    assert(s_worldProfile.sampleRoots == before.sampleRoots && s_worldProfile.sampleCount == before.sampleCount);
+    assert(s_worldProfile.activePhase == before.activePhase && s_worldProfile.activeDetail == before.activeDetail);
+    for (int i=0;i<WorldProfile::DetailCount;++i) {
+        assert(s_worldProfile.detailTicks[i] == before.detailTicks[i]);
+        assert(s_worldProfile.detailChildren[i] == before.detailChildren[i]);
+    }
+    for (int i=0;i<WorldProfile::PhaseCount;++i) assert(s_worldProfile.ticks[i] == before.ticks[i]);
+    s_worldProfile.enabled = false;
+    reads = ps2::timing::reads;
+    CalibrateWorldTimers(s_worldProfile);
+    assert(reads == ps2::timing::reads);
+    s_worldProfile.enabled = true; s_worldProfile.sampled = false;
+    CalibrateWorldTimers(s_worldProfile);
+    assert(reads == ps2::timing::reads);
+    puts("Empty timer reference accounts for clock cost without modifying real statistics PASS");
 }

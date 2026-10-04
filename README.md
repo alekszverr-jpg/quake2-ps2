@@ -1,7 +1,7 @@
 # Quake II for PlayStation 2
 
 [![Build](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml/badge.svg)](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml)
-[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.116-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
+[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.117-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](LICENSE)
 
 An active continuation of the unofficial Quake II port for the Sony
@@ -340,5 +340,11 @@ Right three times opens Sampled triangle work (1/32): sampled dynamic-light and
 clip costs in microseconds/sample, plus roots and samples/frame. Broad texture,
 cache preparation and seal-corner timings are omitted from this sampled page.
 Right six times opens BSP sampled planes vs emission, also in microseconds/sample.
+Alpha.117 adds Empty nested timer reference (Right seven times): 64 empty trials
+per enabled frame, each selected root nesting Clip, Planes with explicit Stop,
+then Emit. Report microseconds/trial separately; never subtract automatically.
+This common inside-path reference omits geometry, recursive lighting and batch
+submission, so it cannot correct all real roots. It runs after the rendered pass
+using a separate profile, preserving real samples, counters and phase timings.
 No extrapolation to whole-frame cost is shown: sample composition and clock overhead
 still affect estimates. Provide both pages to interpret results with sample size.

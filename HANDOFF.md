@@ -27,7 +27,25 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.116 sampled root-triangle diagnostics (runtime pending)
+## Alpha.117 empty nested timer reference (build pending)
+
+Separate local WorldProfile runs64 selected empty roots after RenderViewBlend.
+Each nests Clip > Planes with explicit Stop, then Emit, using production scopes.
+No geometry, submission, recursion or broad preparation. Copies only4 microsecond
+totals and trial count to real profile; real sample cursor, phase timings and
+counters untouched. Eighth page Empty nested timer reference, Right seven times.
+Reference is fixed common inside topology; do not automatically subtract or
+claim pure work timings. Synthetic clock cost test verifies exclusive totals
+64/64/192/320 for64 trials at1us per read; real-stat isolation and disabled gates
+tested. UI tests cover per-trial normalization, zero counts and240p bounds.
+Next user photos: page6 BSP sampled planes vs emission and page7 empty reference.
+
+## Alpha.116 sampled root-triangle diagnostics (runtime results received)
+
+User roots1999.61/frame, samples62.47/62.48/62.49; dynamic Light1.36/1.30/1.30us,
+Clip/emit10.92/10.85/10.86us per sample. Planes about3.66us, Emit2.62/2.60/2.60us,
+Clip rest5.22/5.19/5.20us. Stable selection; raw clocks still contaminate residual.
+No normal116 speed benchmark or explicit visual acceptance supplied.
 
 WorldSampleScope at cached-loop root and generic SubmitWorldTriangle selects1/32
 operations; nested generic/dynamic work inherits selection, no independent child

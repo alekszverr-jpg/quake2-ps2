@@ -9,6 +9,7 @@ struct WorldProfile {
     bool sampled = false, sampleSelected = false;
     unsigned sampleCursor = 0;
     int sampleDepth = 0, sampleRoots = 0, sampleCount = 0;
+    int emptyMicros[4] = {}, emptyCount = 0;
     Phase activePhase = PhaseCount;
     long long ticks[PhaseCount] = {};
     long long nestedSubmit[PhaseCount] = {};
@@ -126,4 +127,26 @@ public:
         }
     }
 };
+// Reference topology: selected root -> Clip -> Planes (explicit Stop), Emit.
+// No geometry, submission or recursive lighting. This is a reference, not a
+// universal correction: real roots may enter more scopes or flush batches.
+inline void CalibrateWorldTimers(WorldProfile & target) {
+    if (!target.enabled || !target.sampled) return;
+    WorldProfile empty;
+    empty.enabled = empty.sampled = true;
+    empty.activePhase = WorldProfile::Geometry;
+    for (int i = 0; i < 64; ++i) {
+        empty.sampleCursor = 0;
+        WorldSampleScope root(empty);
+        WorldDetailScope clip(empty, WorldProfile::Clip);
+        WorldDetailScope planes(empty, WorldProfile::Planes);
+        planes.Stop();
+        { WorldDetailScope emit(empty, WorldProfile::Emit); }
+    }
+    target.emptyMicros[0] = empty.DetailMicros(WorldProfile::Planes);
+    target.emptyMicros[1] = empty.DetailMicros(WorldProfile::Emit);
+    target.emptyMicros[2] = empty.DetailMicros(WorldProfile::Clip);
+    target.emptyMicros[3] = target.emptyMicros[0] + target.emptyMicros[1] + target.emptyMicros[2];
+    target.emptyCount = empty.sampleCount;
+}
 } // namespace ps2::view

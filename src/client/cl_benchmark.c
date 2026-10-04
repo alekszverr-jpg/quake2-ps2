@@ -210,6 +210,28 @@ void CL_BenchmarkDraw(void)
     char text[80];
     re.DrawFill(0, 0, viddef.width, viddef.height, 0);
     Line(25, viddef.width <= 320 ? "BENCHMARK " PS2_BUILD_VERSION : "QUAKE II - BENCHMARK " PS2_BUILD_VERSION);
+    if (worldProfile && detailPage == 7)
+    {
+        static const char * labels[] = { "Empty planes", "Empty emit", "Empty rest", "Empty total" };
+        Line(43, "Empty nested timer reference");
+        Line(59, "Metric          Run1    Run2    Run3");
+        for (i = 0; i < 4; ++i) {
+            double average[3];
+            int j;
+            for (j = 0; j < BENCH_GROUP; ++j)
+                average[j] = totals[j][BENCH_WORLD_EMPTY_COUNT] ? (double)totals[j][BENCH_WORLD_EMPTY_PLANES+i] / totals[j][BENCH_WORLD_EMPTY_COUNT] : 0;
+            Com_sprintf(text, sizeof(text), "%-13s %7.2f %7.2f %7.2f", labels[i], average[0], average[1], average[2]);
+            Line(73+i*12, text);
+        }
+        Line(137, "us/trial; 64 empty trials/frame.");
+        Line(149, "Root > Clip > Planes, then Emit.");
+        Line(161, "No geometry, recursion or submit.");
+        Line(173, "Reference only; no subtraction.");
+        Line(185, "Real roots can enter more scopes.");
+        Line(200, "Timers affect FPS; use normal bench.");
+        Line(214, "Left/Right: pages; Back: menu");
+        return;
+    }
     if (worldProfile && detailPage == 6)
     {
         static const char * labels[] = { "Planes us", "Emit us", "Clip rest us" };
@@ -477,7 +499,7 @@ void CL_BenchmarkDraw(void)
 
 void CL_BenchmarkTogglePage(void)
 {
-    detailPage = (detailPage + 1) % (worldProfile ? 7 : modelProfile ? 3 : lightProfile ? 7 : comparison ? 5 : 2);
+    detailPage = (detailPage + 1) % (worldProfile ? 8 : modelProfile ? 3 : lightProfile ? 7 : comparison ? 5 : 2);
 }
 
 void CL_BenchmarkInit(void)

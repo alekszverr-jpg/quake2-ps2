@@ -38,6 +38,11 @@ void PS2_ReadBenchmarkStats(int values[BENCH_STATS_COUNT])
     values[BENCH_WORLD_PACKED_INSIDE] = 800;
     values[BENCH_WORLD_SAMPLE_ROOTS] = 3200;
     values[BENCH_WORLD_SAMPLE_COUNT] = 100;
+    values[BENCH_WORLD_EMPTY_COUNT] = 64;
+    values[BENCH_WORLD_EMPTY_PLANES] = 64;
+    values[BENCH_WORLD_EMPTY_EMIT] = 128;
+    values[BENCH_WORLD_EMPTY_REST] = 192;
+    values[BENCH_WORLD_EMPTY_TOTAL] = 384;
 }
 static char queued[4096];
 static float values[13] = { 0, 0, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1 };
@@ -308,7 +313,7 @@ int main(void)
         CL_BenchmarkDemoCompleted(); NextRun();
     }
     assert(!active && values[12] == 1 && values[11] == 1 && values[9] == 1);
-    for (i = 0; i < 7; ++i) {
+    for (i = 0; i < 8; ++i) {
         checkCanvas = i >= 2;
         drawn[0] = 0; assert(detailPage == i); CL_BenchmarkDraw();
         if (i == 0) assert(strstr(drawn, "World timers ON"));
@@ -347,6 +352,13 @@ int main(void)
             assert(strstr(drawn, "Clip rest us") && strstr(drawn, "560.00"));
             assert(strstr(drawn, "us/sample; no frame extrapolation."));
         }
+        if (i == 7) {
+            assert(strstr(drawn, "Empty nested timer reference"));
+            assert(strstr(drawn, "Empty planes     1.00"));
+            assert(strstr(drawn, "Empty emit       2.00"));
+            assert(strstr(drawn, "Empty rest       3.00"));
+            assert(strstr(drawn, "Empty total      6.00"));
+        }
         CL_BenchmarkTogglePage();
     }
     assert(detailPage == 0);
@@ -364,6 +376,9 @@ int main(void)
     detailPage = 6; totals[0][BENCH_WORLD_SAMPLE_COUNT] = 0;
     drawn[0] = 0; CL_BenchmarkDraw();
     assert(strstr(drawn, "0.00") && !strstr(drawn, "nan") && !strstr(drawn, "inf"));
+    detailPage = 7; totals[0][BENCH_WORLD_EMPTY_COUNT] = 0;
+    drawn[0] = 0; CL_BenchmarkDraw();
+    assert(strstr(drawn, "Empty planes     0.00") && !strstr(drawn, "nan") && !strstr(drawn, "inf"));
     detailPage = 0;
     CL_BenchmarkWorldProfile(); CL_BenchmarkDemoCompleted(); NextRun();
     assert(!active && values[12] == 0 && values[11] == 1 && values[9] == 1);

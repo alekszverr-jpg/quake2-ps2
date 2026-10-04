@@ -3447,6 +3447,7 @@ void RenderFrame(const refdef_t & viewDef)
 #endif
 
     RenderViewBlend(viewDef);
+    CalibrateWorldTimers(s_worldProfile);
 
     // Later milestones continue here: remaining translucent entity variants.
 }
