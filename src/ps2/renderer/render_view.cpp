@@ -1247,12 +1247,12 @@ void SubmitWorldTriangle(const ClipVertex (&corners)[3], const math::Mat4 & mvp,
 
     if (insideTotal == 3 * kNumClipPlanes)
     {
-        WorldDetailScope emitTimer(s_worldProfile, WorldProfile::Emit);
         PS2_STAT_INC(trisDrawn);
         if (s_scratchVertCount + 3 > kScratchMaxVerts)
         {
             FlushScratch(mvp, texture, alphaBlend, fixedAlpha);
         }
+        WorldDetailScope emitTimer(s_worldProfile, WorldProfile::Emit);
         for (const ClipVertex & corner : corners)
         {
             EmitScratchVertex(corner);
@@ -1282,11 +1282,11 @@ void SubmitWorldTriangle(const ClipVertex (&corners)[3], const math::Mat4 & mvp,
         return;
     }
 
-    WorldDetailScope emitTimer(s_worldProfile, WorldProfile::Emit);
     if (s_scratchVertCount + (count - 2) * 3 > kScratchMaxVerts)
     {
         FlushScratch(mvp, texture, alphaBlend, fixedAlpha);
     }
+    WorldDetailScope emitTimer(s_worldProfile, WorldProfile::Emit);
     for (int v = 1; v < count - 1; ++v)
     {
         EmitScratchVertex(in[0]);
@@ -2061,9 +2061,9 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
             // triangles need no colour interpolation or unpack/repack cycle.
             if (packedInside)
             {
-                WorldDetailScope emitTimer(s_worldProfile, WorldProfile::Emit);
                 if (s_scratchVertCount + 3 > kScratchMaxVerts)
                     FlushScratch(mvp, texture);
+                WorldDetailScope emitTimer(s_worldProfile, WorldProfile::Emit);
                 for (int v = 0; v < 3; ++v)
                 {
                     const CachedLitVertex & src = drawVertices[first + v];
@@ -3377,8 +3377,9 @@ void RenderFrame(const refdef_t & viewDef)
     static const cvar_t * profileWorld = Cvar_Get("ps2_profile_world", "0", 0);
     s_worldProfile.enabled = profileWorld->value != 0.0f;
     s_worldProfile.sampled = true;
+    s_worldProfile.singleDetails = true;
     static unsigned worldSampleOffset = 0;
-    if (s_worldProfile.enabled) s_worldProfile.sampleCursor = worldSampleOffset++ & 31u;
+    if (s_worldProfile.enabled) s_worldProfile.sampleCursor = worldSampleOffset++ & 63u;
 #endif
 
     // Alpha.12 deliberately releases the previous renderer world before the

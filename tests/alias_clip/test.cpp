@@ -259,6 +259,8 @@ int main() {
         Reset(); BeginWorldClipCache();
         s_worldProfile = {}; s_worldProfile.enabled = true;
         s_worldProfile.sampled = true;
+        s_worldProfile.singleDetails = true;
+        s_worldProfile.sampleCursor = 32;
         s_worldProfile.activePhase = WorldProfile::Geometry;
         EmitCachedWorld(vertices,60,matrix,texture,scroll);
         FlushScratch(matrix,texture);
@@ -275,6 +277,7 @@ int main() {
         Reset(); BeginWorldClipCache(); s_surfaceLightMask=1; dynamicCalls=0;
         s_worldProfile = {}; s_worldProfile.enabled = true;
         s_worldProfile.sampled = true;
+        s_worldProfile.singleDetails = true;
         s_worldProfile.activePhase = WorldProfile::Geometry;
         EmitCachedWorld(vertices,60,matrix,texture,scroll);
         assert(dynamicCalls==20);

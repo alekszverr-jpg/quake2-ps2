@@ -231,4 +231,45 @@ int main() {
     CalibrateWorldTimers(s_worldProfile);
     assert(reads == ps2::timing::reads);
     puts("Empty timer reference accounts for clock cost without modifying real statistics PASS");
+    int planeChosen[64]={}, emitChosen[64]={};
+    for (unsigned offset=0;offset<64;++offset) {
+        s_worldProfile = {}; s_worldProfile.enabled = s_worldProfile.sampled = s_worldProfile.singleDetails = true;
+        s_worldProfile.activePhase=WorldProfile::Geometry; s_worldProfile.sampleCursor=offset;
+        reads = ps2::timing::reads;
+        for (int i=0;i<64;++i) {
+            WorldSampleScope root(s_worldProfile);
+            if (s_worldProfile.sampleSelected) {
+                if (s_worldProfile.selectedDetail==WorldProfile::Planes) ++planeChosen[i];
+                else ++emitChosen[i];
+            }
+            WorldDetailScope clip(s_worldProfile, WorldProfile::Clip);
+            { WorldDetailScope planes(s_worldProfile, WorldProfile::Planes); ps2::timing::now+=10; }
+            {
+                WorldSampleScope child(s_worldProfile);
+                WorldDetailScope light(s_worldProfile, WorldProfile::Preparation);
+                WorldDetailScope emit(s_worldProfile, WorldProfile::Emit);
+                // Repeated nested same-category scope must not read clocks.
+                WorldDetailScope duplicate(s_worldProfile, WorldProfile::Emit);
+                ps2::timing::now+=20;
+            }
+            s_worldProfile.RecordCachedTriangle(true,false,true);
+        }
+        assert(s_worldProfile.planeSamples==1 && s_worldProfile.emitSamples==1);
+        assert(s_worldProfile.sampleCount==2 && s_worldProfile.sampleRoots==64);
+        assert(s_worldProfile.cachedTriangles==64 && s_worldProfile.packedInside==64);
+        assert(ps2::timing::reads-reads==4);
+        assert(s_worldProfile.DetailMicros(WorldProfile::Planes)==10);
+        assert(s_worldProfile.DetailMicros(WorldProfile::Emit)==20);
+        assert(s_worldProfile.DetailMicros(WorldProfile::Clip)==0);
+        assert(s_worldProfile.DetailMicros(WorldProfile::Preparation)==0);
+    }
+    for (int i=0;i<64;++i) assert(planeChosen[i]==1 && emitChosen[i]==1);
+    reads=ps2::timing::reads; ps2::timing::readCost=1;
+    CalibrateWorldTimers(s_worldProfile);
+    ps2::timing::readCost=0;
+    assert(ps2::timing::reads-reads==64*4);
+    assert(s_worldProfile.emptyCount==64);
+    assert(s_worldProfile.emptyMicros[0]==64 && s_worldProfile.emptyMicros[1]==64);
+    assert(s_worldProfile.emptyMicros[2]==0);
+    puts("Separate categories: balanced rotating roots, no nested clocks, full counts and empty reference PASS");
 }

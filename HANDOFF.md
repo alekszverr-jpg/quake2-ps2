@@ -27,7 +27,27 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.117 empty nested timer reference (runtime pending)
+## Alpha.118 separate fine categories (build pending)
+
+Production singleDetails=true; selected roots still1/32 overall, cursor bit5
+alternates Planes/Emit, each1/64. Rotate offset0..63. Detail scopes only run
+selected category with activeDetail==DetailCount; other categories and nested
+same-category scopes read no clocks. Coarse World/Submit remain full. Move3
+capacity checks/FlushScratch before Emit scope, preserving output/submission order.
+Per-category selected ROOT counts are denominators, including roots with no
+emission and repeated same-category operations in recursive children.
+Page3 Separate timer sample counts; page6 BSP separate planes vs emission (2rows);
+page7 Empty single timer reference (2rows). Old Light/Clip residual hidden.
+Calibration runs64 independent trials/category, separate profile after rendered
+pass; no automatic subtraction, repeated real scopes not represented. Tests cover
+64-offset balanced coverage, nested/skipped clocks, full counts, synthetic overhead,
+output/batches and UI. Next photos pages6 and7; page3 if sample counts needed.
+
+## Alpha.117 empty nested timer reference (runtime results received)
+
+User: Planes3.07/3.05/3.05us, Emit2.61/2.60/2.60us, rest5.21/5.19/5.20us/root.
+Empty1.33us Planes/Emit, rest4.00/4.00/4.01us, total6.66us. Raw residual strongly
+contaminated by nested clocks; no pure-work or real FPS conclusion from this.
 
 CI37184632653 passed all host sanitizer tests, map validation and PROFILE build.
 Installed7,909,764-byte ELF in both roots; hashes match downloaded artifact and

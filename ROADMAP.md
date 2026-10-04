@@ -147,7 +147,8 @@ play on a retail console.
 - [x] Confirm recovery after restoring Alpha.112 renderer (Alpha.114;40.33FPS/24.80ms, World11.64ms)
 - [x] Split BSP plane checks, vertex emission and remaining clipping work (Alpha.115;6.11/5.19/10.21ms, heavy diagnostic overhead)
 - [x] Sample BSP root operations1/32 with rotating offset and full counters (Alpha.116; user confirms about62.48 samples from1999.61 roots/frame)
-- [~] Empty nested timer reference in World profile (Alpha.117; separate64 trials/frame; no automatic subtraction; runtime pending)
+- [x] Empty nested timer reference (Alpha.117;6.66us/trial, residual~4.00us vs real~5.20us)
+- [~] Separate Planes/Emit root sampling and empty single-scope reference (Alpha.118; runtime pending)
 - [~] Validate long sessions for EE RAM, IOP RAM and VRAM leaks
 - [ ] Target a stable 30 FPS minimum, with 60 FPS where practical
 

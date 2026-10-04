@@ -38,6 +38,8 @@ void PS2_ReadBenchmarkStats(int values[BENCH_STATS_COUNT])
     values[BENCH_WORLD_PACKED_INSIDE] = 800;
     values[BENCH_WORLD_SAMPLE_ROOTS] = 3200;
     values[BENCH_WORLD_SAMPLE_COUNT] = 100;
+    values[BENCH_WORLD_PLANE_SAMPLES] = 50;
+    values[BENCH_WORLD_EMIT_SAMPLES] = 50;
     values[BENCH_WORLD_EMPTY_COUNT] = 64;
     values[BENCH_WORLD_EMPTY_PLANES] = 64;
     values[BENCH_WORLD_EMPTY_EMIT] = 128;
@@ -325,9 +327,9 @@ int main(void)
             assert(strstr(drawn, "Submit excluded from Sky/Geometry"));
         }
         if (i == 3) {
-            assert(strstr(drawn, "Sampled triangle work (1/32)"));
-            assert(strstr(drawn, "Light us") && strstr(drawn, "460.00"));
-            assert(strstr(drawn, "Clip/emit us") && strstr(drawn, "470.00"));
+            assert(strstr(drawn, "Separate timer sample counts"));
+            assert(strstr(drawn, "Plane roots") && strstr(drawn, "50.00"));
+            assert(strstr(drawn, "Emit roots") && strstr(drawn, "50.00"));
             assert(strstr(drawn, "Root tris") && strstr(drawn, "3200.00"));
             assert(strstr(drawn, "Samples") && strstr(drawn, "100.00"));
         }
@@ -346,18 +348,17 @@ int main(void)
             assert(strstr(drawn, "Of unlit %      80.00"));
         }
         if (i == 6) {
-            assert(strstr(drawn, "BSP sampled planes vs emission"));
-            assert(strstr(drawn, "Planes us") && strstr(drawn, "540.00"));
-            assert(strstr(drawn, "Emit us") && strstr(drawn, "550.00"));
-            assert(strstr(drawn, "Clip rest us") && strstr(drawn, "560.00"));
+            assert(strstr(drawn, "BSP separate planes vs emission"));
+            assert(strstr(drawn, "Planes us") && strstr(drawn, "1080.00"));
+            assert(strstr(drawn, "Emit us") && strstr(drawn, "1100.00"));
+            assert(!strstr(drawn, "Clip rest us"));
             assert(strstr(drawn, "us/sample; no frame extrapolation."));
         }
         if (i == 7) {
-            assert(strstr(drawn, "Empty nested timer reference"));
+            assert(strstr(drawn, "Empty single timer reference"));
             assert(strstr(drawn, "Empty planes     1.00"));
             assert(strstr(drawn, "Empty emit       2.00"));
-            assert(strstr(drawn, "Empty rest       3.00"));
-            assert(strstr(drawn, "Empty total      6.00"));
+            assert(!strstr(drawn, "Empty rest"));
         }
         CL_BenchmarkTogglePage();
     }
@@ -373,7 +374,7 @@ int main(void)
     assert(strstr(drawn, "Of all %         0.00") && strstr(drawn, "Of unlit %       0.00"));
     detailPage = 0;
     CL_BenchmarkWorldProfile(); CL_BenchmarkCancel(); assert(values[12] == 0);
-    detailPage = 6; totals[0][BENCH_WORLD_SAMPLE_COUNT] = 0;
+    detailPage = 6; totals[0][BENCH_WORLD_PLANE_SAMPLES] = totals[0][BENCH_WORLD_EMIT_SAMPLES] = 0;
     drawn[0] = 0; CL_BenchmarkDraw();
     assert(strstr(drawn, "0.00") && !strstr(drawn, "nan") && !strstr(drawn, "inf"));
     detailPage = 7; totals[0][BENCH_WORLD_EMPTY_COUNT] = 0;

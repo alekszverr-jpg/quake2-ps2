@@ -212,10 +212,10 @@ void CL_BenchmarkDraw(void)
     Line(25, viddef.width <= 320 ? "BENCHMARK " PS2_BUILD_VERSION : "QUAKE II - BENCHMARK " PS2_BUILD_VERSION);
     if (worldProfile && detailPage == 7)
     {
-        static const char * labels[] = { "Empty planes", "Empty emit", "Empty rest", "Empty total" };
-        Line(43, "Empty nested timer reference");
+        static const char * labels[] = { "Empty planes", "Empty emit" };
+        Line(43, "Empty single timer reference");
         Line(59, "Metric          Run1    Run2    Run3");
-        for (i = 0; i < 4; ++i) {
+        for (i = 0; i < 2; ++i) {
             double average[3];
             int j;
             for (j = 0; j < BENCH_GROUP; ++j)
@@ -223,34 +223,34 @@ void CL_BenchmarkDraw(void)
             Com_sprintf(text, sizeof(text), "%-13s %7.2f %7.2f %7.2f", labels[i], average[0], average[1], average[2]);
             Line(73+i*12, text);
         }
-        Line(137, "us/trial; 64 empty trials/frame.");
-        Line(149, "Root > Clip > Planes, then Emit.");
+        Line(137, "us/trial; 64 trials/category/frame.");
+        Line(149, "Only one category reads clocks.");
         Line(161, "No geometry, recursion or submit.");
         Line(173, "Reference only; no subtraction.");
-        Line(185, "Real roots can enter more scopes.");
+        Line(185, "Real roots can repeat this category.");
         Line(200, "Timers affect FPS; use normal bench.");
         Line(214, "Left/Right: pages; Back: menu");
         return;
     }
     if (worldProfile && detailPage == 6)
     {
-        static const char * labels[] = { "Planes us", "Emit us", "Clip rest us" };
-        Line(43, "BSP sampled planes vs emission");
+        static const char * labels[] = { "Planes us", "Emit us" };
+        Line(43, "BSP separate planes vs emission");
         Line(59, "Metric          Run1    Run2    Run3");
-        for (i = 0; i < 3; ++i)
+        for (i = 0; i < 2; ++i)
         {
             double average[3];
             int j;
             for (j = 0; j < BENCH_GROUP; ++j)
-                average[j] = totals[j][BENCH_WORLD_SAMPLE_COUNT] ? (double)totals[j][BENCH_WORLD_PLANES_MS+i] / totals[j][BENCH_WORLD_SAMPLE_COUNT] : 0;
+                average[j] = totals[j][BENCH_WORLD_PLANE_SAMPLES+i] ? (double)totals[j][BENCH_WORLD_PLANES_MS+i] / totals[j][BENCH_WORLD_PLANE_SAMPLES+i] : 0;
             Com_sprintf(text, sizeof(text), "%-13s %7.2f %7.2f %7.2f", labels[i], average[0], average[1], average[2]);
             Line(73+i*12, text);
         }
         Line(125, "us/sample; no frame extrapolation.");
-        Line(137, "1/32 roots; nested work included.");
+        Line(137, "1/64 roots/category; alternating.");
         Line(149, "Planes: cached distances + tests.");
         Line(161, "Emit: colour/UV prep + writes.");
-        Line(173, "Submit excluded; clocks add overhead.");
+        Line(173, "Flush before Emit; no nested clocks.");
         Line(185, "Includes seals; excludes sky/MD2.");
         Line(200, "Timers affect FPS; use normal bench.");
         Line(214, "Left/Right: pages; Back: menu");
@@ -297,26 +297,25 @@ void CL_BenchmarkDraw(void)
     }
     if (worldProfile && detailPage == 3)
     {
-        static const char * labels[] = { "Light us", "Clip/emit us", "Root tris", "Samples" };
-        static const int fields[] = { BENCH_WORLD_PREP_MS, BENCH_WORLD_CLIP_MS, BENCH_WORLD_SAMPLE_ROOTS, BENCH_WORLD_SAMPLE_COUNT };
-        Line(43, "Sampled triangle work (1/32)");
+        static const char * labels[] = { "Root tris", "Samples", "Plane roots", "Emit roots" };
+        static const int fields[] = { BENCH_WORLD_SAMPLE_ROOTS, BENCH_WORLD_SAMPLE_COUNT, BENCH_WORLD_PLANE_SAMPLES, BENCH_WORLD_EMIT_SAMPLES };
+        Line(43, "Separate timer sample counts");
         Line(59, "Metric          Run1    Run2    Run3");
         for (i = 0; i < 4; ++i)
         {
             double average[3];
             int j;
             for (j = 0; j < BENCH_GROUP; ++j)
-                average[j] = i < 2 ? (totals[j][BENCH_WORLD_SAMPLE_COUNT] ? (double)totals[j][fields[i]] / totals[j][BENCH_WORLD_SAMPLE_COUNT] : 0) :
-                    (frames[j] ? (double)totals[j][fields[i]] / frames[j] : 0);
+                average[j] = frames[j] ? (double)totals[j][fields[i]] / frames[j] : 0;
             Com_sprintf(text, sizeof(text), "%-13s %7.2f %7.2f %7.2f",
                 labels[i], average[0], average[1], average[2]);
             Line(73+i*12, text);
         }
-        Line(137, "us/sample; root/sample counts/frame.");
-        Line(149, "Light: dynamic subdivision only.");
-        Line(161, "Clip: planes, clipping + emission.");
-        Line(173, "Tex/seal prep not measured here.");
-        Line(185, "Submit excluded; full counters kept.");
+        Line(137, "All counts per frame; full roots.");
+        Line(149, "Planes/Emit on different roots.");
+        Line(161, "64 rotating offsets balance groups.");
+        Line(173, "No Light/Clip rest diagnostic clocks.");
+        Line(185, "Full geometry counters kept.");
         Line(200, "Timers affect FPS; use normal bench.");
         Line(214, "Left/Right: pages; Back: menu");
         return;

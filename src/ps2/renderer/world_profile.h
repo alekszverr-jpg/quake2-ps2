@@ -7,6 +7,9 @@ struct WorldProfile {
     enum Detail { Preparation, Clip, Textures, Seals, Planes, Emit, DetailCount };
     bool enabled = false;
     bool sampled = false, sampleSelected = false;
+    bool singleDetails = false;
+    Detail selectedDetail = DetailCount;
+    int planeSamples = 0, emitSamples = 0;
     unsigned sampleCursor = 0;
     int sampleDepth = 0, sampleRoots = 0, sampleCount = 0;
     int emptyMicros[4] = {}, emptyCount = 0;
@@ -45,8 +48,14 @@ public:
                                 value.activePhase == WorldProfile::Geometry) {
         if (running && stats.sampleDepth++ == 0) {
             ++stats.sampleRoots;
-            stats.sampleSelected = (stats.sampleCursor++ & 31u) == 0;
-            if (stats.sampleSelected) ++stats.sampleCount;
+            const unsigned cursor = stats.sampleCursor++;
+            stats.sampleSelected = (cursor & 31u) == 0;
+            if (stats.sampleSelected) {
+                ++stats.sampleCount;
+                stats.selectedDetail = (cursor & 32u) ? WorldProfile::Emit : WorldProfile::Planes;
+                if (stats.selectedDetail == WorldProfile::Planes) ++stats.planeSamples;
+                else ++stats.emitSamples;
+            }
         }
     }
     ~WorldSampleScope() {
@@ -64,7 +73,9 @@ public:
     WorldDetailScope(WorldProfile & value, WorldProfile::Detail detail)
         : stats(value), category(detail), parent(value.activeDetail),
           running(value.enabled && value.activePhase == WorldProfile::Geometry &&
-                  (!value.sampled || (value.sampleDepth > 0 && value.sampleSelected))) {
+                  (!value.sampled || (value.sampleDepth > 0 && value.sampleSelected)) &&
+                  (!value.singleDetails || (detail == value.selectedDetail &&
+                                             value.activeDetail == WorldProfile::DetailCount))) {
         if (running) { stats.activeDetail = category; start = timing::Now(); }
     }
     void Stop() {
@@ -128,12 +139,14 @@ public:
     }
 };
 // Reference topology: selected root -> Clip -> Planes (explicit Stop), Emit.
+// In singleDetails mode, only Planes OR Emit runs in each independent trial.
 // No geometry, submission or recursive lighting. This is a reference, not a
 // universal correction: real roots may enter more scopes or flush batches.
 inline void CalibrateWorldTimers(WorldProfile & target) {
     if (!target.enabled || !target.sampled) return;
     WorldProfile empty;
     empty.enabled = empty.sampled = true;
+    empty.singleDetails = target.singleDetails;
     empty.activePhase = WorldProfile::Geometry;
     for (int i = 0; i < 64; ++i) {
         empty.sampleCursor = 0;
@@ -143,10 +156,21 @@ inline void CalibrateWorldTimers(WorldProfile & target) {
         planes.Stop();
         { WorldDetailScope emit(empty, WorldProfile::Emit); }
     }
+    if (target.singleDetails) {
+        // An independent selected root for the emission-only reference.
+        for (int i = 0; i < 64; ++i) {
+            empty.sampleCursor = 32;
+            WorldSampleScope root(empty);
+            WorldDetailScope clip(empty, WorldProfile::Clip);
+            WorldDetailScope planes(empty, WorldProfile::Planes);
+            planes.Stop();
+            { WorldDetailScope emit(empty, WorldProfile::Emit); }
+        }
+    }
     target.emptyMicros[0] = empty.DetailMicros(WorldProfile::Planes);
     target.emptyMicros[1] = empty.DetailMicros(WorldProfile::Emit);
     target.emptyMicros[2] = empty.DetailMicros(WorldProfile::Clip);
     target.emptyMicros[3] = target.emptyMicros[0] + target.emptyMicros[1] + target.emptyMicros[2];
-    target.emptyCount = empty.sampleCount;
+    target.emptyCount = target.singleDetails ? 64 : empty.sampleCount;
 }
 } // namespace ps2::view

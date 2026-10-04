@@ -1,7 +1,7 @@
 # Quake II for PlayStation 2
 
 [![Build](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml/badge.svg)](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml)
-[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.117-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
+[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.118-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](LICENSE)
 
 An active continuation of the unofficial Quake II port for the Sony
@@ -336,15 +336,16 @@ Root operations are cached BSP triangles and standalone generic submissions such
 as seals; generated children do not become new samples. Coarse World/Submit clocks
 remain separate and full, so diagnostic FPS still differs from ordinary benchmark.
 
-Right three times opens Sampled triangle work (1/32): sampled dynamic-light and
-clip costs in microseconds/sample, plus roots and samples/frame. Broad texture,
-cache preparation and seal-corner timings are omitted from this sampled page.
-Right six times opens BSP sampled planes vs emission, also in microseconds/sample.
-Alpha.117 adds Empty nested timer reference (Right seven times): 64 empty trials
-per enabled frame, each selected root nesting Clip, Planes with explicit Stop,
-then Emit. Report microseconds/trial separately; never subtract automatically.
-This common inside-path reference omits geometry, recursive lighting and batch
-submission, so it cannot correct all real roots. It runs after the rendered pass
-using a separate profile, preserving real samples, counters and phase timings.
-No extrapolation to whole-frame cost is shown: sample composition and clock overhead
-still affect estimates. Provide both pages to interpret results with sample size.
+Alpha.118 measures only Planes or Emit on each selected root, alternating categories
+every32 roots. Each category selects1/64 roots; rotating64 initial offsets gives
+both categories equal coverage. No Light/Clip/other detail clock reads or nested
+same-category clocks; recursive work inherits root selection. Coarse phase and
+submission clocks remain, but capacity flushes occur before Emit timing.
+Right three times opens Separate timer sample counts: full roots and selected
+roots/category per frame. Right six times opens BSP separate planes vs emission,
+in microseconds per root selected for that category, including repeated scopes.
+Right seven times opens Empty single timer reference:64 trials/category/frame
+on a separate profile after the rendered pass. No automatic subtraction or frame
+extrapolation: the empty reference omits geometry and repeated category scopes.
+Provide pages6 and7, plus page3 when checking sample populations. All geometry
+and coverage counters remain full; use the ordinary benchmark for speed changes.

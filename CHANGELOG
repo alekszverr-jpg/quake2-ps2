@@ -6,6 +6,19 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.118 - 2026-10-04 (local test build)
+
+- Measure Planes and Emit on separate alternating1/64 root populations, rotating
+  64 offsets for equal coverage. Disable other fine scopes and nested clock reads;
+  flush scratch capacity before starting emission timing. Rendering output and
+  submission order preserved; coarse phase/submission clocks remain.
+- Replace obsolete Light/Clip residual display with root population counts.
+  Show category-specific us/root and independent empty single-scope references,
+  without automatic subtraction. Test coverage, skipped/nested clocks, production
+  output/batches, normalization and240p bounds.
+- Alpha.117 user: Planes3.07/3.05/3.05us, Emit2.61/2.60/2.60us, rest5.21/5.19/5.20us.
+  Empty reference1.33/1.33/~4.00us, total6.66us; residual dominated by instrumentation.
+
 ## 0.1.0-alpha.117 - 2026-10-04 (local test build)
 
 - Add an eighth World profile page with an empty nested timer reference:

@@ -648,6 +648,8 @@ extern "C" void PS2_ReadBenchmarkStats(int values[BENCH_STATS_COUNT])
     values[BENCH_WORLD_SAMPLE_COUNT] = world.sampleCount;
     for (int i = 0; i < 4; ++i) values[BENCH_WORLD_EMPTY_PLANES+i] = world.emptyMicros[i];
     values[BENCH_WORLD_EMPTY_COUNT] = world.emptyCount;
+    values[BENCH_WORLD_PLANE_SAMPLES] = world.planeSamples;
+    values[BENCH_WORLD_EMIT_SAMPLES] = world.emitSamples;
 
 }
 
