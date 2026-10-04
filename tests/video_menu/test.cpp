@@ -26,7 +26,7 @@ static void M_Banner(const char * n) {assert(!std::strcmp(n,"m_banner_video"));}
 void Menu_AddItem(menuframework_s * m,void * i) {assert(m->nitems<64);m->items[m->nitems++]=i;}
 void Menu_Center(menuframework_s * m) {m->y=viddef.height/2-64;}
 void Menu_AdjustCursor(menuframework_s *,int) {}
-void Menu_Draw(menuframework_s * m) {assert(m->nitems==9);++draws;}
+void Menu_Draw(menuframework_s * m) {assert(m->nitems==10);++draws;}
 void * Menu_ItemAtCursor(menuframework_s * m) {return m->items[m->cursor];}
 #include "slide.inc"
 static const char * Default_MenuKey(menuframework_s * m,int k) {
@@ -159,7 +159,11 @@ int main() {
     PS2_VideoMenuKey(K_ESCAPE); assert(writes==1 && pops==1);
     PS2_VideoMenuInit(); VideoBack(nullptr); assert(writes==1 && pops==2);
     VideoDefaults(nullptr); VideoBack(nullptr); assert(writes==2);
-    for(unsigned n=0;n<8;++n) assert(vars[video_cvars[n]].value==std::strtof(video_defaults[n],nullptr));
+    for(unsigned n=0;n<9;++n) assert(vars[video_cvars[n]].value==std::strtof(video_defaults[n],nullptr));
+    s_video_far_lighting.curvalue=1; VideoFarLightingChanged(nullptr);
+    assert(vars["ps2_far_lighting"].value==1 && s_video_dirty);
+    assert(vars["ps2_far_lighting"].flags & CVAR_ARCHIVE);
+    VideoDefaults(nullptr); assert(vars["ps2_far_lighting"].value==0);
     vars["fov"].value=999; vars["ps2_world_light_gamma"].value=-999;
     PS2_VideoMenuInit(); assert(s_video_fov.curvalue==5 && s_video_brightness.curvalue==9);
     assert(vars["fov"].value==999 && vars["ps2_world_light_gamma"].value==-999);

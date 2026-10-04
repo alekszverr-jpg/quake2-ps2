@@ -27,7 +27,31 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.119 fixed plane-mask classification (runtime pending)
+## Alpha.120 distant static-light quality (build pending)
+
+VIDEO far light detail full/reduced, archived ps2_far_lighting default0. Normal
+benchmark preserves toggle and captures label full/reduced on results page0.
+Only opaque world DrawTextureChains(viewProj,true) enables distance policy; brush
+defaultfalse. SetupFrame stores world eye. TriangleLightingKey measures closest
+source AABB; enterfar>512, retainfar>384 using cachedkey, avoids raw perframe eye
+in topology key. Key XORA17F39C5 distinguishes far; same function used by seals.
+BuildCachedLitTriangle optionalfarQuality propagated through recursion; false
+preserves existing limits, true uses at least24spacing/16error and bypasses local
+4/3 fine overrides. Dynamic subdivision, brush/MD2/alpha remain unchanged.
+No extra retained geometry cache; existing capacity growth/reuse retained.
+Tests extract actual key and builder, verify near/longfaces/disabled/brush gates,
+hysteresis boundaries, coarse limits and area coverage with fewer triangles
+(synthetic64->16), release+PROFILE. Menu callbacks/defaults/archival and benchmark
+toggle preservation+summary covered. Need same120 full/reduced ordinarybench and
+walk checking distant lamps/shadows, seams and transitions. No speed claim yet.
+Alpha.119 mask loop restored to118, preserving unrelated sampled diagnostics.
+
+## Alpha.119 fixed plane-mask classification (runtime rejected)
+
+User paired normal118:39.84/39.83/39.83FPS, combined39.83FPS/25.10ms.
+119:39.73/39.74/39.75FPS, combined39.74FPS/25.16ms. Matching688frames195..882;
+small regression, no optimization benefit. Revert classification in120. No explicit
+visual acceptance supplied.
 
 CI37196310188 passed host sanitizer tests, map validation and PROFILE build.
 Installed7,917,604-byte ELF in both roots; artifact/root hashes match, embedded119

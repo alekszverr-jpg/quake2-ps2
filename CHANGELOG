@@ -6,6 +6,20 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.120 - 2026-10-04 (local test build)
+
+- Add live VIDEO far light detail full/reduced, archived and default full.
+  Reduced coarsens static-light source triangles beyond512 units (closest AABB
+  distance), returning to full within384. Preserve nearby/long faces and moving
+  brushes; dynamic-light subdivision unchanged. Cache and crack-seal keys include
+  selected quality; far limits24/16 omit local fine refinement.
+- Identify far quality in normal benchmark summary for same-build comparisons.
+  Add production key/subdivision tests in release/PROFILE configurations, plus
+  menu/default/archive and benchmark setting-preservation tests. Console results
+  and visual validation pending; synthetic64->16 triangles is not an FPS claim.
+- Revert Alpha.119 fixed mask experiment: paired user normal11839.83FPS/25.10ms,
+  11939.74FPS/25.16ms, matching688 frames195..882; no speed gain.
+
 ## 0.1.0-alpha.119 - 2026-10-04 (local test build)
 
 - Experiment with fixed six-plane boolean-to-bit classification on BSP clip-cache

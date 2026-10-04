@@ -22,6 +22,7 @@
 #include "ps2/common.h"
 #include "ps2/renderer/render_view.h"
 #include "ps2/renderer/view_effects.h"
+#include "ps2/renderer/lighting_lod.h"
 #include "ps2/renderer/texture.h"
 #include "ps2/renderer/model.h"
 #include "ps2/renderer/vu1.h"
@@ -113,6 +114,9 @@ static SurfaceLightCache s_surfaceLightCache;
 // that grid only regions whose sampled light is non-linear keep subdividing.
 static float s_lightMaxSamplesPerEdge = 8.0f;
 static float s_lightErrorTolerance    = 5.0f;
+static bool s_farLightingEnabled = false, s_worldLightingPass = false;
+static math::Vec3 s_lightingEye;
+constexpr u32 kFarLightingKey = 0xA17F39C5u;
 
 // GS texture modulation happens after the palette lookup. Applying gamma only
 // to that palette therefore leaves the light multiplier linear, unlike a
@@ -337,6 +341,9 @@ bool ShouldCullWorldSurface(const mod::ModelInstance & world,
 void SetupFrame(const refdef_t & viewDef)
 {
     ++s_frameCount;
+    static const cvar_t * farLighting = Cvar_Get("ps2_far_lighting", "0", CVAR_ARCHIVE);
+    s_farLightingEnabled = farLighting->value != 0.0f;
+    s_lightingEye = {viewDef.vieworg[0], viewDef.vieworg[1], viewDef.vieworg[2]};
 
     mod::SetLightStyles(viewDef.lightstyles);
 
@@ -1590,15 +1597,9 @@ u32 CachedWorldClipDistances(ClipDists & distances, const CachedLitVertex & vert
     }
     const math::Vec4 position = {vertex.x, vertex.y, vertex.z, 1.0f};
     SetClipDistances(distances, position, mvp);
-    // Fixed six-plane classification avoids a loop and conditional bit updates
-    // on cache misses. Preserve !(d >= 0), including unordered/NaN distances.
-    const u32 outsideMask =
-        static_cast<u32>(!(distances.f[0] >= 0.0f)) |
-        (static_cast<u32>(!(distances.f[1] >= 0.0f)) << 1) |
-        (static_cast<u32>(!(distances.f[2] >= 0.0f)) << 2) |
-        (static_cast<u32>(!(distances.f[3] >= 0.0f)) << 3) |
-        (static_cast<u32>(!(distances.f[4] >= 0.0f)) << 4) |
-        (static_cast<u32>(!(distances.f[5] >= 0.0f)) << 5);
+    u32 outsideMask = 0;
+    for (int plane = 0; plane < kNumClipPlanes; ++plane)
+        if (!(distances.f[plane] >= 0.0f)) outsideMask |= 1u << plane;
     entry.distances = distances;
     std::memcpy(entry.positionBits, bits, sizeof(bits));
     entry.epoch = s_worldClipEpoch;
@@ -1739,6 +1740,27 @@ u32 LitTriangleColorKey(const mod::ModelSurface & surface)
     return MixCacheFloat(mod::StaticLightStyleKey(surface), s_worldLightGamma);
 }
 
+u32 TriangleLightingKey(const mod::ModelPoly & poly, const mod::ModelTriangle & tri, u32 baseKey)
+{
+    if (!s_farLightingEnabled || !s_worldLightingPass) return baseKey;
+    // Closest point of source AABB: long faces reaching the camera stay detailed.
+    float distanceSq = 0.0f;
+    for (int axis = 0; axis < 3; ++axis) {
+        const auto & first = poly.vertexes[tri.vertexes[0]].position;
+        float low = axis == 0 ? first.x : (axis == 1 ? first.y : first.z), high = low;
+        for (int v = 1; v < 3; ++v) {
+            const auto & point = poly.vertexes[tri.vertexes[v]].position;
+            const float value = axis == 0 ? point.x : (axis == 1 ? point.y : point.z);
+            low = std::min(low, value); high = std::max(high, value);
+        }
+        const float eye = axis == 0 ? s_lightingEye.x : (axis == 1 ? s_lightingEye.y : s_lightingEye.z);
+        const float delta = eye < low ? low-eye : (eye > high ? eye-high : 0.0f);
+        distanceSq += delta*delta;
+    }
+    const bool wasFar = tri.litCacheVertices != nullptr && tri.litCacheKey == (baseKey ^ kFarLightingKey);
+    return FarLighting(true, true, distanceSq, wasFar) ? baseKey ^ kFarLightingKey : baseKey;
+}
+
 void AppendCachedTriangle(const ClipVertex (&corners)[3])
 {
     PS2_Assert(s_litBuildVertCount + 3 <= kMaxCachedVertsPerTriangle);
@@ -1801,7 +1823,7 @@ void UnpackCachedColor(math::Vec4 & color, u32 packed)
 // when this surface's relevant animated styles actually change.
 void BuildCachedLitTriangle(const ClipVertex (&corners)[3],
                             const mod::ModelSurface & surface, int depth,
-                            int inheritedFineLevels = 0)
+                            int inheritedFineLevels = 0, bool farQuality = false)
 {
     float edgeLengthSq[3] = {
         LightEdgeLengthSq(corners[0], corners[1]),
@@ -1862,7 +1884,9 @@ void BuildCachedLitTriangle(const ClipVertex (&corners)[3],
                             std::max(maxLight.y - minLight.y,
                                      maxLight.z - minLight.z));
     const bool detectedFineRegion = lightSpan >= kFineLightSpan;
-    const bool useFineLimits = detectedFineRegion || inheritedFineLevels > 0;
+    const bool useFineLimits = !farQuality && (detectedFineRegion || inheritedFineLevels > 0);
+    const auto coarse = farQuality ? FarLightLimits(s_lightMaxSamplesPerEdge, s_lightErrorTolerance) :
+        LightLodLimits{s_lightMaxSamplesPerEdge, s_lightErrorTolerance};
 #if PS2_PROFILE
     constexpr float kFineMaxSamples = 4.0f;
     constexpr float kFineError = 3.0f;
@@ -1872,16 +1896,16 @@ void BuildCachedLitTriangle(const ClipVertex (&corners)[3],
 #endif
     const float localMaxSamples = useFineLimits
         ? std::min(s_lightMaxSamplesPerEdge, kFineMaxSamples)
-        : s_lightMaxSamplesPerEdge;
+        : coarse.spacing;
     const float localError = useFineLimits
         ? std::min(s_lightErrorTolerance, kFineError)
-        : s_lightErrorTolerance;
+        : coarse.error;
 
     const bool coarseWouldSplit =
         edgeLengthSq[longest] >
-            s_lightMaxSamplesPerEdge * s_lightMaxSamplesPerEdge ||
-        midpointError > s_lightErrorTolerance ||
-        centroidError > s_lightErrorTolerance;
+            coarse.spacing * coarse.spacing ||
+        midpointError > coarse.error ||
+        centroidError > coarse.error;
     const bool shouldSplit =
         edgeLengthSq[longest] > localMaxSamples * localMaxSamples ||
         midpointError > localError || centroidError > localError;
@@ -1906,8 +1930,8 @@ void BuildCachedLitTriangle(const ClipVertex (&corners)[3],
     const int childFineLevels = detectedFineRegion
         ? 1
         : std::max(inheritedFineLevels - 1, 0);
-    BuildCachedLitTriangle(first,  surface, depth + 1, childFineLevels);
-    BuildCachedLitTriangle(second, surface, depth + 1, childFineLevels);
+    BuildCachedLitTriangle(first,  surface, depth + 1, childFineLevels, farQuality);
+    BuildCachedLitTriangle(second, surface, depth + 1, childFineLevels, farQuality);
 }
 
 // Appends a polygon's adaptively lit triangles to the scratch buffer.
@@ -1942,9 +1966,11 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
             s_surfaceLightMask = SelectTriangleLights(surfaceMask, positions);
         }
 
+        const u32 triangleKey = TriangleLightingKey(poly, tri, topologyKey);
+        const bool farQuality = triangleKey != topologyKey;
         const CachedLitVertex * drawVertices = nullptr;
         int drawVertexCount = 0;
-        if (tri.litCacheVertices == nullptr || tri.litCacheKey != topologyKey)
+        if (tri.litCacheVertices == nullptr || tri.litCacheKey != triangleKey)
         {
             PS2_STAT_INC(lightCacheBuilds);
             ClipVertex sourceCorners[3] = {};
@@ -1966,7 +1992,7 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
 
             s_litBuildVertCount = 0;
             s_litBuildFineSplits = 0;
-            BuildCachedLitTriangle(sourceCorners, surface, 0);
+            BuildCachedLitTriangle(sourceCorners, surface, 0, 0, farQuality);
             PS2_Assert(s_litBuildVertCount >= 3 &&
                        (s_litBuildVertCount % 3) == 0);
 
@@ -2000,7 +2026,7 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
                     static_cast<size_t>(s_litBuildVertCount) *
                         sizeof(CachedLitVertex));
                 tri.litCacheVertexCount = static_cast<u16>(s_litBuildVertCount);
-                tri.litCacheKey = topologyKey;
+                tri.litCacheKey = triangleKey;
                 tri.litCacheColorKey = colorKey;
                 drawVertices = static_cast<const CachedLitVertex *>(
                     tri.litCacheVertices);
@@ -2125,7 +2151,7 @@ void GatherPolyCrackSeals(const mod::ModelPoly & poly,
         }
 
         const CachedLitVertex * cachedVertices =
-            (tri.litCacheVertices != nullptr && tri.litCacheKey == topologyKey)
+            (tri.litCacheVertices != nullptr && tri.litCacheKey == TriangleLightingKey(poly, tri, topologyKey))
                 ? static_cast<const CachedLitVertex *>(tri.litCacheVertices)
                 : nullptr;
         const int cachedVertexCount = cachedVertices != nullptr
@@ -2169,8 +2195,9 @@ void GatherPolyCrackSeals(const mod::ModelPoly & poly,
 }
 
 // Draws every texture chain built by RecursiveWorldNode and resets them.
-void DrawTextureChains(const math::Mat4 & mvp)
+void DrawTextureChains(const math::Mat4 & mvp, bool worldLightingPass = false)
 {
+    s_worldLightingPass = worldLightingPass;
     WorldDetailScope preparationTimer(s_worldProfile, WorldProfile::Preparation);
     // The world and each inline brush use different light coordinates. Keep
     // masks only across the ordinary/crack-seal passes in this one context.
@@ -3282,7 +3309,7 @@ void RenderWorldModel(const refdef_t & viewDef)
     timer.Switch(WorldProfile::Sky);
     DrawSkyBox(viewDef);
     timer.Switch(WorldProfile::Geometry);
-    DrawTextureChains(s_viewProjMatrix);
+    DrawTextureChains(s_viewProjMatrix, true);
     if (s_worldProfile.enabled) {
         s_worldProfile.nodes = s_drawStats.nodesWalked;
         s_worldProfile.surfaces = s_drawStats.surfaces;

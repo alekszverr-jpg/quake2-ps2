@@ -149,7 +149,8 @@ play on a retail console.
 - [x] Sample BSP root operations1/32 with rotating offset and full counters (Alpha.116; user confirms about62.48 samples from1999.61 roots/frame)
 - [x] Empty nested timer reference (Alpha.117;6.66us/trial, residual~4.00us vs real~5.20us)
 - [x] Separate Planes/Emit root sampling (Alpha.118; balanced~31.25 roots/category/frame;3.04/2.60us, empty1.32us)
-- [~] Fixed six-plane mask classification on BSP cache misses (Alpha.119; speed/visual test pending, unchanged VU transform/cache)
+- [ ] Fixed six-plane mask classification (Alpha.119 did not improve:39.74vs11839.83FPS; reverted120)
+- [~] Distant static-light subdivision quality toggle (Alpha.120; full default,512/384 hysteresis; full/reduced speed and visual comparison pending)
 - [~] Validate long sessions for EE RAM, IOP RAM and VRAM leaks
 - [ ] Target a stable 30 FPS minimum, with 60 FPS where practical
 

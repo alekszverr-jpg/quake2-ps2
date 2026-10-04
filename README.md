@@ -1,7 +1,7 @@
 # Quake II for PlayStation 2
 
 [![Build](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml/badge.svg)](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml)
-[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.119-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
+[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.120-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](LICENSE)
 
 An active continuation of the unofficial Quake II port for the Sony
@@ -327,12 +327,21 @@ Geometry page. They include the opaque-world seal clip/emission path, but exclud
 sky, brush entities and MD2; seal corner transforms stay in Seal prep.
 Additional timers perturb these results. Use the ordinary benchmark for speed.
 
-Alpha.119 tests fixed six-plane mask classification on world clip-cache misses:
-direct boolean-to-bit expressions replace the loop/conditional bit updates. The
-VU transform, distances, cache layout/hash/epoch and hit path remain unchanged.
-Comparison uses ordinary demo1 benchmark against118 under identical settings,
-plus visual checks near clipping boundaries and moving doors. No gain claimed
-before console measurements; Alpha.118 normal speed baseline is still pending.
+Alpha.119 fixed mask classification did not improve speed:118 measured39.83FPS,
+119 measured39.74FPS. Alpha.120 restores the118 classification loop.
+
+Alpha.120 adds VIDEO > far light detail: full / reduced (archived
+ps2_far_lighting0/1; default full). Reduced uses coarser static-light subdivisions
+on opaque world source triangles whose entire AABB is beyond512 units; retains
+that quality until within384 units to avoid repeated boundary rebuilds. Long
+faces reaching the camera stay detailed. Far spacing is at least24 lightmap
+samples, error tolerance at least16, and local4/3 refinement is disabled there.
+The quality bit is part of each triangle's topology cache key; crack seals use
+the same key. Moving brushes, MD2, translucent geometry and dynamic-light
+subdivision stay on existing paths. Test full vs reduced using ordinary demo1
+benchmark under identical settings; summary identifies the selected quality.
+Check distant lamps/shadows, seams and quality transitions while walking. Speed
+and visual acceptance remain pending; full mode is the safe default.
 
 Alpha.115 measured Planes6.11ms, Emit5.19ms and Clip rest10.20..10.21ms; the
 21.51ms sum exceeds ordinary World11.64ms, demonstrating heavy timer overhead.

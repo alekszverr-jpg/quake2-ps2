@@ -56,7 +56,11 @@ static int Setting(const char * name)
     for (i = 0; i < 13; ++i) if (!strcmp(name, names[i])) return i;
     assert(0); return 0;
 }
-static float Cvar_VariableValue(const char * name) { return values[Setting(name)]; }
+static float farLightingValue;
+static float Cvar_VariableValue(const char * name) {
+    if (!strcmp(name,"ps2_far_lighting")) return farLightingValue;
+    return values[Setting(name)];
+}
 static void Cvar_SetValue(const char * name, float value) { values[Setting(name)] = value; }
 static void Cvar_Get(const char * name, const char * value, int flags)
 { assert(flags == 0); assert(((!strcmp(name,"ps2_world_dlights") || !strcmp(name,"ps2_world_light_cache")) && !strcmp(value,"1")) || ((!strcmp(name,"ps2_profile_world_lights") || !strcmp(name,"ps2_profile_models") || !strcmp(name,"ps2_profile_world")) && !strcmp(value,"0"))); }
@@ -386,6 +390,12 @@ int main(void)
     missing = 1; CL_BenchmarkWorldProfile(); assert(!active && values[12] == 0);
     missing = 0; values[12] = 1;
     CL_BenchmarkStart(); assert(values[12] == 0); CL_BenchmarkCancel(); assert(values[12] == 1);
+    farLightingValue=1; CL_BenchmarkStart(); assert(resultFarLighting);
+    CL_BenchmarkCancel(); assert(farLightingValue==1);
+    drawn[0]=0; CL_BenchmarkDraw(); assert(strstr(drawn,"Far light detail: reduced"));
+    farLightingValue=0; CL_BenchmarkStart(); assert(!resultFarLighting);
+    CL_BenchmarkCancel(); drawn[0]=0; CL_BenchmarkDraw();
+    assert(strstr(drawn,"Far light detail: full"));
     puts("Benchmark lifecycle, loading exclusion, cancellation and restoration PASS");
     return 0;
 }
