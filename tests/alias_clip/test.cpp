@@ -223,10 +223,14 @@ int main() {
         vertices[3]={0,0,(1.0f-kClipEpsilon)/0.4f,0x80804020u,0,0};
         vertices[4]={-9,0,0,0x80804020u,0,0};
         vertices[5]={9,0,0,0x80804020u,0,0};
+        vertices[6]={0,0,0,0x80804020u,0,0};
+        vertices[7]={0.2f,0,0,0x80804020u,0,0};
+        vertices[8]={0,0.2f,0,0x80804020u,0,0};
         const math::Mat4 matrix={scenario%2 ? 0.0f : 0.31f};
         const float scroll=scenario%3 ? 0.0f : -0.37f;
         s_surfaceLightMask=0;
         Reset();
+        int expectedInside = 0;
         for (int first=0; first<60; first+=3) {
             ClipVertex corners[3]={};
             for (int v=0;v<3;++v) {
@@ -236,6 +240,10 @@ int main() {
                 UnpackCachedColor(corners[v].color,src.packedColor);
                 SetClipDistances(corners[v].d,corners[v].pos,matrix);
             }
+            bool inside=true;
+            for (const auto & corner : corners)
+                for (int plane=0;plane<kNumClipPlanes;++plane) inside &= corner.d.f[plane]>=0.0f;
+            if (inside) ++expectedInside;
             SubmitWorldTriangle(corners,matrix,texture);
         }
         FlushScratch(matrix,texture);
@@ -253,6 +261,8 @@ int main() {
         assert(std::memcmp(emitted.data(),expected.data(),emitted.size()*sizeof(vu1::DrawVertex))==0);
         assert(s_worldProfile.cachedTriangles==20 && s_worldProfile.unlitTriangles==20);
         assert(s_worldProfile.earlyRejects==culled);
+        assert(s_worldProfile.packedInside==expectedInside);
+        assert(expectedInside>0);
         // Active-light triangles still reach the original subdivision entry,
         // including triangles rejected by the common-plane test.
         Reset(); BeginWorldClipCache(); s_surfaceLightMask=1; dynamicCalls=0;
@@ -261,6 +271,7 @@ int main() {
         EmitCachedWorld(vertices,60,matrix,texture,scroll);
         assert(dynamicCalls==20);
         assert(s_worldProfile.cachedTriangles==20 && s_worldProfile.unlitTriangles==0 && s_worldProfile.earlyRejects==0);
+        assert(s_worldProfile.packedInside==0);
     }
     assert(earlyRejected>600);
     std::puts("12000 cached BSP triangles match generic clipping/output/batches; active-light dispatch preserved PASS");

@@ -12,12 +12,13 @@ struct WorldProfile {
     Detail activeDetail = DetailCount;
     long long detailTicks[DetailCount] = {}, detailChildren[DetailCount] = {};
     int nodes = 0, surfaces = 0, triangles = 0, batches = 0;
-    int cachedTriangles = 0, unlitTriangles = 0, earlyRejects = 0;
-    void RecordCachedTriangle(bool unlit, bool rejected) {
+    int cachedTriangles = 0, unlitTriangles = 0, earlyRejects = 0, packedInside = 0;
+    void RecordCachedTriangle(bool unlit, bool rejected, bool packed = false) {
         if (enabled && activePhase == Geometry) {
             ++cachedTriangles;
             if (unlit) ++unlitTriangles;
             if (rejected) ++earlyRejects;
+            if (packed) ++packedInside;
         }
     }
     int Micros(Phase phase) const {

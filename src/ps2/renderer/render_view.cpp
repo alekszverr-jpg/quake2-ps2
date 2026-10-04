@@ -2042,7 +2042,8 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
             // interpolation records. Keep dynamically subdivided triangles on
             // their existing path (including midpoint rounding near planes).
             const bool earlyReject = allOutside != 0 && s_surfaceLightMask == 0;
-            s_worldProfile.RecordCachedTriangle(s_surfaceLightMask == 0, earlyReject);
+            const bool packedInside = anyOutside == 0 && s_surfaceLightMask == 0;
+            s_worldProfile.RecordCachedTriangle(s_surfaceLightMask == 0, earlyReject, packedInside);
             if (earlyReject)
             {
                 PS2_STAT_INC(trisCulled);
@@ -2050,7 +2051,7 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
             }
             // Cached colours are already rounded to GS bytes. Interior
             // triangles need no colour interpolation or unpack/repack cycle.
-            if (anyOutside == 0 && s_surfaceLightMask == 0)
+            if (packedInside)
             {
                 if (s_scratchVertCount + 3 > kScratchMaxVerts)
                     FlushScratch(mvp, texture);

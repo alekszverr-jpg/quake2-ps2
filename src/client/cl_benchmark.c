@@ -210,23 +210,32 @@ void CL_BenchmarkDraw(void)
     char text[80];
     re.DrawFill(0, 0, viddef.width, viddef.height, 0);
     Line(25, viddef.width <= 320 ? "BENCHMARK " PS2_BUILD_VERSION : "QUAKE II - BENCHMARK " PS2_BUILD_VERSION);
-    if (worldProfile && detailPage == 4)
+    if (worldProfile && (detailPage == 4 || detailPage == 5))
     {
-        static const char * labels[] = {
+        const int insidePage = detailPage == 5;
+        const int countedMetric = insidePage ? BENCH_WORLD_PACKED_INSIDE : BENCH_WORLD_EARLY_REJECTS;
+        static const char * rejectLabels[] = {
             "Cached tris", "No-light tris", "Early rejects", "Of all %", "Of unlit %"
         };
-        Line(43, "BSP early reject coverage");
+        static const char * insideLabels[] = {
+            "Cached tris", "No-light tris", "Packed inside", "Unlit clip", "Of all %", "Of unlit %"
+        };
+        const char * const * labels = insidePage ? insideLabels : rejectLabels;
+        Line(43, insidePage ? "BSP packed inside coverage" : "BSP early reject coverage");
         Line(59, "Metric          Run1    Run2    Run3");
-        for (i = 0; i < 5; ++i)
+        for (i = 0; i < (insidePage ? 6 : 5); ++i)
         {
             double average[3];
             int j;
             for (j = 0; j < BENCH_GROUP; ++j) {
                 if (i < 3)
-                    average[j] = frames[j] ? (double)totals[j][BENCH_WORLD_CACHED_TRIS+i] / frames[j] : 0;
+                    average[j] = frames[j] ? (double)totals[j][i == 2 ? countedMetric : BENCH_WORLD_CACHED_TRIS+i] / frames[j] : 0;
+                else if (insidePage && i == 3)
+                    average[j] = frames[j] ? ((double)totals[j][BENCH_WORLD_UNLIT_TRIS] -
+                        (double)totals[j][BENCH_WORLD_EARLY_REJECTS] - (double)totals[j][BENCH_WORLD_PACKED_INSIDE]) / frames[j] : 0;
                 else {
-                    const double denominator = (double)totals[j][i == 3 ? BENCH_WORLD_CACHED_TRIS : BENCH_WORLD_UNLIT_TRIS];
-                    average[j] = denominator > 0 ? (double)totals[j][BENCH_WORLD_EARLY_REJECTS] * 100.0 / denominator : 0;
+                    const double denominator = (double)totals[j][i == (insidePage ? 4 : 3) ? BENCH_WORLD_CACHED_TRIS : BENCH_WORLD_UNLIT_TRIS];
+                    average[j] = denominator > 0 ? (double)totals[j][countedMetric] * 100.0 / denominator : 0;
                 }
             }
             Com_sprintf(text, sizeof(text), "%-13s %7.2f %7.2f %7.2f", labels[i], average[0], average[1], average[2]);
@@ -234,7 +243,7 @@ void CL_BenchmarkDraw(void)
         }
         Line(149, "Counts per frame, before clipping.");
         Line(161, "No-light: no selected dynamic light.");
-        Line(173, "Reject: one shared outside plane.");
+        Line(173, insidePage ? "Inside: all planes accept corners." : "Reject: one shared outside plane.");
         Line(185, "World only; sky/seals excluded.");
         Line(200, "Timers affect FPS; use normal bench.");
         Line(214, "Left/Right: pages; Back: menu");
@@ -444,7 +453,7 @@ void CL_BenchmarkDraw(void)
 
 void CL_BenchmarkTogglePage(void)
 {
-    detailPage = (detailPage + 1) % (worldProfile ? 5 : modelProfile ? 3 : lightProfile ? 7 : comparison ? 5 : 2);
+    detailPage = (detailPage + 1) % (worldProfile ? 6 : modelProfile ? 3 : lightProfile ? 7 : comparison ? 5 : 2);
 }
 
 void CL_BenchmarkInit(void)

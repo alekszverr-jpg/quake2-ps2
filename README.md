@@ -1,7 +1,7 @@
 # Quake II for PlayStation 2
 
 [![Build](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml/badge.svg)](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml)
-[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.111-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
+[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.112-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](LICENSE)
 
 An active continuation of the unofficial Quake II port for the Sony
@@ -291,3 +291,12 @@ Of unlit %. Counts are per-frame pre-clipping cached opaque World triangles;
 sky, seals, brush entities and dynamically generated children are excluded.
 No-light means no selected dynamic source for the source triangle, not disabled
 world lighting. Ratios use aggregated counts, with zero for empty denominators.
+
+Alpha.111 user coverage: about1722 cached triangles/frame,1567 eligible without
+selected dynamic lights and7.72 early rejects:0.45% of all,0.49% of eligible.
+Alpha.112 adds a sixth page, BSP packed inside coverage (Right five times):
+Packed inside counts the existing direct packed-colour emission path, requiring
+all corners inside all clipping planes and no selected dynamic light. Unlit clip
+is the eligible remainder after early rejects and packed-inside triangles; it
+includes triangles ultimately rejected by the full clipper. Count scope and ratio
+rules match the early-reject page. Rendering policy is unchanged.

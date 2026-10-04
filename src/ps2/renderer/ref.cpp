@@ -639,6 +639,7 @@ extern "C" void PS2_ReadBenchmarkStats(int values[BENCH_STATS_COUNT])
     values[BENCH_WORLD_CACHED_TRIS] = world.cachedTriangles;
     values[BENCH_WORLD_UNLIT_TRIS] = world.unlitTriangles;
     values[BENCH_WORLD_EARLY_REJECTS] = world.earlyRejects;
+    values[BENCH_WORLD_PACKED_INSIDE] = world.packedInside;
 
 }
 

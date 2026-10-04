@@ -27,7 +27,19 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.111 early-reject coverage counters (runtime pending)
+## Alpha.112 packed-inside coverage counters (build pending)
+
+Same World profile3runs, now6 pages. Right five times opens BSP packed inside
+coverage. Add packedInside count when all three cached corners have zero outside
+mask and selected dynamic-light mask0, exactly matching existing direct emitter.
+Rendering algorithm unchanged. Unlit clip = eligible minus early rejects minus
+packed inside; includes triangles later rejected by generic clipper. Ratio and
+context/sky/seal/brush exclusions match111. Production emitter tests compare inside
+counts with independent six-plane checks, including known inside/boundary triangles;
+benchmark tests cover derived remainder, percentages, empty denominators and240p.
+Next: screenshot of packed-inside coverage page to establish actual path frequency.
+
+## Alpha.111 early-reject coverage counters (runtime results received)
 
 Same GAME world profile3runs, now5 pages. Right four times opens BSP early reject
 coverage. RecordCachedTriangle counts only enabled Geometry context: all cached
@@ -40,6 +52,10 @@ counts only, no new rejection policy. Next: screenshot of coverage page.
 CI37180368579 passed all sanitizer tests, map validation and PROFILE build.
 Installed7,886,104-byte ELF in both roots; hashes match downloaded artifact
 and embedded111 version verified. No new release made.
+User111 page: cached1721.94 each; eligible1563.25/1567.56/1567.79;
+early rejects7.73/7.71/7.73;0.45% of all and0.49% of eligible each.
+Early reject coverage is low; no evidence supporting further expansion of that
+optimization. Added112 packed-inside path measurement before choosing next change.
 
 ## Alpha.110 cached BSP common-plane reject (runtime results received)
 

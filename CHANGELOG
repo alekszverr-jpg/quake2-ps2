@@ -6,6 +6,18 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.112 - 2026-10-04 (local test build)
+
+- Add sixth World profile page, BSP packed inside coverage. Count triangles using
+  the existing packed-colour direct emitter, show their share of all/eligible input
+  triangles and the eligible remainder requiring generic clipping.
+- Preserve eligibility, geometry output and rejection policy. Test production-loop
+  inside counts against independent plane checks, active-light exclusions, derived
+  clipping remainder, percentages, empty denominators and native240p bounds.
+- Alpha.111 coverage:1721.94 cached triangles/frame,1563.25/1567.56/1567.79
+  without selected dynamic lights,7.73/7.71/7.73 early rejects. Rejection share
+  is0.45% of all inputs and0.49% of eligible; prioritize measuring the inside path.
+
 ## 0.1.0-alpha.111 - 2026-10-04 (local test build)
 
 - Add fifth World profile page: BSP early reject coverage. Report cached input
