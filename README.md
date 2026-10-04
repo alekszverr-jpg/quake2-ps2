@@ -1,7 +1,7 @@
 # Quake II for PlayStation 2
 
 [![Build](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml/badge.svg)](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml)
-[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.113-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
+[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.114-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](LICENSE)
 
 An active continuation of the unofficial Quake II port for the Sony
@@ -310,3 +310,9 @@ The packed path also reads cache masks without copying three32-byte plane record
 full distances are fetched for partial triangles, with collision-safe re-lookup.
 Compare ordinary benchmark FPS/World time against110 with identical VIDEO settings; runtime gain
 and visual walls/doors/near-plane checks are pending.
+
+Alpha.113 measured40.00FPS/24.98ms, World11.80..11.87ms versus110's
+40.40FPS/24.76ms and World11.60..11.62ms. Alpha.114 reverts both113 renderer
+changes to the exact112 implementation, preserving all six World diagnostic
+pages and the expanded differential test cases. Repeat the ordinary benchmark
+with identical VIDEO settings to verify recovery; runtime recovery is pending.

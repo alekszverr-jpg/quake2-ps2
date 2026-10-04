@@ -143,7 +143,8 @@ play on a retail console.
 - [~] Reject cached BSP triangles on common outside planes before full record expansion (Alpha.110; differential tests passed, runtime pending)
 - [x] Measure cached BSP early-rejection coverage (Alpha.111;0.45% of all,0.49% of eligible)
 - [x] Measure cached BSP packed-inside emitter coverage (Alpha.112;89.6% of all,98.78% of eligible)
-- [~] Read only BSP cache masks for inside triangles and emit at consecutive offsets (Alpha.113; differential tests passed, runtime gain pending)
+- [ ] Read only BSP cache masks and emit at consecutive offsets (Alpha.113 experiment regressed:40.00FPS/World11.84ms; reverted in114)
+- [~] Confirm recovery after restoring Alpha.112 renderer (Alpha.114; runtime pending)
 - [~] Validate long sessions for EE RAM, IOP RAM and VRAM leaks
 - [ ] Target a stable 30 FPS minimum, with 60 FPS where practical
 

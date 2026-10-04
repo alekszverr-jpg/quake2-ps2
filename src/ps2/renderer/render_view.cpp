@@ -1566,8 +1566,8 @@ void BeginWorldClipCache()
     }
 }
 
-const WorldClipEntry & CachedWorldClipEntry(const CachedLitVertex & vertex,
-                                            const math::Mat4 & mvp)
+u32 CachedWorldClipDistances(ClipDists & distances, const CachedLitVertex & vertex,
+                             const math::Mat4 & mvp)
 {
     const float coordinates[3] = {vertex.x, vertex.y, vertex.z};
     u32 bits[3];
@@ -1580,25 +1580,19 @@ const WorldClipEntry & CachedWorldClipEntry(const CachedLitVertex & vertex,
     if (entry.epoch == s_worldClipEpoch &&
         entry.positionBits[0] == bits[0] && entry.positionBits[1] == bits[1] &&
         entry.positionBits[2] == bits[2]) {
-        return entry;
+        distances = entry.distances;
+        return entry.outsideMask;
     }
     const math::Vec4 position = {vertex.x, vertex.y, vertex.z, 1.0f};
-    SetClipDistances(entry.distances, position, mvp);
+    SetClipDistances(distances, position, mvp);
     u32 outsideMask = 0;
     for (int plane = 0; plane < kNumClipPlanes; ++plane)
-        if (!(entry.distances.f[plane] >= 0.0f)) outsideMask |= 1u << plane;
+        if (!(distances.f[plane] >= 0.0f)) outsideMask |= 1u << plane;
+    entry.distances = distances;
     std::memcpy(entry.positionBits, bits, sizeof(bits));
     entry.epoch = s_worldClipEpoch;
     entry.outsideMask = outsideMask;
-    return entry;
-}
-
-u32 CachedWorldClipDistances(ClipDists & distances, const CachedLitVertex & vertex,
-                             const math::Mat4 & mvp)
-{
-    const WorldClipEntry & entry = CachedWorldClipEntry(vertex, mvp);
-    distances = entry.distances;
-    return entry.outsideMask;
+    return outsideMask;
 }
 
 ClipVertex MakeSkyVertex(float s, float t, int axis, const refdef_t & viewDef,
@@ -1905,26 +1899,6 @@ void BuildCachedLitTriangle(const ClipVertex (&corners)[3],
     BuildCachedLitTriangle(second, surface, depth + 1, childFineLevels);
 }
 
-// Packed emission for fully visible cached BSP triangles.
-inline void EmitPackedWorldVertex(vu1::DrawVertex & dst, const CachedLitVertex & src,
-                                  float scroll)
-{
-    dst.x = src.x; dst.y = src.y; dst.z = src.z; dst.w = 1.0f;
-    dst.rgba = src.packedColor;
-    dst.s = src.s + scroll; dst.t = src.t; dst.q = 1.0f;
-}
-
-inline void EmitPackedWorldTriangle(const CachedLitVertex * vertices, float scroll)
-{
-    // Caller reserves a complete triangle. Publish the buffer count once,
-    // after all three consecutive records have been filled.
-    vu1::DrawVertex * dst = s_scratchVerts + s_scratchVertCount;
-    EmitPackedWorldVertex(dst[0], vertices[0], scroll);
-    EmitPackedWorldVertex(dst[1], vertices[1], scroll);
-    EmitPackedWorldVertex(dst[2], vertices[2], scroll);
-    s_scratchVertCount += 3;
-}
-
 // Appends a polygon's adaptively lit triangles to the scratch buffer.
 void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & surface,
                          const math::Mat4 & mvp, const tex::Texture & texture,
@@ -2060,11 +2034,7 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
             for (int v = 0; v < 3; ++v)
             {
                 const CachedLitVertex & src = drawVertices[first + v];
-                // The packed path only needs a mask, not three 32-byte
-                // distance records. Active-light triangles still need them.
-                const u32 outside = s_surfaceLightMask == 0
-                    ? CachedWorldClipEntry(src, mvp).outsideMask
-                    : CachedWorldClipDistances(distances[v], src, mvp);
+                const u32 outside = CachedWorldClipDistances(distances[v], src, mvp);
                 anyOutside |= outside;
                 allOutside &= outside;
             }
@@ -2085,7 +2055,14 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
             {
                 if (s_scratchVertCount + 3 > kScratchMaxVerts)
                     FlushScratch(mvp, texture);
-                EmitPackedWorldTriangle(drawVertices + first, scroll);
+                for (int v = 0; v < 3; ++v)
+                {
+                    const CachedLitVertex & src = drawVertices[first + v];
+                    vu1::DrawVertex & dst = s_scratchVerts[s_scratchVertCount++];
+                    dst.x = src.x; dst.y = src.y; dst.z = src.z; dst.w = 1.0f;
+                    dst.rgba = src.packedColor;
+                    dst.s = src.s + scroll; dst.t = src.t; dst.q = 1.0f;
+                }
                 PS2_STAT_INC(trisDrawn);
                 continue;
             }
@@ -2095,10 +2072,7 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
                 const CachedLitVertex & src = drawVertices[first + v];
                 corners[v].pos = { src.x, src.y, src.z, 1.0f };
                 corners[v].st = { src.s + scroll, src.t, 0.0f, 0.0f };
-                if (s_surfaceLightMask == 0)
-                    CachedWorldClipDistances(corners[v].d, src, mvp);
-                else
-                    corners[v].d = distances[v];
+                corners[v].d = distances[v];
                 UnpackCachedColor(corners[v].color, src.packedColor);
             }
             if (s_surfaceLightMask != 0)

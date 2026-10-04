@@ -193,9 +193,6 @@ int main() {
             for (int p=0;p<6;++p) if (!(reference.f[p]>=0.0f)) referenceMask |= 1u<<p;
             assert(CachedWorldClipDistances(cached,vertex,matrix) == referenceMask);
             assert(std::memcmp(&cached,&reference,sizeof(cached)) == 0);
-            const auto & maskOnly=CachedWorldClipEntry(vertex,matrix);
-            assert(maskOnly.outsideMask==referenceMask);
-            assert(std::memcmp(&maskOnly.distances,&reference,sizeof(reference))==0);
             const int before=transforms;
             vertex.packedColor=0x80808080u; vertex.s=3.0f; // key depends only on position
             assert(CachedWorldClipDistances(cached,vertex,matrix) == referenceMask);

@@ -6,6 +6,17 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.114 - 2026-10-04 (local test build)
+
+- Revert Alpha.113 mask-only cache lookups and fixed-offset packed emitter;
+  restore the exact Alpha.112 renderer code. Keep all six World diagnostic
+  pages, coverage counters and expanded colour/dense-inside test cases.
+- Alpha.113 measured40.00FPS/24.98ms, World11.80/11.87/11.84ms, versus110's
+  40.40FPS/24.76ms and World11.62/11.61/11.60ms. Observed regression about
+  0.22ms/frame and0.23ms World; this experiment is not accepted.
+- Host differential geometry/batch tests, diagnostic timing and benchmark
+  lifecycle/restoration tests passed. Runtime recovery confirmation pending.
+
 ## 0.1.0-alpha.113 - 2026-10-04 (local test build)
 
 - Fill fully visible cached BSP triangles at three consecutive fixed output

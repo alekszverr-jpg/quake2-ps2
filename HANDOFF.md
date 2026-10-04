@@ -27,7 +27,17 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.113 packed BSP triangle emission (runtime pending)
+## Alpha.114 restore pre-experiment BSP preparation/emission (build pending)
+
+Restore render_view.cpp and alias_clip/run.py exactly to539ebf8 (Alpha.112).
+Remove mask-only cache helper and unrolled fixed-offset emitter. Keep diagnostic
+pages/counters,111 early reject and113 varied-colour/dense-inside test cases.
+Host clipping, timing and benchmark tests pass. Next: ordinary benchmark and
+renderer details with identical VIDEO settings; compare against11040.40FPS/
+24.76ms/World11.61ms and11340.00FPS/24.98ms/World11.84ms. Exact source restoration
+does not substitute for runtime confirmation. No new optimization in114.
+
+## Alpha.113 packed BSP triangle emission (regressed; reverted in114)
 
 EmitPackedWorldTriangle writes dst0/1/2 through an inline vertex filler, updates
 s_scratchVertCount once after the three records. Caller still flushes at the
@@ -47,6 +57,10 @@ check walls, doors and near-plane edges. Do not claim actual speedup before resu
 CI37182149636 passed all sanitizer tests, map validation and PROFILE build.
 Installed7,886,704-byte ELF in both roots; hashes match downloaded artifact
 and embedded113 version verified. No new release made.
+User113 ordinary:40.00FPS/24.98ms, same688frames195..882, World11.80/11.87/11.84ms,
+Entities7.38/7.39/7.39ms. Against11040.40FPS/24.76ms/World11.61ms, frame grows
+about0.22ms and World0.23ms. Experiment not accepted; restore prior renderer
+before further optimization. Exact cause within the two changes was not isolated.
 
 ## Alpha.112 packed-inside coverage counters (runtime results received)
 
