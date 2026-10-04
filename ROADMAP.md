@@ -153,7 +153,7 @@ play on a retail console.
 - [~] Distant static-light quality toggle (Alpha.120; full39.71 vs reduced41.88FPS, preliminary visual acceptance; full default,512/384 hysteresis)
 - [x] Batched VU0 MD2 clipping transforms (Alpha.121;42.05vs12041.88FPS, preliminary console visuals accepted)
 - [x] Distant dynamic-light quality toggle (Alpha.122; reduced42.38vs full42.05FPS, no visual problems reported)
-- [~] Retain BSP seal corner indices across frames (Alpha.123; exact old first-match/fallback, +4bytes/source triangle; paired speed/visual pending)
+- [x] Retain BSP seal corner indices across frames (Alpha.123; exact old first-match/fallback, +4bytes/source triangle; paired42.52vs42.30FPS, visuals accepted)
 - [~] Validate long sessions for EE RAM, IOP RAM and VRAM leaks
 - [ ] Target a stable 30 FPS minimum, with 60 FPS where practical
 

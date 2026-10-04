@@ -13,7 +13,7 @@ before changing renderer, audio or memory-management code.
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.123` (PROFILE CI and host tests passed; retained seal corner speed/visual pending; Alpha.122 flash+0.8%FPS/visuals accepted; Alpha.121 MD2+0.4%FPS/preliminary visuals accepted; Alpha.120 reduced+5.5%FPS/preliminary visuals accepted; Alpha.119/113 experiments reverted; Alpha.103 weapon/UI and supported TV modes accepted; 480p hardware unverified)
+- Current source/test version: `0.1.0-alpha.123` (PROFILE CI and host tests passed; retained seal corners +0.5%FPS/visuals accepted; Alpha.122 flash+0.8%FPS/visuals accepted; Alpha.121 MD2+0.4%FPS/preliminary visuals accepted; Alpha.120 reduced+5.5%FPS/preliminary visuals accepted; Alpha.119/113 experiments reverted; Alpha.103 weapon/UI and supported TV modes accepted; 480p hardware unverified)
 - Current implementation commit: `3d35706`
   (`Retain BSP seal corner indices with lighting topology`); CI submodule fix `b344f3e` retained.
 - Current published release:
@@ -27,15 +27,19 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.123 retained BSP seal corner indices (runtime pending)
+## Alpha.123 retained BSP seal corner indices (runtime results, visuals accepted)
 
 CI37200446077 passed all host sanitizer tests, including3500newseal cases and
 cache reclamation, map validation and PROFILE build. Installed7,933,872-byte
 ELF in both roots; hashes match build/ci-3d35706-profile artifact, embedded123
 verified. Saved122baseline as Documents project quake2-alpha122-baseline.elf,
 SHA2566F3386A98900B503CF8C10990FAD2B8FB9002B09B70134A737689B79B5E11CA8.
-No release made. Next paired normalbench bothtogglesreduced, checkseams/flicker/
-doors. Console speed/visual acceptance pending.
+No release made. User paired normal benchmark with both quality toggles reduced:
+Alpha.122 42.25/42.29/42.34FPS, combined42.30FPS/23.64ms;
+Alpha.123 42.54/42.50/42.51FPS, combined42.52FPS/23.52ms.
+Both use688frames195..882 per run. Gain about0.5%FPS, frame time down0.12ms.
+All three123runs exceed all three122runs in this pair; modest gain, not a broad
+map performance guarantee. User reports visual checks are normal. Retain change.
 
 ModelTriangle mutableu16 litCacheCornerIndices[3] directly aftervertexes; target
 layout24->28bytes (+4bytes/source triangle, padding reclaimed),64bit host40bytes.
@@ -49,9 +53,8 @@ index/live colour load; missing/unretained/mismatched key keepsSampleVertexLight
 3500 differential production seal cases vs independent old scan pass allcorner
 record bytes and fallback/transformcounts, duplicate/signedzero/NaN,relight/rebuild/
 key/null/flow/skips. Reclaimer reset covered. No seal removal/quality change.
-Need123vs122 ordinarybench with both togglesreduced; verifyseams/flicker/doors.
-Preserve122baseline ELF separately. Extra modelmetadata allocation cost must be
-considered alongside actual console speed; no gainclaimed before measurements.
+Preserve122baseline ELF separately. Extra modelmetadata allocation cost remains
++4bytes/source triangle; paired speed and user visual validation accepted above.
 
 ## Alpha.122 distant dynamic-light spacing (runtime results, visuals accepted)
 

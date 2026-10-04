@@ -17,6 +17,9 @@ Development priorities and completion criteria are tracked in
   fallback/flow/skips; test metadata reset during memory reclamation.
 - Alpha.122 paired flash quality: reduced42.38FPS/23.59ms vs full42.05FPS/23.78ms,
   matching688frames; user reports no problems. Keep both quality toggles optional.
+- Paired ordinary benchmark, both quality toggles reduced: Alpha.12342.52FPS/
+  23.52ms vs Alpha.12242.30FPS/23.64ms (about+0.5%FPS, -0.12ms/frame).
+  Matching688frames195..882; user reports visual checks are normal.
 
 ## 0.1.0-alpha.122 - 2026-10-04 (local test build)
 
