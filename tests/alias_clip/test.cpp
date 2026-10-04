@@ -193,6 +193,9 @@ int main() {
             for (int p=0;p<6;++p) if (!(reference.f[p]>=0.0f)) referenceMask |= 1u<<p;
             assert(CachedWorldClipDistances(cached,vertex,matrix) == referenceMask);
             assert(std::memcmp(&cached,&reference,sizeof(cached)) == 0);
+            const auto & maskOnly=CachedWorldClipEntry(vertex,matrix);
+            assert(maskOnly.outsideMask==referenceMask);
+            assert(std::memcmp(&maskOnly.distances,&reference,sizeof(reference))==0);
             const int before=transforms;
             vertex.packedColor=0x80808080u; vertex.s=3.0f; // key depends only on position
             assert(CachedWorldClipDistances(cached,vertex,matrix) == referenceMask);
@@ -215,6 +218,10 @@ int main() {
         CachedLitVertex vertices[60];
         for (auto & vertex : vertices)
             vertex={position(random),position(random),position(random),0x80804020u,position(random),position(random)};
+        for (auto & vertex : vertices) {
+            vertex.packedColor=(random()%129u) | ((random()%129u)<<8) | ((random()%129u)<<16) | 0x80000000u;
+            if (scenario%4==0) { vertex.x*=0.03f; vertex.y*=0.03f; vertex.z*=0.03f; }
+        }
         // Common-plane rejection, exact plane boundary and an intersecting
         // triangle with different outside planes must all retain exact output.
         vertices[0]={9,0,0,0x80804020u,0,0};

@@ -1,7 +1,7 @@
 # Quake II for PlayStation 2
 
 [![Build](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml/badge.svg)](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml)
-[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.112-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
+[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.113-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](LICENSE)
 
 An active continuation of the unofficial Quake II port for the Sony
@@ -300,3 +300,13 @@ all corners inside all clipping planes and no selected dynamic light. Unlit clip
 is the eligible remainder after early rejects and packed-inside triangles; it
 includes triangles ultimately rejected by the full clipper. Count scope and ratio
 rules match the early-reject page. Rendering policy is unchanged.
+
+Alpha.112 measured1543..1544 packed-inside triangles/frame, about89.6% of all
+cached inputs and98.78% of eligible triangles; unlit clipping remainder11.36..11.38.
+Alpha.113 fills three consecutive packed output records with fixed offsets and
+updates the shared scratch count once per triangle, preserving every field and
+the caller's flush boundary. No extra retained geometry storage.
+The packed path also reads cache masks without copying three32-byte plane records;
+full distances are fetched for partial triangles, with collision-safe re-lookup.
+Compare ordinary benchmark FPS/World time against110 with identical VIDEO settings; runtime gain
+and visual walls/doors/near-plane checks are pending.

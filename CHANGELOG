@@ -6,6 +6,23 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.113 - 2026-10-04 (local test build)
+
+- Fill fully visible cached BSP triangles at three consecutive fixed output
+  offsets and advance the shared scratch count once per triangle. Preserve
+  packed colours, exact UV scroll addition, constant w/q and batch boundaries.
+  Active-light subdivision, generic clipping and seal paths are unchanged.
+- Read only outside masks for cached triangles without selected dynamic lights.
+  Fully-inside and early-rejected triangles avoid copying three32-byte plane
+  records; partial triangles retrieve full distances afterwards. Re-lookup handles
+  direct-mapped collisions without retaining entry pointers between corners.
+- Extend the12,000-triangle differential test with varied packed colours and
+  dense fully-inside runs crossing buffer boundaries, comparing whole emitted
+  vertices and batches against production generic clipping.
+- Alpha.112 packed-inside coverage:1543.11/1543.30/1544.36 triangles/frame,
+  89.61/89.63/89.69% of all and98.78% of eligible. Generic unlit clipping
+  remainder11.36/11.38/11.38. Runtime speed gain for113 remains unverified.
+
 ## 0.1.0-alpha.112 - 2026-10-04 (local test build)
 
 - Add sixth World profile page, BSP packed inside coverage. Count triangles using

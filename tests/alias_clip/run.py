@@ -17,10 +17,12 @@ for prefix in ['union ClipDists', 'struct alignas(16) ClipVertex', 'struct align
 (out/'types.inc').write_text('\n'.join(parts))
 for name, prefixes in [('generic.inc',['int ClipAgainstPlane(', 'inline u32 PackFloatColor(', 'inline void EmitScratchVertex(const ClipVertex & v,', 'inline void EmitScratchVertex(const ClipVertex & v)', 'void SubmitWorldTriangle(', 'void SetClipDistances(ClipDists &']), ('alias.inc',['void PrepareAliasTexCoords(', 'inline AliasTexCoord AliasTexCoordsAt(', 'inline void SubmitOpaqueAliasTriangle(', 'void PrepareAliasClipData(', 'void SubmitAliasTriangle('])]:
     (out/name).write_text('\n'.join(function(prefix) for prefix in prefixes))
-(out/'worldclip.inc').write_text(function('void BeginWorldClipCache(') + '\n' + function('u32 CachedWorldClipDistances('))
+(out/'worldclip.inc').write_text(function('void BeginWorldClipCache(') + '\n' +
+    function('const WorldClipEntry & CachedWorldClipEntry(') + '\n' + function('u32 CachedWorldClipDistances('))
 cached_loop = re.search(r'^        for \(int first = 0; first < drawVertexCount; first \+= 3\).*?^        }', source, re.M | re.S)
 if not cached_loop: raise RuntimeError('cached BSP emission loop')
 (out/'cachedworld.inc').write_text(function('void UnpackCachedColor(') + '\n' +
+    function('inline void EmitPackedWorldVertex(') + '\n' + function('inline void EmitPackedWorldTriangle(') + '\n' +
     'void EmitCachedWorld(const CachedLitVertex * drawVertices, int drawVertexCount, '
     'const math::Mat4 & mvp, const tex::Texture & texture, float scroll) {\n' + cached_loop.group(0) + '\n}')
 binary = out / ('test.exe' if os.name == 'nt' else 'test')

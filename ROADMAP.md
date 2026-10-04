@@ -142,7 +142,8 @@ play on a retail console.
 - [x] Split World Geometry into preparation/lighting, clip/emission, prefetch and seal preparation (Alpha.109;6.97/8.84/0.21/1.58ms, diagnostic overhead)
 - [~] Reject cached BSP triangles on common outside planes before full record expansion (Alpha.110; differential tests passed, runtime pending)
 - [x] Measure cached BSP early-rejection coverage (Alpha.111;0.45% of all,0.49% of eligible)
-- [~] Measure cached BSP packed-inside emitter coverage (Alpha.112; runtime pending)
+- [x] Measure cached BSP packed-inside emitter coverage (Alpha.112;89.6% of all,98.78% of eligible)
+- [~] Read only BSP cache masks for inside triangles and emit at consecutive offsets (Alpha.113; differential tests passed, runtime gain pending)
 - [~] Validate long sessions for EE RAM, IOP RAM and VRAM leaks
 - [ ] Target a stable 30 FPS minimum, with 60 FPS where practical
 

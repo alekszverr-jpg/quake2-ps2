@@ -27,7 +27,25 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.112 packed-inside coverage counters (runtime pending)
+## Alpha.113 packed BSP triangle emission (build pending)
+
+EmitPackedWorldTriangle writes dst0/1/2 through an inline vertex filler, updates
+s_scratchVertCount once after the three records. Caller still flushes at the
+same triangle boundary. Exact src.s+scroll arithmetic, x/y/z bits, integer packed
+colour and constant w/q1 unchanged; no retained geometry storage added. Active
+lights/generic clipping/seal algorithms unchanged. Production loop/helpers
+extracted for12,000-triangle whole output/batch comparison, with varied colours
+and dense fully-inside runs crossing batch boundaries.
+CachedWorldClipEntry returns the current entry; no-light mask classification
+does not copy96bytes of distances per triangle. Partial fallback re-looks up
+distances (cache collisions may recompute); no pointers retained between corners.
+Active-light distance copies retain their original path. Mask-only cache results
+also match independent direct transforms through context changes and epoch wrap.
+Next: ordinary benchmark
+FPS and renderer details vs11040.40FPS/24.76ms/World11.61ms, same VIDEO settings;
+check walls, doors and near-plane edges. Do not claim actual speedup before results.
+
+## Alpha.112 packed-inside coverage counters (runtime results received)
 
 Same World profile3runs, now6 pages. Right five times opens BSP packed inside
 coverage. Add packedInside count when all three cached corners have zero outside
@@ -41,6 +59,10 @@ Next: screenshot of packed-inside coverage page to establish actual path frequen
 CI37180872381 passed all sanitizer tests, map validation and PROFILE build.
 Installed7,885,408-byte ELF in both roots; hashes match downloaded artifact
 and embedded112 version verified. No new release made.
+User112: cached1721.94 each; eligible1562.14/1562.45/1563.47; packed-inside
+1543.11/1543.30/1544.36; unlit clip11.36/11.38/11.38. Inside share89.61/89.63/89.69%
+of all and98.78% of eligible. Frequency supports testing direct-emitter changes,
+but does not establish its cost or achievable speedup.
 
 ## Alpha.111 early-reject coverage counters (runtime results received)
 
