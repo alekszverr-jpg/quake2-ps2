@@ -9,6 +9,7 @@ enum { BENCH_RUNS = 6, BENCH_GROUP = 3 };
 static int lightProfile, cacheComparison, modelProfile, worldProfile;
 static int comparison, runLimit = BENCH_GROUP, resultWorldLights;
 static int resultFarLighting;
+static int resultFlashDetail;
 static int active, pending, run, sampling, first, last;
 static int frames[BENCH_RUNS], milliseconds[BENCH_RUNS];
 static int ready, previousFrame;
@@ -91,6 +92,7 @@ static void Start(int compareLights)
     modelProfile = compareLights == 4;
     worldProfile = compareLights == 5;
     resultFarLighting = Cvar_VariableValue("ps2_far_lighting") != 0;
+    resultFlashDetail = Cvar_VariableValue("ps2_far_dlights") != 0;
     lightProfile = compareLights == 2;
     cacheComparison = compareLights == 3;
     runLimit = comparison ? BENCH_RUNS : BENCH_GROUP;
@@ -494,8 +496,9 @@ void CL_BenchmarkDraw(void)
         Line(166, text);
     }
     Line(178, resultFarLighting ? "Far light detail: reduced" : "Far light detail: full");
-    Line(190, worldProfile ? "World timers ON: FPS perturbed." : modelProfile ? "Model timers ON: FPS perturbed." : "Loading excluded; no extra warm-up.");
-    Line(200, "Left/Right: renderer details");
+    Line(188, resultFlashDetail ? "Flash detail: reduced" : "Flash detail: full");
+    Line(198, worldProfile ? "World timers ON: FPS perturbed." : modelProfile ? "Model timers ON: FPS perturbed." : "Loading excluded; no extra warm-up.");
+    Line(208, "Left/Right: renderer details");
     Line(220, "Back: return to menu");
 }
 

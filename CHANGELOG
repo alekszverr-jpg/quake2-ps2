@@ -6,6 +6,19 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.122 - 2026-10-04 (local test build)
+
+- Add archived live VIDEO flash detail full/reduced, default full. Reduced
+  increases opaque world dynamic-light edge spacing64->128 between384and768units
+  using root AABB distance; children inherit the limit. Retain near/brush paths,
+  bounds selection, colour falloff, mask restoration and depth cap. Static-light
+  quality stays independent; no persistent dynamic cache changes.
+- Normal benchmark captures both quality labels; test menu/defaults/archive,
+  setting preservation, reduced leaf counts/covered area and exact near/brush
+  output. Performance and distant-light visual validation pending.
+- Alpha.121 paired reduced benchmark:12041.88FPS/23.88ms,12142.05FPS/23.78ms,
+  matching688frames. User preliminarily accepts weapon/enemy visuals; retain batch.
+
 ## 0.1.0-alpha.121 - 2026-10-04 (local test build)
 
 - Batch shared MD2 clipping transforms on VU0 with one matrix load for the whole

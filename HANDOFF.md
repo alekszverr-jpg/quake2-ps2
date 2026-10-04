@@ -27,7 +27,25 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.121 batched VU0 MD2 transforms (runtime pending)
+## Alpha.122 distant dynamic-light spacing (build pending)
+
+VIDEO flash detail full/reduced, archived ps2_far_dlights default0, separate from
+ps2_far_lighting. Normal benchmark captures both labels and leaves values alone.
+DynamicTriangleEdgeSquared only on enabled world roots depth0; closest root AABB
+distance controls64edge below384,128above768, smooth interpolation in distanceSq
+between. Root edgeLimitSquared passed through recursion. Full/off and brushes
+use original64; selectors, masks, colour falloff, maxdepth7, static caches unchanged.
+Production tests: synthetic48->12 leaves, samearea; exact near/brush outputs,
+mask restoration and threshold endpoints/intermediate. Disabled old160differential
+cases still match. Menu archive/defaults and benchmark preserved-setting labels
+pass. Need122 normalbench flash full/reduced with far light reduced both; visually
+check distant flashes and seams, doors remainfull. No speed claim before results.
+
+## Alpha.121 batched VU0 MD2 transforms (runtime results, preliminary visuals)
+
+User paired normal far reduced:12041.89/41.88/41.87FPS, combined41.88FPS/23.88ms;
+12142.07/42.03/42.07FPS, combined42.05FPS/23.78ms. Matching688frames195..882,
+~0.4%FPS improvement/-0.10ms. User says visuals appear normal; retainbatch.
 
 CI37198330720 passed all host sanitizer tests, map validation and PROFILE build.
 Installed7,928,656-byte ELF in both roots; hashes match build/ci-4a5afc8-profile

@@ -1,7 +1,7 @@
 # Quake II for PlayStation 2
 
 [![Build](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml/badge.svg)](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml)
-[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.121-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
+[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.122-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](LICENSE)
 
 An active continuation of the unofficial Quake II port for the Sony
@@ -326,6 +326,16 @@ and remaining control work. These exclusive categories sum to Clip/emit on the
 Geometry page. They include the opaque-world seal clip/emission path, but exclude
 sky, brush entities and MD2; seal corner transforms stay in Seal prep.
 Additional timers perturb these results. Use the ordinary benchmark for speed.
+
+Alpha.122 adds VIDEO flash detail full/reduced (archived ps2_far_dlights0/1,
+default full). Reduced adjusts transient dynamic-light subdivision of opaque
+world triangles:64unit edge spacing within384units, rising smoothly in squared
+distance to128 at768units. Distance is closest source AABB; children inherit
+the root limit. Brush doors, light bounds/colour and recursion cap stay unchanged.
+No persistent topology rebuilds. Normal benchmark records both far light and
+flash quality; compare full/reduced flash detail with far light reduced on both.
+Check distant weapon/projectile flashes, shadow boundaries and motion. Console
+speed/visual acceptance pending; full remains default.
 
 Alpha.121 batches the MD2 clipping-position transforms on VU0: one matrix load
 per model preparation instead of per vertex, preserving the Transform(Vec4) MAC

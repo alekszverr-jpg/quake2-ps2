@@ -1,4 +1,6 @@
 #include "ps2/renderer/view_effects.h"
+#include "ps2/renderer/lighting_lod.h"
+using ps2::view::DynamicLightSpacing;
 #include <algorithm>
 #include <cassert>
 #include <cstdio>
@@ -36,6 +38,8 @@ void LerpTo(Vec4 & out, const Vec4 & a, const Vec4 & b, float t)
 }
 }
 namespace tex { struct Texture {}; }
+static bool s_farDynamicLightingEnabled=false, s_worldLightingPass=false;
+static math::Vec3 s_lightingEye={};
 constexpr int RF_SHELL_RED = 1024, RF_SHELL_GREEN = 2048, RF_SHELL_BLUE = 4096;
 constexpr int RF_SHELL_DOUBLE = 65536, RF_SHELL_HALF_DAM = 131072;
 constexpr float POWERSUIT_SCALE = 4.0f;
@@ -238,6 +242,44 @@ int main()
     SubmitDynamicallyLitTriangle(large,{},{});
     assert(s_lightProfile.splits > 0 && s_lightProfile.nodes == 2*s_lightProfile.splits+1);
     assert(triangles == s_lightProfile.splits+1);
+    ClipVertex policyCorners[3]={large[0],large[1],large[2]};
+    for (auto & corner:policyCorners) {corner.pos.x*=0.25f; corner.pos.y*=0.25f;}
+    emitted.clear(); triangles=0;
+    SubmitDynamicallyLitTriangle(policyCorners,{},{});
+    const auto fullGeometry=emitted;
+    const int fullCount=triangles;
+    s_farDynamicLightingEnabled=true; s_worldLightingPass=true;
+    assert(DynamicLightSpacing(384.0f*384.0f)==64.0f);
+    assert(DynamicLightSpacing(768.0f*768.0f)==128.0f);
+    assert(DynamicLightSpacing(600.0f*600.0f)>64.0f && DynamicLightSpacing(600.0f*600.0f)<128.0f);
+    s_lightingEye={-2000,0,0};
+    assert(DynamicTriangleEdgeSquared(policyCorners)==128.0f*128.0f);
+    emitted.clear(); triangles=0; s_worldLightCache.Clear();
+    SubmitDynamicallyLitTriangle(policyCorners,{},{});
+    assert(triangles<fullCount && s_surfaceLightMask==1);
+    const int reducedCount=triangles;
+    // Covered area is conserved; no root policy may drop lit geometry.
+    auto area=[](const std::vector<std::array<u32,13>> & records) {
+        float sum=0;
+        for (size_t i=0;i<records.size();i+=3) {
+            float p[3][3];
+            for (int v=0;v<3;++v) std::memcpy(p[v],records[i+static_cast<size_t>(v)].data(),sizeof(p[v]));
+            const float ax=p[1][0]-p[0][0], ay=p[1][1]-p[0][1], az=p[1][2]-p[0][2];
+            const float bx=p[2][0]-p[0][0], by=p[2][1]-p[0][1], bz=p[2][2]-p[0][2];
+            const float x=ay*bz-az*by, y=az*bx-ax*bz, z=ax*by-ay*bx;
+            sum+=std::sqrt(x*x+y*y+z*z)*0.5f;
+        }
+        return sum;
+    };
+    assert(std::fabs(area(emitted)-area(fullGeometry))<0.01f);
+    s_worldLightingPass=false; emitted.clear(); triangles=0; s_worldLightCache.Clear();
+    SubmitDynamicallyLitTriangle(policyCorners,{},{});
+    assert(emitted==fullGeometry); // Brushes preserve the full tree.
+    s_worldLightingPass=true; s_lightingEye={0,0,0};
+    emitted.clear(); s_worldLightCache.Clear(); SubmitDynamicallyLitTriangle(policyCorners,{},{});
+    assert(emitted==fullGeometry); // Near and long faces keep full detail.
+    s_farDynamicLightingEnabled=false; s_worldLightingPass=false;
+    std::printf("Far dynamic policy: %d -> %d leaves; area, near/brush output and mask restoration PASS\n",fullCount,reducedCount);
     WorldLightScope stopped(s_lightProfile,WorldLightProfile::Select);
     stopped.Stop();
     const auto stoppedTicks = s_lightProfile.ticks[WorldLightProfile::Select];

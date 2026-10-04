@@ -115,6 +115,7 @@ static SurfaceLightCache s_surfaceLightCache;
 static float s_lightMaxSamplesPerEdge = 8.0f;
 static float s_lightErrorTolerance    = 5.0f;
 static bool s_farLightingEnabled = false, s_worldLightingPass = false;
+static bool s_farDynamicLightingEnabled = false;
 static math::Vec3 s_lightingEye;
 constexpr u32 kFarLightingKey = 0xA17F39C5u;
 
@@ -343,6 +344,8 @@ void SetupFrame(const refdef_t & viewDef)
     ++s_frameCount;
     static const cvar_t * farLighting = Cvar_Get("ps2_far_lighting", "0", CVAR_ARCHIVE);
     s_farLightingEnabled = farLighting->value != 0.0f;
+    static const cvar_t * farDynamic = Cvar_Get("ps2_far_dlights", "0", CVAR_ARCHIVE);
+    s_farDynamicLightingEnabled = farDynamic->value != 0.0f;
     s_lightingEye = {viewDef.vieworg[0], viewDef.vieworg[1], viewDef.vieworg[2]};
 
     mod::SetLightStyles(viewDef.lightstyles);
@@ -1303,6 +1306,28 @@ void SubmitWorldTriangle(const ClipVertex (&corners)[3], const math::Mat4 & mvp,
     PS2_STAT_ADD(trisDrawn, count - 2);
 }
 
+// Choose a root-wide transient spacing; children inherit it without retesting
+// camera distance or weakening bounds selection.
+float DynamicTriangleEdgeSquared(const ClipVertex (&corners)[3])
+{
+    if (!s_farDynamicLightingEnabled || !s_worldLightingPass) return 64.0f*64.0f;
+    float distanceSq = 0.0f;
+    for (int axis = 0; axis < 3; ++axis) {
+        const auto & first = corners[0].pos;
+        float low = axis == 0 ? first.x : (axis == 1 ? first.y : first.z), high = low;
+        for (int v = 1; v < 3; ++v) {
+            const auto & point = corners[v].pos;
+            const float value = axis == 0 ? point.x : (axis == 1 ? point.y : point.z);
+            low = std::min(low,value); high = std::max(high,value);
+        }
+        const float eye = axis == 0 ? s_lightingEye.x : (axis == 1 ? s_lightingEye.y : s_lightingEye.z);
+        const float delta = eye < low ? low-eye : (eye > high ? eye-high : 0.0f);
+        distanceSq += delta*delta;
+    }
+    const float edge = DynamicLightSpacing(distanceSq);
+    return edge*edge;
+}
+
 // A flat static-light face may have only three cached vertices. Subdivide
 // transiently near a dynamic light so a flash in the middle is not missed.
 // Bounding-box pruning and a fixed recursion cap bound both work and stack;
@@ -1310,7 +1335,8 @@ void SubmitWorldTriangle(const ClipVertex (&corners)[3], const math::Mat4 & mvp,
 void SubmitDynamicallyLitTriangle(const ClipVertex (&corners)[3],
                                   const math::Mat4 & mvp,
                                   const tex::Texture & texture, int depth = 0,
-                                  bool boundsSelected = false)
+                                  bool boundsSelected = false,
+                                  float edgeLimitSquared = 64.0f*64.0f)
 {
     WorldDetailScope lightTimer(s_worldProfile, WorldProfile::Preparation);
     if (s_lightProfile.enabled) ++s_lightProfile.nodes;
@@ -1334,6 +1360,7 @@ void SubmitDynamicallyLitTriangle(const ClipVertex (&corners)[3],
         return;
     }
     WorldLightScope splitTimer(s_lightProfile, WorldLightProfile::Split);
+    if (depth == 0) edgeLimitSquared = DynamicTriangleEdgeSquared(corners);
     int longest = 0;
     float longestSquared = 0.0f;
     for (int edge = 0; edge < 3; ++edge)
@@ -1344,7 +1371,7 @@ void SubmitDynamicallyLitTriangle(const ClipVertex (&corners)[3],
         const float squared = x*x + y*y + z*z;
         if (squared > longestSquared) { longest = edge; longestSquared = squared; }
     }
-    if (triangleMask != 0 && longestSquared > 64.0f * 64.0f && depth < 7)
+    if (triangleMask != 0 && longestSquared > edgeLimitSquared && depth < 7)
     {
         if (s_lightProfile.enabled) ++s_lightProfile.splits;
         const int next = (longest + 1) % 3, other = (longest + 2) % 3;
@@ -1356,8 +1383,8 @@ void SubmitDynamicallyLitTriangle(const ClipVertex (&corners)[3],
         const ClipVertex first[3] = { corners[longest], midpoint, corners[other] };
         const ClipVertex second[3] = { midpoint, corners[next], corners[other] };
         splitTimer.Stop(); // Exclude children, bounds tests and submission.
-        SubmitDynamicallyLitTriangle(first, mvp, texture, depth + 1);
-        SubmitDynamicallyLitTriangle(second, mvp, texture, depth + 1);
+        SubmitDynamicallyLitTriangle(first, mvp, texture, depth + 1, false, edgeLimitSquared);
+        SubmitDynamicallyLitTriangle(second, mvp, texture, depth + 1, false, edgeLimitSquared);
     }
     else
     {

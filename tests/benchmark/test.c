@@ -57,8 +57,10 @@ static int Setting(const char * name)
     assert(0); return 0;
 }
 static float farLightingValue;
+static float flashDetailValue;
 static float Cvar_VariableValue(const char * name) {
     if (!strcmp(name,"ps2_far_lighting")) return farLightingValue;
+    if (!strcmp(name,"ps2_far_dlights")) return flashDetailValue;
     return values[Setting(name)];
 }
 static void Cvar_SetValue(const char * name, float value) { values[Setting(name)] = value; }
@@ -390,12 +392,14 @@ int main(void)
     missing = 1; CL_BenchmarkWorldProfile(); assert(!active && values[12] == 0);
     missing = 0; values[12] = 1;
     CL_BenchmarkStart(); assert(values[12] == 0); CL_BenchmarkCancel(); assert(values[12] == 1);
-    farLightingValue=1; CL_BenchmarkStart(); assert(resultFarLighting);
-    CL_BenchmarkCancel(); assert(farLightingValue==1);
+    farLightingValue=1; flashDetailValue=1; CL_BenchmarkStart(); assert(resultFarLighting && resultFlashDetail);
+    CL_BenchmarkCancel(); assert(farLightingValue==1 && flashDetailValue==1);
     drawn[0]=0; CL_BenchmarkDraw(); assert(strstr(drawn,"Far light detail: reduced"));
-    farLightingValue=0; CL_BenchmarkStart(); assert(!resultFarLighting);
+    assert(strstr(drawn,"Flash detail: reduced"));
+    farLightingValue=0; flashDetailValue=0; CL_BenchmarkStart(); assert(!resultFarLighting && !resultFlashDetail);
     CL_BenchmarkCancel(); drawn[0]=0; CL_BenchmarkDraw();
     assert(strstr(drawn,"Far light detail: full"));
+    assert(strstr(drawn,"Flash detail: full"));
     puts("Benchmark lifecycle, loading exclusion, cancellation and restoration PASS");
     return 0;
 }

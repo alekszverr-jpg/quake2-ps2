@@ -3,13 +3,14 @@ static menuframework_s s_video_menu;
 static menuslider_s s_video_brightness;
 static menulist_s s_video_mode, s_video_fov, s_video_toggles[4];
 static menulist_s s_video_far_lighting;
+static menulist_s s_video_flash_detail;
 static menuaction_s s_video_defaults, s_video_back;
 static int s_video_dirty;
 static const char * const video_cvars[] = {
     "ps2_video_mode", "fov", "ps2_world_light_gamma", "ps2_world_dlights",
-    "ps2_world_mipmaps", "gl_polyblend", "ps2_show_fps", "ps2_world_mip_level", "ps2_far_lighting"
+    "ps2_world_mipmaps", "gl_polyblend", "ps2_show_fps", "ps2_world_mip_level", "ps2_far_lighting", "ps2_far_dlights"
 };
-static const char * const video_defaults[] = {"0","90","0.70","1","1","1","0","-1","0"};
+static const char * const video_defaults[] = {"0","90","0.70","1","1","1","0","-1","0","0"};
 void CL_WriteConfiguration(void);
 void PS2_VideoMenuInit(void);
 
@@ -51,6 +52,12 @@ static void VideoFarLightingChanged(void * unused)
     Cvar_SetValue("ps2_far_lighting", s_video_far_lighting.curvalue);
     s_video_dirty = 1;
 }
+static void VideoFlashDetailChanged(void * unused)
+{
+    (void)unused;
+    Cvar_SetValue("ps2_far_dlights", s_video_flash_detail.curvalue);
+    s_video_dirty = 1;
+}
 static void VideoDefaults(void * unused)
 {
     unsigned i;
@@ -84,6 +91,7 @@ void PS2_VideoMenuInit(void)
     memset(&s_video_fov,0,sizeof(s_video_fov));
     memset(s_video_toggles,0,sizeof(s_video_toggles));
     memset(&s_video_far_lighting,0,sizeof(s_video_far_lighting));
+    memset(&s_video_flash_detail,0,sizeof(s_video_flash_detail));
     memset(&s_video_defaults,0,sizeof(s_video_defaults));
     memset(&s_video_back,0,sizeof(s_video_back));
     for (i = 0; i < sizeof(video_cvars)/sizeof(video_cvars[0]); ++i)
@@ -123,16 +131,24 @@ void PS2_VideoMenuInit(void)
     s_video_far_lighting.generic.name = "far light detail";
     s_video_far_lighting.generic.y = 84;
     s_video_far_lighting.generic.callback = VideoFarLightingChanged;
-    s_video_far_lighting.generic.statusbar = "Experimental: coarser distant wall lighting";
+    s_video_far_lighting.generic.statusbar = "Less detail on distant walls";
     s_video_far_lighting.itemnames = farDetails;
     s_video_far_lighting.curvalue = Cvar_VariableValue("ps2_far_lighting") != 0;
     Menu_AddItem(&s_video_menu,&s_video_far_lighting);
+    s_video_flash_detail.generic.type = MTYPE_SPINCONTROL;
+    s_video_flash_detail.generic.name = "flash detail";
+    s_video_flash_detail.generic.y = 96;
+    s_video_flash_detail.generic.callback = VideoFlashDetailChanged;
+    s_video_flash_detail.generic.statusbar = "Less detail in distant weapon flashes";
+    s_video_flash_detail.itemnames = farDetails;
+    s_video_flash_detail.curvalue = Cvar_VariableValue("ps2_far_dlights") != 0;
+    Menu_AddItem(&s_video_menu,&s_video_flash_detail);
     s_video_defaults.generic.type = MTYPE_ACTION;
-    s_video_defaults.generic.name = "restore defaults"; s_video_defaults.generic.y = 100;
+    s_video_defaults.generic.name = "restore defaults"; s_video_defaults.generic.y = 112;
     s_video_defaults.generic.callback = VideoDefaults;
     Menu_AddItem(&s_video_menu,&s_video_defaults);
     s_video_back.generic.type = MTYPE_ACTION;
-    s_video_back.generic.name = "back"; s_video_back.generic.y = 112;
+    s_video_back.generic.name = "back"; s_video_back.generic.y = 124;
     s_video_back.generic.callback = VideoBack;
     Menu_AddItem(&s_video_menu,&s_video_back);
     Menu_Center(&s_video_menu);
