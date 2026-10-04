@@ -1218,6 +1218,7 @@ void SubmitWorldTriangle(const ClipVertex (&corners)[3], const math::Mat4 & mvp,
                          const tex::Texture & texture, bool alphaBlend = false,
                          int fixedAlpha = -1)
 {
+    WorldSampleScope sample(s_worldProfile);
     WorldDetailScope clipTimer(s_worldProfile, WorldProfile::Clip);
     WorldDetailScope planeTimer(s_worldProfile, WorldProfile::Planes);
     int insidePerPlane[kNumClipPlanes] = {};
@@ -2030,6 +2031,7 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
 
         for (int first = 0; first < drawVertexCount; first += 3)
         {
+            WorldSampleScope sample(s_worldProfile);
             WorldDetailScope clipTimer(s_worldProfile, WorldProfile::Clip);
             WorldDetailScope planeTimer(s_worldProfile, WorldProfile::Planes);
             // Interior triangles only need plane distances. Defer the full
@@ -3374,6 +3376,9 @@ void RenderFrame(const refdef_t & viewDef)
     s_modelProfile.enabled = profileModels->value != 0.0f;
     static const cvar_t * profileWorld = Cvar_Get("ps2_profile_world", "0", 0);
     s_worldProfile.enabled = profileWorld->value != 0.0f;
+    s_worldProfile.sampled = true;
+    static unsigned worldSampleOffset = 0;
+    if (s_worldProfile.enabled) s_worldProfile.sampleCursor = worldSampleOffset++ & 31u;
 #endif
 
     // Alpha.12 deliberately releases the previous renderer world before the

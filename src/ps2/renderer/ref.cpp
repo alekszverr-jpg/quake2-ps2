@@ -644,6 +644,8 @@ extern "C" void PS2_ReadBenchmarkStats(int values[BENCH_STATS_COUNT])
     values[BENCH_WORLD_PLANES_MS] = world.DetailMicros(ps2::view::WorldProfile::Planes);
     values[BENCH_WORLD_EMIT_MS] = world.DetailMicros(ps2::view::WorldProfile::Emit);
     values[BENCH_WORLD_CLIP_REST_MS] = world.DetailMicros(ps2::view::WorldProfile::Clip);
+    values[BENCH_WORLD_SAMPLE_ROOTS] = world.sampleRoots;
+    values[BENCH_WORLD_SAMPLE_COUNT] = world.sampleCount;
 
 }
 

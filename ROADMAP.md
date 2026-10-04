@@ -145,7 +145,8 @@ play on a retail console.
 - [x] Measure cached BSP packed-inside emitter coverage (Alpha.112;89.6% of all,98.78% of eligible)
 - [ ] Read only BSP cache masks and emit at consecutive offsets (Alpha.113 experiment regressed:40.00FPS/World11.84ms; reverted in114)
 - [x] Confirm recovery after restoring Alpha.112 renderer (Alpha.114;40.33FPS/24.80ms, World11.64ms)
-- [~] Split BSP plane checks, vertex emission and remaining clipping work (Alpha.115; runtime pending)
+- [x] Split BSP plane checks, vertex emission and remaining clipping work (Alpha.115;6.11/5.19/10.21ms, heavy diagnostic overhead)
+- [~] Sample BSP root operations1/32 with rotating offset and full counters (Alpha.116; runtime pending)
 - [~] Validate long sessions for EE RAM, IOP RAM and VRAM leaks
 - [ ] Target a stable 30 FPS minimum, with 60 FPS where practical
 

@@ -6,6 +6,9 @@ struct WorldProfile {
     enum Phase { Visibility, Sky, Geometry, Submit, PhaseCount };
     enum Detail { Preparation, Clip, Textures, Seals, Planes, Emit, DetailCount };
     bool enabled = false;
+    bool sampled = false, sampleSelected = false;
+    unsigned sampleCursor = 0;
+    int sampleDepth = 0, sampleRoots = 0, sampleCount = 0;
     Phase activePhase = PhaseCount;
     long long ticks[PhaseCount] = {};
     long long nestedSubmit[PhaseCount] = {};
@@ -30,6 +33,25 @@ struct WorldProfile {
         return static_cast<int>((value > 0 ? value : 0) * 1000000LL / CLOCKS_PER_SEC);
     }
 };
+// Select whole root operations; recursive clipping/lighting inherits selection.
+// The renderer rotates the initial cursor between frames.
+class WorldSampleScope {
+    WorldProfile & stats;
+    bool running;
+public:
+    explicit WorldSampleScope(WorldProfile & value)
+        : stats(value), running(value.enabled && value.sampled &&
+                                value.activePhase == WorldProfile::Geometry) {
+        if (running && stats.sampleDepth++ == 0) {
+            ++stats.sampleRoots;
+            stats.sampleSelected = (stats.sampleCursor++ & 31u) == 0;
+            if (stats.sampleSelected) ++stats.sampleCount;
+        }
+    }
+    ~WorldSampleScope() {
+        if (running && --stats.sampleDepth == 0) stats.sampleSelected = false;
+    }
+};
 // Exclusive nested categories inside Geometry only. Recursive scopes, including
 // repeated categories, subtract their whole duration from the immediate parent.
 class WorldDetailScope {
@@ -40,7 +62,8 @@ class WorldDetailScope {
 public:
     WorldDetailScope(WorldProfile & value, WorldProfile::Detail detail)
         : stats(value), category(detail), parent(value.activeDetail),
-          running(value.enabled && value.activePhase == WorldProfile::Geometry) {
+          running(value.enabled && value.activePhase == WorldProfile::Geometry &&
+                  (!value.sampled || (value.sampleDepth > 0 && value.sampleSelected))) {
         if (running) { stats.activeDetail = category; start = timing::Now(); }
     }
     void Stop() {

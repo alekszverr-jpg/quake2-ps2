@@ -212,22 +212,23 @@ void CL_BenchmarkDraw(void)
     Line(25, viddef.width <= 320 ? "BENCHMARK " PS2_BUILD_VERSION : "QUAKE II - BENCHMARK " PS2_BUILD_VERSION);
     if (worldProfile && detailPage == 6)
     {
-        static const char * labels[] = { "Planes ms", "Emit ms", "Clip rest ms" };
-        Line(43, "BSP planes vs vertex emission");
+        static const char * labels[] = { "Planes us", "Emit us", "Clip rest us" };
+        Line(43, "BSP sampled planes vs emission");
         Line(59, "Metric          Run1    Run2    Run3");
         for (i = 0; i < 3; ++i)
         {
             double average[3];
             int j;
             for (j = 0; j < BENCH_GROUP; ++j)
-                average[j] = frames[j] ? (double)totals[j][BENCH_WORLD_PLANES_MS+i] / frames[j] / 1000.0 : 0;
+                average[j] = totals[j][BENCH_WORLD_SAMPLE_COUNT] ? (double)totals[j][BENCH_WORLD_PLANES_MS+i] / totals[j][BENCH_WORLD_SAMPLE_COUNT] : 0;
             Com_sprintf(text, sizeof(text), "%-13s %7.2f %7.2f %7.2f", labels[i], average[0], average[1], average[2]);
             Line(73+i*12, text);
         }
-        Line(137, "Exclusive times; Submit excluded.");
+        Line(125, "us/sample; no frame extrapolation.");
+        Line(137, "1/32 roots; nested work included.");
         Line(149, "Planes: cached distances + tests.");
         Line(161, "Emit: colour/UV prep + writes.");
-        Line(173, "Rest: records, intersections, etc.");
+        Line(173, "Submit excluded; clocks add overhead.");
         Line(185, "Includes seals; excludes sky/MD2.");
         Line(200, "Timers affect FPS; use normal bench.");
         Line(214, "Left/Right: pages; Back: menu");
@@ -274,26 +275,26 @@ void CL_BenchmarkDraw(void)
     }
     if (worldProfile && detailPage == 3)
     {
-        static const char * labels[] = {
-            "Prep/light ms", "Clip/emit ms", "Tex fetch ms", "Seal prep ms"
-        };
-        Line(43, "World Geometry breakdown");
+        static const char * labels[] = { "Light us", "Clip/emit us", "Root tris", "Samples" };
+        static const int fields[] = { BENCH_WORLD_PREP_MS, BENCH_WORLD_CLIP_MS, BENCH_WORLD_SAMPLE_ROOTS, BENCH_WORLD_SAMPLE_COUNT };
+        Line(43, "Sampled triangle work (1/32)");
         Line(59, "Metric          Run1    Run2    Run3");
-        for (i = BENCH_WORLD_PREP_MS; i <= BENCH_WORLD_SEAL_MS; ++i)
+        for (i = 0; i < 4; ++i)
         {
             double average[3];
             int j;
             for (j = 0; j < BENCH_GROUP; ++j)
-                average[j] = frames[j] ? (double)totals[j][i] / frames[j] / 1000.0 : 0;
+                average[j] = i < 2 ? (totals[j][BENCH_WORLD_SAMPLE_COUNT] ? (double)totals[j][fields[i]] / totals[j][BENCH_WORLD_SAMPLE_COUNT] : 0) :
+                    (frames[j] ? (double)totals[j][fields[i]] / frames[j] : 0);
             Com_sprintf(text, sizeof(text), "%-13s %7.2f %7.2f %7.2f",
-                labels[i-BENCH_WORLD_PREP_MS], average[0], average[1], average[2]);
-            Line(73+(i-BENCH_WORLD_PREP_MS)*12, text);
+                labels[i], average[0], average[1], average[2]);
+            Line(73+i*12, text);
         }
-        Line(137, "Exclusive times; Submit excluded.");
-        Line(149, "Prep: cache, lights, chain setup.");
+        Line(137, "us/sample; root/sample counts/frame.");
+        Line(149, "Light: dynamic subdivision only.");
         Line(161, "Clip: planes, clipping + emission.");
-        Line(173, "Tex: prefetch; binds in Submit.");
-        Line(185, "Seals: corner prep, light lookup.");
+        Line(173, "Tex/seal prep not measured here.");
+        Line(185, "Submit excluded; full counters kept.");
         Line(200, "Timers affect FPS; use normal bench.");
         Line(214, "Left/Right: pages; Back: menu");
         return;

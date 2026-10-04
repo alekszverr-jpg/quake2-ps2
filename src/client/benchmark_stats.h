@@ -7,6 +7,9 @@
  * WORLD_PLANES_MS through WORLD_CLIP_REST_MS are microseconds too.
  * Other fields are event counts. Light timings require diagnostic mode.
  * Wait timings overlap the world/entity phases and must not be added to them. */
+/* World fine timing fields are raw1/32 root-sample totals in microseconds.
+ * Divide run totals by SAMPLE_COUNT for us/sample; never infer full-frame time.
+ * World geometry and coverage counts remain unsampled. */
 enum {
     BENCH_WORLD, BENCH_ENTITIES, BENCH_SETUP, BENCH_PARTICLES,
     BENCH_VU_WAIT, BENCH_TEX_DMA, BENCH_VRAM_WAIT,
@@ -29,6 +32,7 @@ enum {
     BENCH_WORLD_CACHED_TRIS, BENCH_WORLD_UNLIT_TRIS, BENCH_WORLD_EARLY_REJECTS,
     BENCH_WORLD_PACKED_INSIDE,
     BENCH_WORLD_PLANES_MS, BENCH_WORLD_EMIT_MS, BENCH_WORLD_CLIP_REST_MS,
+    BENCH_WORLD_SAMPLE_ROOTS, BENCH_WORLD_SAMPLE_COUNT,
     BENCH_STATS_COUNT
 };
 #ifdef __cplusplus

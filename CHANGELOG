@@ -6,6 +6,21 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.116 - 2026-10-04 (local test build)
+
+- Sample one in32 root BSP triangle operations for fine diagnostic clocks;
+  rotate the starting offset each frame and propagate selection through nested
+  clipping/lighting. Keep full geometry/coverage counters and coarse World/Submit
+  timing. Generated children do not become independent samples.
+- Report microseconds per sampled root, with no frame-cost extrapolation. Replace
+  Geometry breakdown with Sampled triangle work (1/32), including sample counts;
+  seventh page becomes BSP sampled planes vs emission. Broad texture/cache and
+  seal-corner preparation times are omitted from sampled details.
+- Test rotating coverage, skipped clocks, recursive selection, full counters,
+  production geometry/batch equivalence, per-sample averages and native240p pages.
+- Alpha.115 fine timers:6.11/5.19/10.20..10.21ms;21.51ms sum exceeds ordinary
+  World11.64ms. Reduce instrumentation before inferring the dominant operation.
+
 ## 0.1.0-alpha.115 - 2026-10-04 (local test build)
 
 - Add seventh World profile page, BSP planes vs vertex emission. Split Clip/emit

@@ -36,6 +36,8 @@ void PS2_ReadBenchmarkStats(int values[BENCH_STATS_COUNT])
     values[BENCH_WORLD_UNLIT_TRIS] = 1000;
     values[BENCH_WORLD_EARLY_REJECTS] = 100;
     values[BENCH_WORLD_PACKED_INSIDE] = 800;
+    values[BENCH_WORLD_SAMPLE_ROOTS] = 3200;
+    values[BENCH_WORLD_SAMPLE_COUNT] = 100;
 }
 static char queued[4096];
 static float values[13] = { 0, 0, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1 };
@@ -318,10 +320,11 @@ int main(void)
             assert(strstr(drawn, "Submit excluded from Sky/Geometry"));
         }
         if (i == 3) {
-            assert(strstr(drawn, "World Geometry breakdown"));
-            assert(strstr(drawn, "Prep/light ms   46.00"));
-            assert(strstr(drawn, "Seal prep ms    49.00"));
-            assert(strstr(drawn, "Exclusive times; Submit excluded."));
+            assert(strstr(drawn, "Sampled triangle work (1/32)"));
+            assert(strstr(drawn, "Light us") && strstr(drawn, "460.00"));
+            assert(strstr(drawn, "Clip/emit us") && strstr(drawn, "470.00"));
+            assert(strstr(drawn, "Root tris") && strstr(drawn, "3200.00"));
+            assert(strstr(drawn, "Samples") && strstr(drawn, "100.00"));
         }
         if (i == 4) {
             assert(strstr(drawn, "BSP early reject coverage"));
@@ -338,11 +341,11 @@ int main(void)
             assert(strstr(drawn, "Of unlit %      80.00"));
         }
         if (i == 6) {
-            assert(strstr(drawn, "BSP planes vs vertex emission"));
-            assert(strstr(drawn, "Planes ms       54.00"));
-            assert(strstr(drawn, "Emit ms         55.00"));
-            assert(strstr(drawn, "Clip rest ms    56.00"));
-            assert(strstr(drawn, "Exclusive times; Submit excluded."));
+            assert(strstr(drawn, "BSP sampled planes vs emission"));
+            assert(strstr(drawn, "Planes us") && strstr(drawn, "540.00"));
+            assert(strstr(drawn, "Emit us") && strstr(drawn, "550.00"));
+            assert(strstr(drawn, "Clip rest us") && strstr(drawn, "560.00"));
+            assert(strstr(drawn, "us/sample; no frame extrapolation."));
         }
         CL_BenchmarkTogglePage();
     }
@@ -358,6 +361,10 @@ int main(void)
     assert(strstr(drawn, "Of all %         0.00") && strstr(drawn, "Of unlit %       0.00"));
     detailPage = 0;
     CL_BenchmarkWorldProfile(); CL_BenchmarkCancel(); assert(values[12] == 0);
+    detailPage = 6; totals[0][BENCH_WORLD_SAMPLE_COUNT] = 0;
+    drawn[0] = 0; CL_BenchmarkDraw();
+    assert(strstr(drawn, "0.00") && !strstr(drawn, "nan") && !strstr(drawn, "inf"));
+    detailPage = 0;
     CL_BenchmarkWorldProfile(); CL_BenchmarkDemoCompleted(); NextRun();
     assert(!active && values[12] == 0 && values[11] == 1 && values[9] == 1);
     missing = 1; CL_BenchmarkWorldProfile(); assert(!active && values[12] == 0);

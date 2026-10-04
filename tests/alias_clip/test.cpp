@@ -8,6 +8,7 @@
 #include "ps2/renderer/world_profile.h"
 using ps2::view::WorldProfile;
 using ps2::view::WorldDetailScope;
+using ps2::view::WorldSampleScope;
 static WorldProfile s_worldProfile;
 using u32 = std::uint32_t;
 constexpr int MAX_VERTS = 2048, kNumClipPlanes = 6, kScratchMaxVerts = 24;
@@ -257,6 +258,7 @@ int main() {
         earlyRejected+=culled;
         Reset(); BeginWorldClipCache();
         s_worldProfile = {}; s_worldProfile.enabled = true;
+        s_worldProfile.sampled = true;
         s_worldProfile.activePhase = WorldProfile::Geometry;
         EmitCachedWorld(vertices,60,matrix,texture,scroll);
         FlushScratch(matrix,texture);
@@ -265,17 +267,20 @@ int main() {
         assert(std::memcmp(emitted.data(),expected.data(),emitted.size()*sizeof(vu1::DrawVertex))==0);
         assert(s_worldProfile.cachedTriangles==20 && s_worldProfile.unlitTriangles==20);
         assert(s_worldProfile.earlyRejects==culled);
+        assert(s_worldProfile.sampleRoots==20 && s_worldProfile.sampleCount==1);
         assert(s_worldProfile.packedInside==expectedInside);
         assert(expectedInside>0);
         // Active-light triangles still reach the original subdivision entry,
         // including triangles rejected by the common-plane test.
         Reset(); BeginWorldClipCache(); s_surfaceLightMask=1; dynamicCalls=0;
         s_worldProfile = {}; s_worldProfile.enabled = true;
+        s_worldProfile.sampled = true;
         s_worldProfile.activePhase = WorldProfile::Geometry;
         EmitCachedWorld(vertices,60,matrix,texture,scroll);
         assert(dynamicCalls==20);
         assert(s_worldProfile.cachedTriangles==20 && s_worldProfile.unlitTriangles==0 && s_worldProfile.earlyRejects==0);
         assert(s_worldProfile.packedInside==0);
+        assert(s_worldProfile.sampleRoots==20 && s_worldProfile.sampleCount==1);
     }
     assert(earlyRejected>600);
     std::puts("12000 cached BSP triangles match generic clipping/output/batches; active-light dispatch preserved PASS");

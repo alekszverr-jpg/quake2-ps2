@@ -169,4 +169,41 @@ int main() {
     assert(s_worldProfile.Micros(WorldProfile::Geometry)==70);
     assert(s_worldProfile.Micros(WorldProfile::Submit)==30);
     puts("BSP planes/emission/rest exclude nested submission PASS");
+    s_worldProfile = {}; s_worldProfile.enabled = true; s_worldProfile.sampled = true;
+    s_worldProfile.activePhase = WorldProfile::Geometry;
+    reads = ps2::timing::reads;
+    for (int i=0;i<64;++i) {
+        WorldSampleScope root(s_worldProfile);
+        WorldDetailScope clip(s_worldProfile, WorldProfile::Clip);
+        { WorldDetailScope planes(s_worldProfile, WorldProfile::Planes); ps2::timing::now+=10; }
+        { WorldDetailScope emit(s_worldProfile, WorldProfile::Emit); ps2::timing::now+=20; }
+        {
+            WorldSampleScope child(s_worldProfile);
+            assert(s_worldProfile.sampleSelected==(i%32==0));
+            WorldDetailScope light(s_worldProfile, WorldProfile::Preparation);
+            ps2::timing::now+=4;
+        }
+        ps2::timing::now+=1;
+        s_worldProfile.RecordCachedTriangle(true,false,true);
+    }
+    assert(s_worldProfile.sampleRoots==64 && s_worldProfile.sampleCount==2);
+    assert(s_worldProfile.cachedTriangles==64 && s_worldProfile.packedInside==64);
+    assert(s_worldProfile.sampleDepth==0 && !s_worldProfile.sampleSelected);
+    assert(ps2::timing::reads-reads==16);
+    assert(s_worldProfile.DetailMicros(WorldProfile::Planes)==20);
+    assert(s_worldProfile.DetailMicros(WorldProfile::Emit)==40);
+    assert(s_worldProfile.DetailMicros(WorldProfile::Preparation)==8);
+    assert(s_worldProfile.DetailMicros(WorldProfile::Clip)==2);
+    int chosen[64]={};
+    for (unsigned offset=0;offset<32;++offset) {
+        s_worldProfile = {}; s_worldProfile.enabled=true; s_worldProfile.sampled=true;
+        s_worldProfile.activePhase=WorldProfile::Geometry; s_worldProfile.sampleCursor=offset;
+        for (int i=0;i<64;++i) {
+            WorldSampleScope root(s_worldProfile);
+            if (s_worldProfile.sampleSelected) ++chosen[i];
+        }
+        assert(s_worldProfile.sampleCount==2);
+    }
+    for (int count:chosen) assert(count==1);
+    puts("1/32 rotating root samples, nested selection, full counters and skipped clocks PASS");
 }

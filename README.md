@@ -1,7 +1,7 @@
 # Quake II for PlayStation 2
 
 [![Build](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml/badge.svg)](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml)
-[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.115-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
+[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.116-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](LICENSE)
 
 An active continuation of the unofficial Quake II port for the Sony
@@ -326,3 +326,19 @@ and remaining control work. These exclusive categories sum to Clip/emit on the
 Geometry page. They include the opaque-world seal clip/emission path, but exclude
 sky, brush entities and MD2; seal corner transforms stay in Seal prep.
 Additional timers perturb these results. Use the ordinary benchmark for speed.
+
+Alpha.115 measured Planes6.11ms, Emit5.19ms and Clip rest10.20..10.21ms; the
+21.51ms sum exceeds ordinary World11.64ms, demonstrating heavy timer overhead.
+Alpha.116 samples one in32 root triangle operations, rotating the initial offset
+each frame. Recursive lighting/clipping inherits its root's selection; skipped
+roots do not read fine-profile clocks. Geometry and coverage counters remain full.
+Root operations are cached BSP triangles and standalone generic submissions such
+as seals; generated children do not become new samples. Coarse World/Submit clocks
+remain separate and full, so diagnostic FPS still differs from ordinary benchmark.
+
+Right three times opens Sampled triangle work (1/32): sampled dynamic-light and
+clip costs in microseconds/sample, plus roots and samples/frame. Broad texture,
+cache preparation and seal-corner timings are omitted from this sampled page.
+Right six times opens BSP sampled planes vs emission, also in microseconds/sample.
+No extrapolation to whole-frame cost is shown: sample composition and clock overhead
+still affect estimates. Provide both pages to interpret results with sample size.

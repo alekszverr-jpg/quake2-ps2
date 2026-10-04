@@ -27,7 +27,27 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.115 BSP planes vs vertex emission (runtime pending)
+## Alpha.116 sampled root-triangle diagnostics (build pending)
+
+WorldSampleScope at cached-loop root and generic SubmitWorldTriangle selects1/32
+operations; nested generic/dynamic work inherits selection, no independent child
+sample. Renderer rotates initial cursor0..31 each enabled frame. WorldDetailScope
+reads clocks only inside selected roots in production. Counters remain full; coarse
+WorldScope/WorldSubmitScope clocks remain full. Default sampledfalse supports existing
+scope tests; production PROFILE RenderFrame enables sampled mode for World profile.
+No rendering policy change. Old broad detail scopes outside roots collect no ticks,
+so page3 is now Sampled triangle work (1/32), with Light/Clip microseconds/sample
+and roots/samples per frame. Light means dynamic subdivision only, not all lighting.
+Page6 title BSP sampled planes vs emission; ratios divide aggregated raw microseconds
+by aggregated sample counts. No frame extrapolation. Skipped geometry still performs
+normal code/counter work. Root population mixes cached BSP and standalone generic
+seal triangles; seal prep/texture/cache prep outside roots omitted. Need both page3
+and page6 screenshots. Sampling reduces whole-frame overhead but clock costs still
+affect per-sample estimates; do not equate them with pure work cost.
+Tests cover32 rotating offsets, nested selection, no skipped-clock reads, full
+counters and production loop output/batches; zero-sample division and240p pages.
+
+## Alpha.115 BSP planes vs vertex emission (runtime results received)
 
 Same World profile3runs, now7 pages; Right six times opens BSP planes vs vertex
 emission. WorldProfile adds exclusive Planes/Emit detail categories. Plane scopes
@@ -44,6 +64,9 @@ page, then use ordinary benchmark for any future actual speed comparisons.
 CI37183223932 passed all sanitizer tests, map validation and PROFILE build.
 Installed7,898,688-byte ELF in both roots; hashes match downloaded artifact
 and embedded115 version verified. No new release made.
+User115: Planes6.11ms each, Emit5.19ms each, Clip rest10.20/10.21/10.21ms.
+Sum21.51ms exceeds ordinary114World11.64ms; full per-triangle nested clocks
+strongly distort results. Do not infer dominant actual cost from this profile.
 
 ## Alpha.114 restore pre-experiment BSP preparation/emission (runtime results received)
 
