@@ -27,7 +27,20 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.109 World Geometry breakdown (runtime pending)
+## Alpha.110 cached BSP common-plane reject (build pending)
+
+GatherPolyTriangles reuses existing per-corner cache masks to compute OR/AND.
+If AND is nonzero and selected dynamic-light mask is0, count trisCulled and skip
+before full ClipVertex expansion/colour unpacking. OR0 retains existing packed
+inside emitter. Active-light triangles retain subdivision before clipping, so
+midpoint rounding/order are unchanged. No new scratch storage, heap allocation
+or MVP lifetime changes. Extract the actual production cached emitter loop for
+12,000-triangle comparison against generic clipping, including whole vertices,
+counts and batch boundaries; active-light dispatch reaches the original entry.
+Next: ordinary benchmark FPS and renderer details with same VIDEO settings;
+check walls, moving doors and near-plane edges. Real speed improvement is pending.
+
+## Alpha.109 World Geometry breakdown (runtime results received)
 
 Same GAME world profile (3 runs), now4 pages; Right three times opens World
 Geometry breakdown. Nested WorldDetailScope categories partition Geometry only:
@@ -45,6 +58,10 @@ Next: screenshot of World Geometry breakdown; diagnostic FPS is perturbed.
 CI37148546708 passed all sanitizer checks, map validation and PROFILE build.
 Installed7,880,108-byte ELF in both test roots; SHA256 matches the downloaded
 artifact and embedded109 version is present. No new release made.
+User109 breakdown: Prep/light6.90/7.00/7.01ms, Clip/emit8.83/8.84/8.85ms,
+Tex fetch0.21ms each, Seal prep1.58ms each. Repeated nested clocks add overhead,
+so sum cannot be compared with108Geometry9.26ms. Clip/emit is largest measured
+category; ordinary benchmark remains the only total speed comparison.
 
 ## Alpha.108 World phase profiling (runtime results received)
 

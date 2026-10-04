@@ -139,7 +139,8 @@ play on a retail console.
 - [~] Reuse indexed MD2 texture coordinates in opaque/clipped paths (Alpha.106; Tris/clip2.87->2.83ms, visual acceptance pending)
 - [~] Reuse exact shared positions during cached BSP clipping (Alpha.107;40.27FPS/24.83ms, World11.57ms, explicit visual acceptance pending)
 - [x] Separate World BSP/PVS, Sky, Geometry and Submit timings (Alpha.108;1.07/0.30/9.26/1.03ms)
-- [~] Split World Geometry into preparation/lighting, clip/emission, prefetch and seal preparation (Alpha.109; runtime pending)
+- [x] Split World Geometry into preparation/lighting, clip/emission, prefetch and seal preparation (Alpha.109;6.97/8.84/0.21/1.58ms, diagnostic overhead)
+- [~] Reject cached BSP triangles on common outside planes before full record expansion (Alpha.110; differential tests passed, runtime pending)
 - [~] Validate long sessions for EE RAM, IOP RAM and VRAM leaks
 - [ ] Target a stable 30 FPS minimum, with 60 FPS where practical
 

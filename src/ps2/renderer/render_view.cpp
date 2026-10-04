@@ -2030,15 +2030,25 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
             // Interior triangles only need plane distances. Defer the full
             // interpolation records (288 bytes) until clipping is required.
             ClipDists distances[3];
-            bool fullyInside = true;
+            u32 anyOutside = 0, allOutside = (1u << kNumClipPlanes) - 1u;
             for (int v = 0; v < 3; ++v)
             {
                 const CachedLitVertex & src = drawVertices[first + v];
-                fullyInside &= CachedWorldClipDistances(distances[v], src, mvp) == 0;
+                const u32 outside = CachedWorldClipDistances(distances[v], src, mvp);
+                anyOutside |= outside;
+                allOutside &= outside;
+            }
+            // Match the generic clipper's common-plane reject before creating
+            // interpolation records. Keep dynamically subdivided triangles on
+            // their existing path (including midpoint rounding near planes).
+            if (allOutside != 0 && s_surfaceLightMask == 0)
+            {
+                PS2_STAT_INC(trisCulled);
+                continue;
             }
             // Cached colours are already rounded to GS bytes. Interior
             // triangles need no colour interpolation or unpack/repack cycle.
-            if (fullyInside && s_surfaceLightMask == 0)
+            if (anyOutside == 0 && s_surfaceLightMask == 0)
             {
                 if (s_scratchVertCount + 3 > kScratchMaxVerts)
                     FlushScratch(mvp, texture);

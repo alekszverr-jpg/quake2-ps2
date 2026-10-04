@@ -1,7 +1,7 @@
 # Quake II for PlayStation 2
 
 [![Build](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml/badge.svg)](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml)
-[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.109-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
+[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.110-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](LICENSE)
 
 An active continuation of the unofficial Quake II port for the Sony
@@ -274,3 +274,11 @@ transforms; seal clipping/emission belongs to Clip/emit. All four categories exc
 nested categories and CPU Submit, including recursive lighting. They partition
 Geometry with small scope-boundary overhead; use these diagnostic results to pick
 an optimization, then measure actual FPS with the ordinary benchmark.
+
+Alpha.109 diagnostic averages: Prep/light6.97ms, Clip/emit8.84ms, Tex fetch0.21ms,
+Seal prep1.58ms. Frequent nested clocks add overhead; these cannot be compared
+directly with Alpha.108's Geometry total. Alpha.110 rejects cached BSP triangles
+sharing one outside plane before building full clipping records, when no dynamic
+lights are selected. Active-light subdivision retains its existing path. Compare
+the ordinary benchmark and World time with identical VIDEO settings; inspect
+walls, doors and near-plane edges before accepting the optimization.

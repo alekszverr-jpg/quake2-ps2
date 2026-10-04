@@ -58,6 +58,14 @@ void FlushScratch(const math::Mat4 &, const tex::Texture &, bool alphaBlend = fa
 #include "generic.inc"
 #include "alias.inc"
 #include "worldclip.inc"
+static int dynamicCalls;
+void SubmitDynamicallyLitTriangle(const ClipVertex (&corners)[3], const math::Mat4 & mvp,
+    const tex::Texture & texture, int depth, bool boundsSelected) {
+    assert(depth == 0); (void)boundsSelected;
+    ++dynamicCalls;
+    SubmitWorldTriangle(corners,mvp,texture);
+}
+#include "cachedworld.inc"
 static void Reset() {
     s_scratchVertCount = trisDrawn = trisCulled = trisClipped = 0;
     emitted.clear(); batches.clear();
@@ -202,5 +210,52 @@ int main() {
     assert(std::memcmp(&cached,&reference,sizeof(cached)) == 0);
     assert(sizeof(s_worldClipCache) == 8192 && reuseHits == 12000);
     std::puts("12000 world/brush clip-cache results match direct transforms; context and epoch wrap PASS");
+    int earlyRejected = 0;
+    for (int scenario=0; scenario<600; ++scenario) {
+        CachedLitVertex vertices[60];
+        for (auto & vertex : vertices)
+            vertex={position(random),position(random),position(random),0x80804020u,position(random),position(random)};
+        // Common-plane rejection, exact plane boundary and an intersecting
+        // triangle with different outside planes must all retain exact output.
+        vertices[0]={9,0,0,0x80804020u,0,0};
+        vertices[1]={10,1,0,0x80804020u,0,0};
+        vertices[2]={11,-1,0,0x80804020u,0,0};
+        vertices[3]={0,0,(1.0f-kClipEpsilon)/0.4f,0x80804020u,0,0};
+        vertices[4]={-9,0,0,0x80804020u,0,0};
+        vertices[5]={9,0,0,0x80804020u,0,0};
+        const math::Mat4 matrix={scenario%2 ? 0.0f : 0.31f};
+        const float scroll=scenario%3 ? 0.0f : -0.37f;
+        s_surfaceLightMask=0;
+        Reset();
+        for (int first=0; first<60; first+=3) {
+            ClipVertex corners[3]={};
+            for (int v=0;v<3;++v) {
+                const auto & src=vertices[first+v];
+                corners[v].pos={src.x,src.y,src.z,1};
+                corners[v].st={src.s+scroll,src.t,0,0};
+                UnpackCachedColor(corners[v].color,src.packedColor);
+                SetClipDistances(corners[v].d,corners[v].pos,matrix);
+            }
+            SubmitWorldTriangle(corners,matrix,texture);
+        }
+        FlushScratch(matrix,texture);
+        const auto expected=emitted;
+        const auto expectedBatches=batches;
+        const int drawn=trisDrawn, culled=trisCulled, clipped=trisClipped;
+        earlyRejected+=culled;
+        Reset(); BeginWorldClipCache();
+        EmitCachedWorld(vertices,60,matrix,texture,scroll);
+        FlushScratch(matrix,texture);
+        assert(trisDrawn==drawn && trisCulled==culled && trisClipped==clipped);
+        assert(batches==expectedBatches && emitted.size()==expected.size());
+        assert(std::memcmp(emitted.data(),expected.data(),emitted.size()*sizeof(vu1::DrawVertex))==0);
+        // Active-light triangles still reach the original subdivision entry,
+        // including triangles rejected by the common-plane test.
+        Reset(); BeginWorldClipCache(); s_surfaceLightMask=1; dynamicCalls=0;
+        EmitCachedWorld(vertices,60,matrix,texture,scroll);
+        assert(dynamicCalls==20);
+    }
+    assert(earlyRejected>600);
+    std::puts("12000 cached BSP triangles match generic clipping/output/batches; active-light dispatch preserved PASS");
     std::printf("%d MD2 triangles match production clipper, colours, UVs, batches and alpha; shared transforms, opaque UV reuse and oversized fallback PASS\n",cases);
 }

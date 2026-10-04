@@ -6,6 +6,20 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.110 - 2026-10-04 (local test build)
+
+- Reject cached BSP triangles sharing an outside clipping plane before building
+  full interpolation records and unpacking colours, when their selected dynamic
+  light mask is empty. Retain active-light subdivision and plane-boundary rounding
+  order. Preserve counters, batching, flowing UVs and brush MVP cache invalidation.
+- Differential-test12,000 emitted BSP triangles against the production generic
+  clipper, including common-plane rejection, intersecting/outside-plane cases,
+  exact boundaries, flowing coordinates and different world/brush matrices.
+  Check whole emitted vertices and batch boundaries, plus active-light dispatch.
+- Alpha.109 diagnostic averages: Prep/light6.97ms, Clip/emit8.84ms, Tex fetch0.21ms,
+  Seal prep1.58ms. Nested timer overhead prevents comparison with108 Geometry time.
+  Alpha.110 ordinary performance and visual checks are pending.
+
 ## 0.1.0-alpha.109 - 2026-10-04 (local test build)
 
 - Add a fourth World profile page, World Geometry breakdown: Prep/light,
