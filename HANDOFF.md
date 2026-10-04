@@ -27,7 +27,22 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.114 restore pre-experiment BSP preparation/emission (runtime pending)
+## Alpha.115 BSP planes vs vertex emission (build pending)
+
+Same World profile3runs, now7 pages; Right six times opens BSP planes vs vertex
+emission. WorldProfile adds exclusive Planes/Emit detail categories. Plane scopes
+cover cached distances/masks and generic initial plane classification; emission
+scopes cover packed and generic colour/UV preparation + scratch writes. Nested
+Submit is subtracted by existing WorldSubmitScope. Clip residual retains records,
+intersections and control overhead; Geometry page Clip/emit sums all three details.
+Scopes active only in Geometry: opaque World and seal clip/emit included, sky/brush
+entities/MD2 excluded. Seal corner plane transforms remain in Seal prep; dynamic
+subdivision midpoint transforms remain in Prep/light. Host tests cover exclusive
+split/submission, actual production output/batches and240p seventh page.
+No new optimization. Extra timers perturb diagnostics; next screenshot is seventh
+page, then use ordinary benchmark for any future actual speed comparisons.
+
+## Alpha.114 restore pre-experiment BSP preparation/emission (runtime results received)
 
 Restore render_view.cpp and alias_clip/run.py exactly to539ebf8 (Alpha.112).
 Remove mask-only cache helper and unrolled fixed-offset emitter. Keep diagnostic
@@ -39,6 +54,10 @@ does not substitute for runtime confirmation. No new optimization in114.
 CI37182754241 passed all sanitizer tests, map validation and PROFILE build.
 Installed7,885,408-byte ELF in both roots; hashes match downloaded artifact
 and embedded114 version verified. No new release made.
+User114 ordinary40.33FPS/24.80ms, runs40.37/40.32/40.31, matching688frames195..882.
+World11.64/11.64/11.65ms and Entities7.39 each. Compared with11340.00FPS/24.98ms/
+World11.84ms, recovery established; close to11040.40FPS/24.76ms/World11.61ms.
+Explicit visual acceptance not supplied. Keep113 experiment reverted.
 
 ## Alpha.113 packed BSP triangle emission (regressed; reverted in114)
 

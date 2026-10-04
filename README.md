@@ -1,7 +1,7 @@
 # Quake II for PlayStation 2
 
 [![Build](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml/badge.svg)](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml)
-[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.114-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
+[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.115-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](LICENSE)
 
 An active continuation of the unofficial Quake II port for the Sony
@@ -316,3 +316,13 @@ Alpha.113 measured40.00FPS/24.98ms, World11.80..11.87ms versus110's
 changes to the exact112 implementation, preserving all six World diagnostic
 pages and the expanded differential test cases. Repeat the ordinary benchmark
 with identical VIDEO settings to verify recovery; runtime recovery is pending.
+
+Alpha.114 recovered to40.33FPS/24.80ms, World11.64..11.65ms. Alpha.115 adds
+the seventh World profile page, BSP planes vs vertex emission (Right six times).
+Planes covers cached distance transforms/lookups, mask classification and generic
+initial plane tests. Emit covers colour/UV preparation and scratch-buffer writes,
+excluding nested CPU submission. Clip rest covers clipping records, intersections
+and remaining control work. These exclusive categories sum to Clip/emit on the
+Geometry page. They include the opaque-world seal clip/emission path, but exclude
+sky, brush entities and MD2; seal corner transforms stay in Seal prep.
+Additional timers perturb these results. Use the ordinary benchmark for speed.

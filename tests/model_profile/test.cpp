@@ -151,4 +151,22 @@ int main() {
     }
     assert(ps2::timing::reads == reads);
     puts("MD2/World exclusive phase timing, submission context and disabled clocks PASS");
+    s_worldProfile = {}; s_worldProfile.enabled = true;
+    {
+        WorldScope geometry(s_worldProfile, WorldProfile::Geometry);
+        WorldDetailScope clip(s_worldProfile, WorldProfile::Clip);
+        { WorldDetailScope planes(s_worldProfile, WorldProfile::Planes); ps2::timing::now += 10; }
+        {
+            WorldDetailScope emit(s_worldProfile, WorldProfile::Emit);
+            ps2::timing::now += 20;
+            s_scratchVertCount = 3; FlushScratch(matrix, texture);
+        }
+        ps2::timing::now += 40;
+    }
+    assert(s_worldProfile.DetailMicros(WorldProfile::Planes)==10);
+    assert(s_worldProfile.DetailMicros(WorldProfile::Emit)==20);
+    assert(s_worldProfile.DetailMicros(WorldProfile::Clip)==40);
+    assert(s_worldProfile.Micros(WorldProfile::Geometry)==70);
+    assert(s_worldProfile.Micros(WorldProfile::Submit)==30);
+    puts("BSP planes/emission/rest exclude nested submission PASS");
 }

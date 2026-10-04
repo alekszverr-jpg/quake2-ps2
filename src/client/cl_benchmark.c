@@ -210,6 +210,29 @@ void CL_BenchmarkDraw(void)
     char text[80];
     re.DrawFill(0, 0, viddef.width, viddef.height, 0);
     Line(25, viddef.width <= 320 ? "BENCHMARK " PS2_BUILD_VERSION : "QUAKE II - BENCHMARK " PS2_BUILD_VERSION);
+    if (worldProfile && detailPage == 6)
+    {
+        static const char * labels[] = { "Planes ms", "Emit ms", "Clip rest ms" };
+        Line(43, "BSP planes vs vertex emission");
+        Line(59, "Metric          Run1    Run2    Run3");
+        for (i = 0; i < 3; ++i)
+        {
+            double average[3];
+            int j;
+            for (j = 0; j < BENCH_GROUP; ++j)
+                average[j] = frames[j] ? (double)totals[j][BENCH_WORLD_PLANES_MS+i] / frames[j] / 1000.0 : 0;
+            Com_sprintf(text, sizeof(text), "%-13s %7.2f %7.2f %7.2f", labels[i], average[0], average[1], average[2]);
+            Line(73+i*12, text);
+        }
+        Line(137, "Exclusive times; Submit excluded.");
+        Line(149, "Planes: cached distances + tests.");
+        Line(161, "Emit: colour/UV prep + writes.");
+        Line(173, "Rest: records, intersections, etc.");
+        Line(185, "Includes seals; excludes sky/MD2.");
+        Line(200, "Timers affect FPS; use normal bench.");
+        Line(214, "Left/Right: pages; Back: menu");
+        return;
+    }
     if (worldProfile && (detailPage == 4 || detailPage == 5))
     {
         const int insidePage = detailPage == 5;
@@ -453,7 +476,7 @@ void CL_BenchmarkDraw(void)
 
 void CL_BenchmarkTogglePage(void)
 {
-    detailPage = (detailPage + 1) % (worldProfile ? 6 : modelProfile ? 3 : lightProfile ? 7 : comparison ? 5 : 2);
+    detailPage = (detailPage + 1) % (worldProfile ? 7 : modelProfile ? 3 : lightProfile ? 7 : comparison ? 5 : 2);
 }
 
 void CL_BenchmarkInit(void)

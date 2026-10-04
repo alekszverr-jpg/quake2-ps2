@@ -1219,6 +1219,7 @@ void SubmitWorldTriangle(const ClipVertex (&corners)[3], const math::Mat4 & mvp,
                          int fixedAlpha = -1)
 {
     WorldDetailScope clipTimer(s_worldProfile, WorldProfile::Clip);
+    WorldDetailScope planeTimer(s_worldProfile, WorldProfile::Planes);
     int insidePerPlane[kNumClipPlanes] = {};
     for (const ClipVertex & corner : corners)
     {
@@ -1236,6 +1237,7 @@ void SubmitWorldTriangle(const ClipVertex (&corners)[3], const math::Mat4 & mvp,
         outsideAny  |= (insidePerPlane[p] == 0);
     }
 
+    planeTimer.Stop();
     if (outsideAny)
     {
         PS2_STAT_INC(trisCulled);
@@ -1244,6 +1246,7 @@ void SubmitWorldTriangle(const ClipVertex (&corners)[3], const math::Mat4 & mvp,
 
     if (insideTotal == 3 * kNumClipPlanes)
     {
+        WorldDetailScope emitTimer(s_worldProfile, WorldProfile::Emit);
         PS2_STAT_INC(trisDrawn);
         if (s_scratchVertCount + 3 > kScratchMaxVerts)
         {
@@ -1278,6 +1281,7 @@ void SubmitWorldTriangle(const ClipVertex (&corners)[3], const math::Mat4 & mvp,
         return;
     }
 
+    WorldDetailScope emitTimer(s_worldProfile, WorldProfile::Emit);
     if (s_scratchVertCount + (count - 2) * 3 > kScratchMaxVerts)
     {
         FlushScratch(mvp, texture, alphaBlend, fixedAlpha);
@@ -2027,6 +2031,7 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
         for (int first = 0; first < drawVertexCount; first += 3)
         {
             WorldDetailScope clipTimer(s_worldProfile, WorldProfile::Clip);
+            WorldDetailScope planeTimer(s_worldProfile, WorldProfile::Planes);
             // Interior triangles only need plane distances. Defer the full
             // interpolation records (288 bytes) until clipping is required.
             ClipDists distances[3];
@@ -2044,6 +2049,7 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
             const bool earlyReject = allOutside != 0 && s_surfaceLightMask == 0;
             const bool packedInside = anyOutside == 0 && s_surfaceLightMask == 0;
             s_worldProfile.RecordCachedTriangle(s_surfaceLightMask == 0, earlyReject, packedInside);
+            planeTimer.Stop();
             if (earlyReject)
             {
                 PS2_STAT_INC(trisCulled);
@@ -2053,6 +2059,7 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
             // triangles need no colour interpolation or unpack/repack cycle.
             if (packedInside)
             {
+                WorldDetailScope emitTimer(s_worldProfile, WorldProfile::Emit);
                 if (s_scratchVertCount + 3 > kScratchMaxVerts)
                     FlushScratch(mvp, texture);
                 for (int v = 0; v < 3; ++v)

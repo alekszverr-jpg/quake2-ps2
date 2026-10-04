@@ -4,7 +4,7 @@
 namespace ps2::view {
 struct WorldProfile {
     enum Phase { Visibility, Sky, Geometry, Submit, PhaseCount };
-    enum Detail { Preparation, Clip, Textures, Seals, DetailCount };
+    enum Detail { Preparation, Clip, Textures, Seals, Planes, Emit, DetailCount };
     bool enabled = false;
     Phase activePhase = PhaseCount;
     long long ticks[PhaseCount] = {};

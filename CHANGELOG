@@ -6,6 +6,19 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.115 - 2026-10-04 (local test build)
+
+- Add seventh World profile page, BSP planes vs vertex emission. Split Clip/emit
+  into cached distance/mask and initial plane tests, colour/UV preparation plus
+  scratch-buffer emission, and remaining record/intersection/control work.
+  All categories are exclusive, with nested CPU Submit excluded. Keep the existing
+  Geometry page's Clip/emit total as the sum of these categories.
+- Test split accounting with nested submission, production clipping output and
+  batch equivalence, page cycling/restoration and native240p table bounds.
+  Rendering algorithms remain those restored in114; this adds profiling only.
+- Alpha.114 user ordinary40.33FPS/24.80ms, World11.64/11.64/11.65ms versus113's
+  40.00FPS/24.98ms and World11.84ms. Recovery is close to110's40.40FPS/24.76ms.
+
 ## 0.1.0-alpha.114 - 2026-10-04 (local test build)
 
 - Revert Alpha.113 mask-only cache lookups and fixed-offset packed emitter;

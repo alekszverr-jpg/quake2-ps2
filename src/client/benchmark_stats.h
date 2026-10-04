@@ -3,7 +3,8 @@
 
 /* First seven fields and LIGHT_SELECT/SPLIT/COLOR are microseconds;
  * MODEL_SETUP through MODEL_SUBMIT and WORLD_VISIBILITY_MS through
- * WORLD_SUBMIT_MS and WORLD_PREP_MS through WORLD_SEAL_MS are microseconds too.
+ * WORLD_SUBMIT_MS, WORLD_PREP_MS through WORLD_SEAL_MS and
+ * WORLD_PLANES_MS through WORLD_CLIP_REST_MS are microseconds too.
  * Other fields are event counts. Light timings require diagnostic mode.
  * Wait timings overlap the world/entity phases and must not be added to them. */
 enum {
@@ -27,6 +28,7 @@ enum {
     BENCH_WORLD_SEAL_MS,
     BENCH_WORLD_CACHED_TRIS, BENCH_WORLD_UNLIT_TRIS, BENCH_WORLD_EARLY_REJECTS,
     BENCH_WORLD_PACKED_INSIDE,
+    BENCH_WORLD_PLANES_MS, BENCH_WORLD_EMIT_MS, BENCH_WORLD_CLIP_REST_MS,
     BENCH_STATS_COUNT
 };
 #ifdef __cplusplus

@@ -306,7 +306,7 @@ int main(void)
         CL_BenchmarkDemoCompleted(); NextRun();
     }
     assert(!active && values[12] == 1 && values[11] == 1 && values[9] == 1);
-    for (i = 0; i < 6; ++i) {
+    for (i = 0; i < 7; ++i) {
         checkCanvas = i >= 2;
         drawn[0] = 0; assert(detailPage == i); CL_BenchmarkDraw();
         if (i == 0) assert(strstr(drawn, "World timers ON"));
@@ -336,6 +336,13 @@ int main(void)
             assert(strstr(drawn, "Unlit clip     100.00"));
             assert(strstr(drawn, "Of all %        40.00"));
             assert(strstr(drawn, "Of unlit %      80.00"));
+        }
+        if (i == 6) {
+            assert(strstr(drawn, "BSP planes vs vertex emission"));
+            assert(strstr(drawn, "Planes ms       54.00"));
+            assert(strstr(drawn, "Emit ms         55.00"));
+            assert(strstr(drawn, "Clip rest ms    56.00"));
+            assert(strstr(drawn, "Exclusive times; Submit excluded."));
         }
         CL_BenchmarkTogglePage();
     }
