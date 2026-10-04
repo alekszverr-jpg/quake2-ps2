@@ -8,26 +8,26 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.114 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.115 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.114` (PROFILE CI and host tests passed; recovery benchmark pending; Alpha.113 experiment regressed and reverted; Alpha.112 packed-inside89.6% of inputs; Alpha.105 clipping accepted; Alpha.103 weapon/UI and supported TV modes accepted; 480p hardware unverified)
-- Current implementation commit: `ae287cb`
-  (`Restore pre-experiment BSP preparation and emission`); CI submodule fix `b344f3e` retained.
+- Current source/test version: `0.1.0-alpha.115` (PROFILE CI and host tests passed; planes/emission split measurements pending; Alpha.114 recovery40.33FPS/World11.64ms; Alpha.113 experiment reverted; Alpha.105 clipping accepted; Alpha.103 weapon/UI and supported TV modes accepted; 480p hardware unverified)
+- Current implementation commit: `70ca177`
+  (`Separate BSP plane classification and vertex emission timings`); CI submodule fix `b344f3e` retained.
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.114 local PROFILE ELF SHA-256 (7,885,408 bytes):
-  `F6522B44C8DB3ABEBFA78726BB99CF8D1B6E8AB9021A978DC3680840F05180B3`
-- CI `37182754241` passed all host sanitizer tests, map validation and PROFILE build for `ae287cb`.
+- Alpha.115 local PROFILE ELF SHA-256 (7,898,688 bytes):
+  `50F04C49227DAFEADF1C56DF745FCBA90F5100205A66190C79155C41FB42F796`
+- CI `37183223932` passed all host sanitizer tests, map validation and PROFILE build for `70ca177`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.115 BSP planes vs vertex emission (build pending)
+## Alpha.115 BSP planes vs vertex emission (runtime pending)
 
 Same World profile3runs, now7 pages; Right six times opens BSP planes vs vertex
 emission. WorldProfile adds exclusive Planes/Emit detail categories. Plane scopes
@@ -41,6 +41,9 @@ subdivision midpoint transforms remain in Prep/light. Host tests cover exclusive
 split/submission, actual production output/batches and240p seventh page.
 No new optimization. Extra timers perturb diagnostics; next screenshot is seventh
 page, then use ordinary benchmark for any future actual speed comparisons.
+CI37183223932 passed all sanitizer tests, map validation and PROFILE build.
+Installed7,898,688-byte ELF in both roots; hashes match downloaded artifact
+and embedded115 version verified. No new release made.
 
 ## Alpha.114 restore pre-experiment BSP preparation/emission (runtime results received)
 

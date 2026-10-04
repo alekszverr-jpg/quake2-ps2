@@ -18,6 +18,9 @@ Development priorities and completion criteria are tracked in
   Rendering algorithms remain those restored in114; this adds profiling only.
 - Alpha.114 user ordinary40.33FPS/24.80ms, World11.64/11.64/11.65ms versus113's
   40.00FPS/24.98ms and World11.84ms. Recovery is close to110's40.40FPS/24.76ms.
+- CI37183223932 passed all host sanitizer tests, map validation and PROFILE build.
+  Installed matching7,898,688-byte ELF in both roots; SHA256 and embedded115
+  version verified against the downloaded artifact.
 
 ## 0.1.0-alpha.114 - 2026-10-04 (local test build)
 
