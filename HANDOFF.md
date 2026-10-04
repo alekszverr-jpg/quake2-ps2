@@ -8,26 +8,32 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.121 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.122 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.121` (PROFILE CI and host tests passed; batched VU0 MD2 runtime/visual/speed pending; Alpha.120 reduced+5.5%FPS/preliminary visuals accepted; Alpha.119 mask experiment reverted; Alpha.113 experiment reverted; Alpha.103 weapon/UI and supported TV modes accepted; 480p hardware unverified)
-- Current implementation commit: `4a5afc8`
-  (`Batch MD2 clipping transforms with one VU0 matrix load`); CI submodule fix `b344f3e` retained.
+- Current source/test version: `0.1.0-alpha.122` (PROFILE CI and host tests passed; flash detail speed/visual pending; Alpha.121 MD2+0.4%FPS/preliminary visuals accepted; Alpha.120 reduced+5.5%FPS/preliminary visuals accepted; Alpha.119/113 experiments reverted; Alpha.103 weapon/UI and supported TV modes accepted; 480p hardware unverified)
+- Current implementation commit: `e869ec7`
+  (`Add experimental distant dynamic-light subdivision quality toggle`); CI submodule fix `b344f3e` retained.
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.121 local PROFILE ELF SHA-256 (7,928,656 bytes):
-  `4D0F5DCD89718A119DC8F9A779468370F30FAC2A493D4F43859B992CD9C100CC`
-- CI `37198330720` passed all host sanitizer tests, map validation and PROFILE build for `4a5afc8`.
+- Alpha.122 local PROFILE ELF SHA-256 (7,933,432 bytes):
+  `6F3386A98900B503CF8C10990FAD2B8FB9002B09B70134A737689B79B5E11CA8`
+- CI `37199169352` passed all host sanitizer tests, map validation and PROFILE build for `e869ec7`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.122 distant dynamic-light spacing (build pending)
+## Alpha.122 distant dynamic-light spacing (runtime pending)
+
+CI37199169352 passed all host sanitizer tests, map validation and PROFILE build.
+Installed7,933,432-byte ELF in both roots; hashes match build/ci-e869ec7-profile
+artifact, embedded122 verified. No release made. Next:122 normalbench flash detail
+full vs reduced, both far light reduced; visually test distant projectile light,
+seams and doors. Speed/visual results not yet supplied.
 
 VIDEO flash detail full/reduced, archived ps2_far_dlights default0, separate from
 ps2_far_lighting. Normal benchmark captures both labels and leaves values alone.
