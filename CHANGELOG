@@ -17,6 +17,9 @@ Development priorities and completion criteria are tracked in
 - Alpha.111 coverage:1721.94 cached triangles/frame,1563.25/1567.56/1567.79
   without selected dynamic lights,7.73/7.71/7.73 early rejects. Rejection share
   is0.45% of all inputs and0.49% of eligible; prioritize measuring the inside path.
+- CI37180872381 passed all host sanitizer tests, map validation and PROFILE build.
+  Installed matching7,885,408-byte ELF in both roots; SHA256 and embedded112
+  version verified against the downloaded artifact.
 
 ## 0.1.0-alpha.111 - 2026-10-04 (local test build)
 
