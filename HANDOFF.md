@@ -8,26 +8,26 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.115 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.116 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.115` (PROFILE CI and host tests passed; planes/emission split measurements pending; Alpha.114 recovery40.33FPS/World11.64ms; Alpha.113 experiment reverted; Alpha.105 clipping accepted; Alpha.103 weapon/UI and supported TV modes accepted; 480p hardware unverified)
-- Current implementation commit: `70ca177`
-  (`Separate BSP plane classification and vertex emission timings`); CI submodule fix `b344f3e` retained.
+- Current source/test version: `0.1.0-alpha.116` (PROFILE CI and host tests passed; sampled diagnostics pending; Alpha.115 dense clocks strongly perturb results; Alpha.114 recovery40.33FPS/World11.64ms; Alpha.113 experiment reverted; Alpha.103 weapon/UI and supported TV modes accepted; 480p hardware unverified)
+- Current implementation commit: `895c312`
+  (`Sample BSP diagnostic root operations and report per-sample costs`); CI submodule fix `b344f3e` retained.
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.115 local PROFILE ELF SHA-256 (7,898,688 bytes):
-  `50F04C49227DAFEADF1C56DF745FCBA90F5100205A66190C79155C41FB42F796`
-- CI `37183223932` passed all host sanitizer tests, map validation and PROFILE build for `70ca177`.
+- Alpha.116 local PROFILE ELF SHA-256 (7,903,480 bytes):
+  `9D947CEB120C0652FA3352A1A04298699247396C97EA7C89A0997A0B51CF15D9`
+- CI `37184029848` passed all host sanitizer tests, map validation and PROFILE build for `895c312`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.116 sampled root-triangle diagnostics (build pending)
+## Alpha.116 sampled root-triangle diagnostics (runtime pending)
 
 WorldSampleScope at cached-loop root and generic SubmitWorldTriangle selects1/32
 operations; nested generic/dynamic work inherits selection, no independent child
@@ -46,6 +46,9 @@ and page6 screenshots. Sampling reduces whole-frame overhead but clock costs sti
 affect per-sample estimates; do not equate them with pure work cost.
 Tests cover32 rotating offsets, nested selection, no skipped-clock reads, full
 counters and production loop output/batches; zero-sample division and240p pages.
+CI37184029848 passed all sanitizer tests, map validation and PROFILE build.
+Installed7,903,480-byte ELF in both roots; hashes match downloaded artifact
+and embedded116 version verified. No new release made.
 
 ## Alpha.115 BSP planes vs vertex emission (runtime results received)
 

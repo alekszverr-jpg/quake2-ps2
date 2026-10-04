@@ -20,6 +20,9 @@ Development priorities and completion criteria are tracked in
   production geometry/batch equivalence, per-sample averages and native240p pages.
 - Alpha.115 fine timers:6.11/5.19/10.20..10.21ms;21.51ms sum exceeds ordinary
   World11.64ms. Reduce instrumentation before inferring the dominant operation.
+- CI37184029848 passed all host sanitizer tests, map validation and PROFILE build.
+  Installed matching7,903,480-byte ELF in both roots; SHA256 and embedded116
+  version verified against the downloaded artifact.
 
 ## 0.1.0-alpha.115 - 2026-10-04 (local test build)
 
