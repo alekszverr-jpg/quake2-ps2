@@ -8,26 +8,26 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.112 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.113 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.112` (PROFILE CI and host tests passed; packed-inside coverage pending; Alpha.111 rejects only0.45% of inputs; Alpha.110 normal measurements show no clear World gain, visual acceptance pending; Alpha.105 clipping accepted; Alpha.103 weapon/UI and supported TV modes accepted; 480p hardware unverified)
-- Current implementation commit: `2a98da6`
-  (`Measure cached BSP packed inside emission coverage`); CI submodule fix `b344f3e` retained.
+- Current source/test version: `0.1.0-alpha.113` (PROFILE CI and host tests passed; mask-only cache/packed-emitter speed and visual checks pending; Alpha.112 packed-inside89.6% of inputs; Alpha.110 normal measurements show no clear World gain; Alpha.105 clipping accepted; Alpha.103 weapon/UI and supported TV modes accepted; 480p hardware unverified)
+- Current implementation commit: `e1e09f4`
+  (`Avoid unused BSP plane copies and emit packed triangles consecutively`); CI submodule fix `b344f3e` retained.
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.112 local PROFILE ELF SHA-256 (7,885,408 bytes):
-  `8F5A71127A9E37F0D7F3D7DE5DD0FC9990A63696B01C3FD4688876E6522672EC`
-- CI `37180872381` passed all host sanitizer tests, map validation and PROFILE build for `2a98da6`.
+- Alpha.113 local PROFILE ELF SHA-256 (7,886,704 bytes):
+  `E8AAF771925260121FDE27E907279F975C6B203251D9EAE0BB5AE884977CE0C3`
+- CI `37182149636` passed all host sanitizer tests, map validation and PROFILE build for `e1e09f4`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.113 packed BSP triangle emission (build pending)
+## Alpha.113 packed BSP triangle emission (runtime pending)
 
 EmitPackedWorldTriangle writes dst0/1/2 through an inline vertex filler, updates
 s_scratchVertCount once after the three records. Caller still flushes at the
@@ -44,6 +44,9 @@ also match independent direct transforms through context changes and epoch wrap.
 Next: ordinary benchmark
 FPS and renderer details vs11040.40FPS/24.76ms/World11.61ms, same VIDEO settings;
 check walls, doors and near-plane edges. Do not claim actual speedup before results.
+CI37182149636 passed all sanitizer tests, map validation and PROFILE build.
+Installed7,886,704-byte ELF in both roots; hashes match downloaded artifact
+and embedded113 version verified. No new release made.
 
 ## Alpha.112 packed-inside coverage counters (runtime results received)
 

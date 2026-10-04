@@ -22,6 +22,9 @@ Development priorities and completion criteria are tracked in
 - Alpha.112 packed-inside coverage:1543.11/1543.30/1544.36 triangles/frame,
   89.61/89.63/89.69% of all and98.78% of eligible. Generic unlit clipping
   remainder11.36/11.38/11.38. Runtime speed gain for113 remains unverified.
+- CI37182149636 passed all host sanitizer tests, map validation and PROFILE build.
+  Installed matching7,886,704-byte ELF in both roots; SHA256 and embedded113
+  version verified against the downloaded artifact.
 
 ## 0.1.0-alpha.112 - 2026-10-04 (local test build)
 
