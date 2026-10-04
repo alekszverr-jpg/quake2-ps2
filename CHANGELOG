@@ -6,6 +6,18 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.123 - 2026-10-04 (local test build)
+
+- Cache first matching source-corner indices during retained BSP topology builds.
+  Seal pass reads live cached colours directly; topology rebuilds reset indices,
+  relights preserve them, and missing/key-mismatched/unretained corners use the
+  old light sampling fallback. Keep all seal geometry and depth bias unchanged.
+- Source triangle metadata grows4bytes on PS2 (24->28). Test3500 production seal
+  cases against old scans, including duplicates/signed-zero/NaN, relight/rebuild,
+  fallback/flow/skips; test metadata reset during memory reclamation.
+- Alpha.122 paired flash quality: reduced42.38FPS/23.59ms vs full42.05FPS/23.78ms,
+  matching688frames; user reports no problems. Keep both quality toggles optional.
+
 ## 0.1.0-alpha.122 - 2026-10-04 (local test build)
 
 - Add archived live VIDEO flash detail full/reduced, default full. Reduced

@@ -54,6 +54,9 @@ jobs:
       - name: Check distant static-light subdivision on host
         run: python3 tests/lighting_lod/run.py
 
+      - name: Check retained BSP seal corner indices on host
+        run: python3 tests/seal_corners/run.py
+
       - name: Check VIDEO controls and output mode scaling on host
         run: python3 tests/video_menu/run.py
 

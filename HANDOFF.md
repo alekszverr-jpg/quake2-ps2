@@ -27,7 +27,29 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.122 distant dynamic-light spacing (runtime pending)
+## Alpha.123 retained BSP seal corner indices (build pending)
+
+ModelTriangle mutableu16 litCacheCornerIndices[3] directly aftervertexes; target
+layout24->28bytes (+4bytes/source triangle, padding reclaimed),64bit host40bytes.
+CacheSealCornerIndices called only after retained topology is copied, from source
+ClipVertex positions and current cache; samefirst float== match as old perframe
+scan, 0xFFFF sentinel missing. Relight colour changes retainindices; topology/far
+quality rebuilds regenerate them. ClearLitTriangleCaches resetsall sentinel.
+GatherPolyCrackSeals keeps key validation, count gate, exact same sourcecorners,
+lightmap/UV/biased distances and SubmitWorldTriangle. Replaces search with bounded
+index/live colour load; missing/unretained/mismatched key keepsSampleVertexLight.
+3500 differential production seal cases vs independent old scan pass allcorner
+record bytes and fallback/transformcounts, duplicate/signedzero/NaN,relight/rebuild/
+key/null/flow/skips. Reclaimer reset covered. No seal removal/quality change.
+Need123vs122 ordinarybench with both togglesreduced; verifyseams/flicker/doors.
+Preserve122baseline ELF separately. Extra modelmetadata allocation cost must be
+considered alongside actual console speed; no gainclaimed before measurements.
+
+## Alpha.122 distant dynamic-light spacing (runtime results, visuals accepted)
+
+User flashreduced42.35/42.39/42.40FPS, combined42.38FPS/23.59ms; full42.05/41.97/
+42.15FPS, combined42.05FPS/23.78ms. Matching688frames195..882, far detailreduced
+both. ~0.8%FPS/-0.19ms; fullrange wider, modestgain. User reports no visual problems.
 
 CI37199169352 passed all host sanitizer tests, map validation and PROFILE build.
 Installed7,933,432-byte ELF in both roots; hashes match build/ci-e869ec7-profile

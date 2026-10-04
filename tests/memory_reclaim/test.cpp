@@ -18,6 +18,7 @@ namespace mod {
 struct ModelTriangle {
     mutable void * litCacheVertices;
     mutable int litCacheKey, litCacheColorKey, litCacheVertexCount, litCacheCapacity;
+    mutable unsigned short litCacheCornerIndices[3];
 };
 }
 static std::vector<const mod::ModelTriangle *> s_cachedLitTriangles;
@@ -33,7 +34,7 @@ void PS2_MemFree(void * ptr, size_t bytes, PS2MemTag tag) {
 #include "reclaim.inc"
 static mod::ModelTriangle triangle;
 static void Populate() {
-    triangle = {allocation, 1, 2, 3, 4};
+    triangle = {allocation, 1, 2, 3, 4, {1,2,3}};
     s_cachedLitTriangles = {&triangle};
     s_litCacheChunks[0] = {allocation, 3};
     s_litCacheChunkCount = 1;
@@ -49,6 +50,7 @@ int main() {
     assert(attempts == 2 && accounted == 1 && releases == 1 && callbacks == 1);
     assert(s_cachedLitTriangles.empty() && !triangle.litCacheVertices);
     assert(!triangle.litCacheKey && !triangle.litCacheColorKey && !triangle.litCacheVertexCount && !triangle.litCacheCapacity);
+    for (int v=0;v<3;++v) assert(triangle.litCacheCornerIndices[v]==0xFFFFu);
     assert(!s_litCacheChunkCount && !s_litCacheBytes && !s_litCacheFineSplits && s_litCacheDisabled);
     assert(!ReclaimLightingCache());
     Populate();

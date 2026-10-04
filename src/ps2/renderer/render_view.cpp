@@ -971,6 +971,7 @@ void ClearLitTriangleCaches()
         triangle->litCacheColorKey = 0;
         triangle->litCacheVertexCount = 0;
         triangle->litCacheCapacity = 0;
+        for (int v = 0; v < 3; ++v) triangle->litCacheCornerIndices[v] = 0xFFFFu;
     }
     s_cachedLitTriangles.clear();
 
@@ -1843,6 +1844,24 @@ void UnpackCachedColor(math::Vec4 & color, u32 packed)
     };
 }
 
+// Build once with the retained topology. First-match and float equality mirror
+// the original seal search, including signed zero and unmatched NaN positions.
+void CacheSealCornerIndices(const mod::ModelTriangle & tri,
+                            const CachedLitVertex * vertices, int count,
+                            const ClipVertex (&corners)[3])
+{
+    for (int v = 0; v < 3; ++v) {
+        tri.litCacheCornerIndices[v] = 0xFFFFu;
+        for (int cached = 0; cached < count; ++cached) {
+            const auto & lit = vertices[cached];
+            if (lit.x == corners[v].pos.x && lit.y == corners[v].pos.y && lit.z == corners[v].pos.z) {
+                tri.litCacheCornerIndices[v] = static_cast<u16>(cached);
+                break;
+            }
+        }
+    }
+}
+
 // Bisects the longest lightmap-space edge and stores the resulting leaf
 // triangles without camera-dependent clip data. A coarse maximum spacing makes
 // sure large faces are probed; midpoint and centroid samples then retain detail
@@ -2055,6 +2074,8 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
                 tri.litCacheVertexCount = static_cast<u16>(s_litBuildVertCount);
                 tri.litCacheKey = triangleKey;
                 tri.litCacheColorKey = colorKey;
+                CacheSealCornerIndices(tri, static_cast<const CachedLitVertex *>(tri.litCacheVertices),
+                                       tri.litCacheVertexCount, sourceCorners);
                 drawVertices = static_cast<const CachedLitVertex *>(
                     tri.litCacheVertices);
                 drawVertexCount = tri.litCacheVertexCount;
@@ -2199,19 +2220,13 @@ void GatherPolyCrackSeals(const mod::ModelPoly & poly,
                 src.lightmap_s, src.lightmap_t, 0.0f, 0.0f
             };
 
-            bool foundCachedCorner = false;
-            for (int cached = 0; cached < cachedVertexCount; ++cached)
+            const int cached = tri.litCacheCornerIndices[v];
+            if (cached < cachedVertexCount)
             {
                 const CachedLitVertex & lit = cachedVertices[cached];
-                if (lit.x == corner.pos.x && lit.y == corner.pos.y &&
-                    lit.z == corner.pos.z)
-                {
-                    UnpackCachedColor(corner.color, lit.packedColor);
-                    foundCachedCorner = true;
-                    break;
-                }
+                UnpackCachedColor(corner.color, lit.packedColor);
             }
-            if (!foundCachedCorner)
+            else
             {
                 SampleVertexLight(corner, surface);
             }

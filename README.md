@@ -1,7 +1,7 @@
 # Quake II for PlayStation 2
 
 [![Build](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml/badge.svg)](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml)
-[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.122-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
+[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.123-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](LICENSE)
 
 An active continuation of the unofficial Quake II port for the Sony
@@ -326,6 +326,16 @@ and remaining control work. These exclusive categories sum to Clip/emit on the
 Geometry page. They include the opaque-world seal clip/emission path, but exclude
 sky, brush entities and MD2; seal corner transforms stay in Seal prep.
 Additional timers perturb these results. Use the ordinary benchmark for speed.
+
+Alpha.123 retains first-match cached corner indices when building each BSP
+triangle's lighting cache. Crack seals fetch current colours directly by index
+instead of searching every cached vertex per corner each frame; relights retain
+positions, topology rebuilds regenerate indices, unmatched/nonretained caches
+keep original sampling fallback. Seal geometry, UVs, biased transform and depth
+pass are unchanged. PS2 ModelTriangle grows24->28bytes; no new per-frame buffer.
+Compare122vs123 with both far light and flash detail reduced. Check surface seams,
+flickering lamps and doors; speed/visual validation pending. Alpha.122 reduced
+flash measured42.38FPS vs full42.05FPS, user noticed no visual problems.
 
 Alpha.122 adds VIDEO flash detail full/reduced (archived ps2_far_dlights0/1,
 default full). Reduced adjusts transient dynamic-light subdivision of opaque

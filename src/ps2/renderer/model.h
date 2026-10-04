@@ -106,6 +106,7 @@ struct ModelVertex
 struct ModelTriangle
 {
     u16 vertexes[3];
+    mutable u16 litCacheCornerIndices[3]; // First matching cached source corners.
 
     // Renderer-owned adaptive-lighting cache. Mutable because model geometry
     // is otherwise immutable after load; cleared before the world hunk dies.
@@ -115,6 +116,8 @@ struct ModelTriangle
     mutable u16 litCacheVertexCount;
     mutable u16 litCacheCapacity;
 };
+static_assert(sizeof(ModelTriangle) == (sizeof(void *) == 4 ? 28 : 40),
+              "Keep seal-corner metadata within the source-triangle budget");
 
 //
 // Edge description.
