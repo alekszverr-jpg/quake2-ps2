@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <vector>
 #include <random>
+#include <limits>
 #include "ps2/renderer/world_profile.h"
 using ps2::view::WorldProfile;
 using ps2::view::WorldDetailScope;
@@ -210,6 +211,25 @@ int main() {
     CachedWorldClipDistances(cached,origin,moved);
     assert(std::memcmp(&cached,&reference,sizeof(cached)) == 0);
     assert(sizeof(s_worldClipCache) == 8192 && reuseHits == 12000);
+    // Explicit non-finite and boundary inputs exercise unordered comparisons,
+    // signed zero and epsilon neighbours on both cache misses and hits.
+    const float special[] = {0.0f, -0.0f, kClipEpsilon,
+        std::nextafter(kClipEpsilon, 0.0f), std::nextafter(kClipEpsilon, 1.0f),
+        std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity(),
+        std::numeric_limits<float>::quiet_NaN()};
+    for (float x:special) for (float y:special) for (float z:special) {
+        BeginWorldClipCache();
+        const CachedLitVertex vertex={x,y,z,0,0,0};
+        SetClipDistances(reference,{x,y,z,1},moved);
+        u32 expectedMask=0;
+        for (int p=0;p<6;++p) if (!(reference.f[p]>=0.0f)) expectedMask|=1u<<p;
+        assert(CachedWorldClipDistances(cached,vertex,moved)==expectedMask);
+        assert(std::memcmp(&cached,&reference,sizeof(cached))==0);
+        const int before=transforms;
+        assert(CachedWorldClipDistances(cached,vertex,moved)==expectedMask);
+        assert(transforms==before);
+    }
+    std::puts("512 non-finite/signed-zero/epsilon cache inputs preserve mask and distance bits PASS");
     std::puts("12000 world/brush clip-cache results match direct transforms; context and epoch wrap PASS");
     int earlyRejected = 0;
     for (int scenario=0; scenario<600; ++scenario) {

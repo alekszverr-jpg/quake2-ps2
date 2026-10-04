@@ -1590,9 +1590,15 @@ u32 CachedWorldClipDistances(ClipDists & distances, const CachedLitVertex & vert
     }
     const math::Vec4 position = {vertex.x, vertex.y, vertex.z, 1.0f};
     SetClipDistances(distances, position, mvp);
-    u32 outsideMask = 0;
-    for (int plane = 0; plane < kNumClipPlanes; ++plane)
-        if (!(distances.f[plane] >= 0.0f)) outsideMask |= 1u << plane;
+    // Fixed six-plane classification avoids a loop and conditional bit updates
+    // on cache misses. Preserve !(d >= 0), including unordered/NaN distances.
+    const u32 outsideMask =
+        static_cast<u32>(!(distances.f[0] >= 0.0f)) |
+        (static_cast<u32>(!(distances.f[1] >= 0.0f)) << 1) |
+        (static_cast<u32>(!(distances.f[2] >= 0.0f)) << 2) |
+        (static_cast<u32>(!(distances.f[3] >= 0.0f)) << 3) |
+        (static_cast<u32>(!(distances.f[4] >= 0.0f)) << 4) |
+        (static_cast<u32>(!(distances.f[5] >= 0.0f)) << 5);
     entry.distances = distances;
     std::memcpy(entry.positionBits, bits, sizeof(bits));
     entry.epoch = s_worldClipEpoch;

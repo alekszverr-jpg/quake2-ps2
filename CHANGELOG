@@ -6,6 +6,18 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.119 - 2026-10-04 (local test build)
+
+- Experiment with fixed six-plane boolean-to-bit classification on BSP clip-cache
+  misses instead of loop/conditional updates. Preserve !(distance>=0), including
+  unordered NaN comparisons; retain exact transform/distance generation, full
+  copies and128-entry8KiB cache. Console speed/visual validation pending.
+- Differential tests include512 non-finite/signed-zero/epsilon inputs plus the
+  existing12000 cache,12000 cached-output/batch and32000 MD2 cases.
+- Alpha.118 user:1999.61 roots/frame, Plane31.23/31.21/31.24 and Emit31.25/31.28/31.25
+  selected roots/frame; costs3.03/3.03/3.05us Planes,2.59/2.60/2.60us Emit; empty
+  reference1.32us each. Categories stable/balanced; ordinary speed not supplied.
+
 ## 0.1.0-alpha.118 - 2026-10-04 (local test build)
 
 - Measure Planes and Emit on separate alternating1/64 root populations, rotating

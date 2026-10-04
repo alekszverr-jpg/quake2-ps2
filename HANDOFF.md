@@ -27,7 +27,22 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.118 separate fine categories (runtime pending)
+## Alpha.119 fixed plane-mask classification (build pending)
+
+Only CachedWorldClipDistances miss classification changes: six direct bool-to-bit
+expressions replace loop/conditional OR. Preserve !(d>=0) semantics including NaN.
+VU math::Transform, exact6+2 distance values,128entry8KiB cache, hash/key/epoch/full
+copy paths untouched. Alpha.113 mask-only/relookup/emission experiment stays reverted.
+Host512 special inputs verify mask against old loop and distance bits, plus cache
+hit no transforms; existing12k worldcache/12k actualcachedoutput+batch/32kMD2 pass.
+Optimization experiment only; use normal benchmark118vs119 same settings and check
+visual clipping/doors. Preserve118 baseline ELF separately for paired measurements.
+
+## Alpha.118 separate fine categories (runtime results received)
+
+User roots1999.61/frame; sample62.47/62.48/62.49, Planes31.23/31.21/31.24,
+Emit31.25/31.28/31.25 perframe. Planes3.03/3.03/3.05us/root, Emit2.59/2.60/2.60,
+empty1.32us each. Stable/balanced, no ordinary speed or explicit visual acceptance.
 
 CI37185672365 passed all sanitizer host tests, map validation and PROFILE build.
 Both roots installed from build/ci-c367062-profile; artifact and root hashes match,

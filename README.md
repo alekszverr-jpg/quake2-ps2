@@ -1,7 +1,7 @@
 # Quake II for PlayStation 2
 
 [![Build](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml/badge.svg)](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml)
-[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.118-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
+[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.119-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](LICENSE)
 
 An active continuation of the unofficial Quake II port for the Sony
@@ -326,6 +326,13 @@ and remaining control work. These exclusive categories sum to Clip/emit on the
 Geometry page. They include the opaque-world seal clip/emission path, but exclude
 sky, brush entities and MD2; seal corner transforms stay in Seal prep.
 Additional timers perturb these results. Use the ordinary benchmark for speed.
+
+Alpha.119 tests fixed six-plane mask classification on world clip-cache misses:
+direct boolean-to-bit expressions replace the loop/conditional bit updates. The
+VU transform, distances, cache layout/hash/epoch and hit path remain unchanged.
+Comparison uses ordinary demo1 benchmark against118 under identical settings,
+plus visual checks near clipping boundaries and moving doors. No gain claimed
+before console measurements; Alpha.118 normal speed baseline is still pending.
 
 Alpha.115 measured Planes6.11ms, Emit5.19ms and Clip rest10.20..10.21ms; the
 21.51ms sum exceeds ordinary World11.64ms, demonstrating heavy timer overhead.
