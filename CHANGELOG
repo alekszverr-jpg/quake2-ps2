@@ -16,6 +16,9 @@ Development priorities and completion criteria are tracked in
   0.22ms/frame and0.23ms World; this experiment is not accepted.
 - Host differential geometry/batch tests, diagnostic timing and benchmark
   lifecycle/restoration tests passed. Runtime recovery confirmation pending.
+- CI37182754241 passed all host sanitizer tests, map validation and PROFILE build.
+  Installed matching7,885,408-byte ELF in both roots; SHA256 and embedded114
+  version verified against the downloaded artifact.
 
 ## 0.1.0-alpha.113 - 2026-10-04 (local test build)
 
