@@ -8,26 +8,33 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.118 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.119 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.118` (PROFILE CI and host tests passed; separate categories runtime pending; Alpha.117 confirms nested clock overhead; Alpha.114 recovery40.33FPS/World11.64ms; Alpha.113 experiment reverted; Alpha.103 weapon/UI and supported TV modes accepted; 480p hardware unverified)
-- Current implementation commit: `c367062`
-  (`Measure BSP planes and emission on separate rotating root samples`); CI submodule fix `b344f3e` retained.
+- Current source/test version: `0.1.0-alpha.119` (PROFILE CI and host tests passed; fixed plane-mask speed/visual validation pending; Alpha.118 categories stable/balanced; Alpha.114 recovery40.33FPS/World11.64ms; Alpha.113 experiment reverted; Alpha.103 weapon/UI and supported TV modes accepted; 480p hardware unverified)
+- Current implementation commit: `e76507b`
+  (`Use fixed six-plane classification on BSP clip cache misses`); CI submodule fix `b344f3e` retained.
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.118 local PROFILE ELF SHA-256 (7,917,816 bytes):
-  `B68B37C824A32E309640DBE8E92794B9E0459834A64CEDCB435895ADEBF6B334`
-- CI `37185672365` passed all host sanitizer tests, map validation and PROFILE build for `c367062`.
+- Alpha.119 local PROFILE ELF SHA-256 (7,917,604 bytes):
+  `468CBAD3029CDBCB2C5080D6DAA2A7E884B26D01AB3FC1AC196556F8BD68A19D`
+- CI `37196310188` passed all host sanitizer tests, map validation and PROFILE build for `e76507b`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.119 fixed plane-mask classification (build pending)
+## Alpha.119 fixed plane-mask classification (runtime pending)
+
+CI37196310188 passed host sanitizer tests, map validation and PROFILE build.
+Installed7,917,604-byte ELF in both roots; artifact/root hashes match, embedded119
+version verified. No release made. Saved118 artifact to Documents project as
+quake2-alpha118-baseline.elf, SHA256B68B37C824A32E309640DBE8E92794B9E0459834A64CEDCB435895ADEBF6B334.
+Next user: ordinary benchmark on each ELF with same resolution/settings, photos of
+FPS summaries;119 visual clipping/light/doors check. No real gain claimed yet.
 
 Only CachedWorldClipDistances miss classification changes: six direct bool-to-bit
 expressions replace loop/conditional OR. Preserve !(d>=0) semantics including NaN.
