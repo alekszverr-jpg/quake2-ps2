@@ -19,6 +19,9 @@ Development priorities and completion criteria are tracked in
 - Alpha.109 diagnostic averages: Prep/light6.97ms, Clip/emit8.84ms, Tex fetch0.21ms,
   Seal prep1.58ms. Nested timer overhead prevents comparison with108 Geometry time.
   Alpha.110 ordinary performance and visual checks are pending.
+- CI37179913081 passed all host sanitizer tests, map validation and PROFILE build.
+  Installed matching7,879,044-byte ELF in both roots; SHA256 and embedded110
+  version verified against the downloaded artifact.
 
 ## 0.1.0-alpha.109 - 2026-10-04 (local test build)
 

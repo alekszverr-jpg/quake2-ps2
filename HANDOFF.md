@@ -8,26 +8,26 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.109 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.110 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.109` (PROFILE CI and host tests passed; Geometry breakdown measurements pending; Alpha.108 World phases measured; Alpha.107 performance measured, explicit visual acceptance pending; Alpha.105 clipping accepted; Alpha.103 weapon/UI and supported TV modes accepted; 480p hardware unverified)
-- Current implementation commit: `6ee73e8`
-  (`Profile exclusive World geometry preparation stages`); CI submodule fix `b344f3e` retained.
+- Current source/test version: `0.1.0-alpha.110` (PROFILE CI and host tests passed; BSP reject performance/visual checks pending; Alpha.109 Geometry measured; Alpha.107 performance measured, explicit visual acceptance pending; Alpha.105 clipping accepted; Alpha.103 weapon/UI and supported TV modes accepted; 480p hardware unverified)
+- Current implementation commit: `15d5c90`
+  (`Reject cached BSP triangles before clipping record expansion`); CI submodule fix `b344f3e` retained.
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.109 local PROFILE ELF SHA-256 (7,880,108 bytes):
-  `A4AF3595913835DAF2541898686087EBA37BB726BFC3D2349B99CE51FAC5A93F`
-- CI `37148546708` passed all host sanitizer tests, map validation and PROFILE build for `6ee73e8`.
+- Alpha.110 local PROFILE ELF SHA-256 (7,879,044 bytes):
+  `0A7201AAABCEEB6103C81D25D7639C61D58FF4F7D6C630C170EA873A00D47D7F`
+- CI `37179913081` passed all host sanitizer tests, map validation and PROFILE build for `15d5c90`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.110 cached BSP common-plane reject (build pending)
+## Alpha.110 cached BSP common-plane reject (runtime pending)
 
 GatherPolyTriangles reuses existing per-corner cache masks to compute OR/AND.
 If AND is nonzero and selected dynamic-light mask is0, count trisCulled and skip
@@ -39,6 +39,9 @@ or MVP lifetime changes. Extract the actual production cached emitter loop for
 counts and batch boundaries; active-light dispatch reaches the original entry.
 Next: ordinary benchmark FPS and renderer details with same VIDEO settings;
 check walls, moving doors and near-plane edges. Real speed improvement is pending.
+CI37179913081 passed all sanitizer checks, map validation and PROFILE build.
+Installed7,879,044-byte ELF in both roots; hashes match the downloaded artifact
+and embedded110 version verified. No new release made.
 
 ## Alpha.109 World Geometry breakdown (runtime results received)
 
