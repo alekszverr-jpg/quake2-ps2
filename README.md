@@ -1,7 +1,7 @@
 # Quake II for PlayStation 2
 
 [![Build](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml/badge.svg)](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml)
-[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.110-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
+[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.111-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](LICENSE)
 
 An active continuation of the unofficial Quake II port for the Sony
@@ -282,3 +282,12 @@ sharing one outside plane before building full clipping records, when no dynamic
 lights are selected. Active-light subdivision retains its existing path. Compare
 the ordinary benchmark and World time with identical VIDEO settings; inspect
 walls, doors and near-plane edges before accepting the optimization.
+
+Alpha.110 ordinary benchmark40.40FPS/24.76ms, World11.60..11.62ms, versus
+Alpha.10740.27FPS/24.83ms and World11.56..11.59ms: no clear World speed gain.
+Alpha.111 adds BSP early reject coverage to the same World profile run. Press
+Right four times to see Cached tris, No-light tris, Early rejects, Of all % and
+Of unlit %. Counts are per-frame pre-clipping cached opaque World triangles;
+sky, seals, brush entities and dynamically generated children are excluded.
+No-light means no selected dynamic source for the source triangle, not disabled
+world lighting. Ratios use aggregated counts, with zero for empty denominators.

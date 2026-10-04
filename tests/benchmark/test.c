@@ -32,6 +32,9 @@ void PS2_ReadBenchmarkStats(int values[BENCH_STATS_COUNT])
     ++statReads;
     for (i = 0; i < BENCH_STATS_COUNT; ++i) values[i] = (i + 1) * 1000;
     values[BENCH_VERTICES] = INT_MAX;
+    values[BENCH_WORLD_CACHED_TRIS] = 2000;
+    values[BENCH_WORLD_UNLIT_TRIS] = 1000;
+    values[BENCH_WORLD_EARLY_REJECTS] = 100;
 }
 static char queued[4096];
 static float values[13] = { 0, 0, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1 };
@@ -302,7 +305,7 @@ int main(void)
         CL_BenchmarkDemoCompleted(); NextRun();
     }
     assert(!active && values[12] == 1 && values[11] == 1 && values[9] == 1);
-    for (i = 0; i < 4; ++i) {
+    for (i = 0; i < 5; ++i) {
         checkCanvas = i >= 2;
         drawn[0] = 0; assert(detailPage == i); CL_BenchmarkDraw();
         if (i == 0) assert(strstr(drawn, "World timers ON"));
@@ -319,10 +322,23 @@ int main(void)
             assert(strstr(drawn, "Seal prep ms    49.00"));
             assert(strstr(drawn, "Exclusive times; Submit excluded."));
         }
+        if (i == 4) {
+            assert(strstr(drawn, "BSP early reject coverage"));
+            assert(strstr(drawn, "Cached tris   2000.00"));
+            assert(strstr(drawn, "Early rejects  100.00"));
+            assert(strstr(drawn, "Of all %         5.00"));
+            assert(strstr(drawn, "Of unlit %      10.00"));
+        }
         CL_BenchmarkTogglePage();
     }
     assert(detailPage == 0);
     values[12] = 0;
+    detailPage = 4;
+    totals[0][BENCH_WORLD_CACHED_TRIS] = totals[0][BENCH_WORLD_UNLIT_TRIS] = 0;
+    totals[0][BENCH_WORLD_EARLY_REJECTS] = 0;
+    drawn[0] = 0; CL_BenchmarkDraw();
+    assert(strstr(drawn, "Of all %         0.00") && strstr(drawn, "Of unlit %       0.00"));
+    detailPage = 0;
     CL_BenchmarkWorldProfile(); CL_BenchmarkCancel(); assert(values[12] == 0);
     CL_BenchmarkWorldProfile(); CL_BenchmarkDemoCompleted(); NextRun();
     assert(!active && values[12] == 0 && values[11] == 1 && values[9] == 1);

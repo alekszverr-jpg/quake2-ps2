@@ -2041,7 +2041,9 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
             // Match the generic clipper's common-plane reject before creating
             // interpolation records. Keep dynamically subdivided triangles on
             // their existing path (including midpoint rounding near planes).
-            if (allOutside != 0 && s_surfaceLightMask == 0)
+            const bool earlyReject = allOutside != 0 && s_surfaceLightMask == 0;
+            s_worldProfile.RecordCachedTriangle(s_surfaceLightMask == 0, earlyReject);
+            if (earlyReject)
             {
                 PS2_STAT_INC(trisCulled);
                 continue;

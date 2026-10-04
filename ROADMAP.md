@@ -141,6 +141,7 @@ play on a retail console.
 - [x] Separate World BSP/PVS, Sky, Geometry and Submit timings (Alpha.108;1.07/0.30/9.26/1.03ms)
 - [x] Split World Geometry into preparation/lighting, clip/emission, prefetch and seal preparation (Alpha.109;6.97/8.84/0.21/1.58ms, diagnostic overhead)
 - [~] Reject cached BSP triangles on common outside planes before full record expansion (Alpha.110; differential tests passed, runtime pending)
+- [~] Measure cached BSP early-rejection coverage and eligible triangle share (Alpha.111; runtime pending)
 - [~] Validate long sessions for EE RAM, IOP RAM and VRAM leaks
 - [ ] Target a stable 30 FPS minimum, with 60 FPS where practical
 

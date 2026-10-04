@@ -27,7 +27,18 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.110 cached BSP common-plane reject (runtime pending)
+## Alpha.111 early-reject coverage counters (build pending)
+
+Same GAME world profile3runs, now5 pages. Right four times opens BSP early reject
+coverage. RecordCachedTriangle counts only enabled Geometry context: all cached
+input triangles, mask0 eligible triangles and actual common-plane early rejects.
+Sky/seals/brush entities/generated dynamic children excluded. Non-archived World
+diagnostic settings/restoration unchanged. Ratios use aggregated counts (not an
+average of per-frame ratios), with0 for empty denominators. Native240p fifth page
+and production cached loop counter accuracy covered by tests. This adds diagnostic
+counts only, no new rejection policy. Next: screenshot of coverage page.
+
+## Alpha.110 cached BSP common-plane reject (runtime results received)
 
 GatherPolyTriangles reuses existing per-corner cache masks to compute OR/AND.
 If AND is nonzero and selected dynamic-light mask is0, count trisCulled and skip
@@ -42,6 +53,11 @@ check walls, moving doors and near-plane edges. Real speed improvement is pendin
 CI37179913081 passed all sanitizer checks, map validation and PROFILE build.
 Installed7,879,044-byte ELF in both roots; hashes match the downloaded artifact
 and embedded110 version verified. No new release made.
+User normal demo1: combined40.40FPS/24.76ms; runs40.38/40.42/40.39FPS,
+matching688 frames195..882. World11.62/11.61/11.60ms, entities7.38/7.37/7.38ms.
+Against10740.27FPS/24.83ms/world11.57ms, frame improves0.07ms but World grows
+about0.04ms; no convincing speed improvement established. Explicit visual acceptance
+not supplied. Added111 diagnostic counters to determine actual fast-path coverage.
 
 ## Alpha.109 World Geometry breakdown (runtime results received)
 

@@ -140,7 +140,11 @@ int main() {
     reads = ps2::timing::reads;
     { WorldDetailScope outside(s_worldProfile, WorldProfile::Clip); }
     assert(ps2::timing::reads == reads);
+    s_worldProfile.RecordCachedTriangle(true,true);
+    assert(s_worldProfile.cachedTriangles==0 && s_worldProfile.earlyRejects==0);
     s_worldProfile = {};
+    s_worldProfile.RecordCachedTriangle(true,true);
+    assert(s_worldProfile.cachedTriangles==0 && s_worldProfile.earlyRejects==0);
     {
         WorldScope disabled(s_worldProfile, WorldProfile::Geometry);
         WorldDetailScope detail(s_worldProfile, WorldProfile::Preparation);

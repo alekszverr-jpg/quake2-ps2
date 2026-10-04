@@ -12,6 +12,14 @@ struct WorldProfile {
     Detail activeDetail = DetailCount;
     long long detailTicks[DetailCount] = {}, detailChildren[DetailCount] = {};
     int nodes = 0, surfaces = 0, triangles = 0, batches = 0;
+    int cachedTriangles = 0, unlitTriangles = 0, earlyRejects = 0;
+    void RecordCachedTriangle(bool unlit, bool rejected) {
+        if (enabled && activePhase == Geometry) {
+            ++cachedTriangles;
+            if (unlit) ++unlitTriangles;
+            if (rejected) ++earlyRejects;
+        }
+    }
     int Micros(Phase phase) const {
         const long long value = ticks[phase] - nestedSubmit[phase];
         return static_cast<int>((value > 0 ? value : 0) * 1000000LL / CLOCKS_PER_SEC);

@@ -244,16 +244,23 @@ int main() {
         const int drawn=trisDrawn, culled=trisCulled, clipped=trisClipped;
         earlyRejected+=culled;
         Reset(); BeginWorldClipCache();
+        s_worldProfile = {}; s_worldProfile.enabled = true;
+        s_worldProfile.activePhase = WorldProfile::Geometry;
         EmitCachedWorld(vertices,60,matrix,texture,scroll);
         FlushScratch(matrix,texture);
         assert(trisDrawn==drawn && trisCulled==culled && trisClipped==clipped);
         assert(batches==expectedBatches && emitted.size()==expected.size());
         assert(std::memcmp(emitted.data(),expected.data(),emitted.size()*sizeof(vu1::DrawVertex))==0);
+        assert(s_worldProfile.cachedTriangles==20 && s_worldProfile.unlitTriangles==20);
+        assert(s_worldProfile.earlyRejects==culled);
         // Active-light triangles still reach the original subdivision entry,
         // including triangles rejected by the common-plane test.
         Reset(); BeginWorldClipCache(); s_surfaceLightMask=1; dynamicCalls=0;
+        s_worldProfile = {}; s_worldProfile.enabled = true;
+        s_worldProfile.activePhase = WorldProfile::Geometry;
         EmitCachedWorld(vertices,60,matrix,texture,scroll);
         assert(dynamicCalls==20);
+        assert(s_worldProfile.cachedTriangles==20 && s_worldProfile.unlitTriangles==0 && s_worldProfile.earlyRejects==0);
     }
     assert(earlyRejected>600);
     std::puts("12000 cached BSP triangles match generic clipping/output/batches; active-light dispatch preserved PASS");
