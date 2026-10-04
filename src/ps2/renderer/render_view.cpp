@@ -2795,11 +2795,26 @@ inline void SubmitOpaqueAliasTriangle(const dtriangle_t & triangle, const dstver
 // Transform shared MD2 positions once, preserving the exact guard/epsilon tests.
 void PrepareAliasClipData(int vertexCount, const math::Mat4 & mvp)
 {
+    PS2_Assert(vertexCount >= 0 && vertexCount <= MAX_VERTS);
+    static_assert(sizeof(PreparedAliasVertex) % 16 == 0 && sizeof(AliasClipData) % 16 == 0,
+                  "VU batch records require aligned strides");
+    // Temporarily use the first qword of each existing clip record for the
+    // transformed position. The arrays are disjoint, aligned and fixed-stride.
+    math::TransformStrided(s_preparedAliasVerts, sizeof(PreparedAliasVertex),
+                          s_aliasClipData, sizeof(AliasClipData), vertexCount, mvp);
     for (int i = 0; i < vertexCount; ++i) {
         const PreparedAliasVertex & vertex = s_preparedAliasVerts[i];
         AliasClipData & out = s_aliasClipData[i];
         ClipDists distances;
-        SetClipDistances(distances, vertex.pos, mvp);
+        math::Vec4 clip;
+        std::memcpy(&clip, out.distances, sizeof(clip));
+        const float gw = vu1::kGuardBandNdcLimit * clip.w;
+        distances.f[0] = (clip.w - clip.z) - kClipEpsilon;
+        distances.f[1] = (clip.w + clip.z) - kClipEpsilon;
+        distances.f[2] = (gw - clip.x) - kClipEpsilon;
+        distances.f[3] = (gw + clip.x) - kClipEpsilon;
+        distances.f[4] = (gw - clip.y) - kClipEpsilon;
+        distances.f[5] = (gw + clip.y) - kClipEpsilon;
         out.outsideMask = 0;
         for (int p = 0; p < kNumClipPlanes; ++p) {
             out.distances[p] = distances.f[p];

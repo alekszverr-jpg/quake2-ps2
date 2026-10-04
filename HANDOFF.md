@@ -27,7 +27,29 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.120 distant static-light quality (runtime pending)
+## Alpha.121 batched VU0 MD2 transforms (build pending)
+
+vec_mat.h TransformStrided loads matrix vf4..7 once, loops aligned source/dest
+records; same vmulax/vmadday/vmaddaz/vmaddw sequence as Transform(Vec4). EE loop
+pointer/count updates with explicit delay-slot nop and .set noreorder push/pop;
+early-clobber pointer/count constraints, memory clobber. No calls inside asm.
+PrepareAliasClipData writes temp Vec4 to first qword of each existing32byte
+AliasClipData, then reads that position and writes old exact6distance/mask/color
+fields. Arrays disjoint/aligned; strides sizeof PreparedAliasVertex/AliasClipData;
+bound/assert and16byte stride checks. No new persistent scratch memory. Opaque
+MD2 that skips clip preparation stays unchanged; animation/UV/light paths unchanged.
+Host math stub verifies actual preparation and32koutput/batches plus0/1/3/31/32/33/
+MAX counts, sentinel write bounds, exact distance/mask/colour records. Host does
+NOT execute new VU assembly; console visuals and ordinary120vs121 bench required.
+Preserve120 baseline ELF separately, run both with far light reduced and same
+other settings. Need gameplay weapons/enemies/shell/translucent/edge clipping.
+
+## Alpha.120 distant static-light quality (runtime results, preliminary visuals)
+
+User full39.73/39.69/39.72FPS combined39.71FPS/25.18ms; reduced41.86/41.92/41.87FPS,
+combined41.88FPS/23.88ms. Matching688frames195..882, +5.5%FPS/-1.30ms. User noticed
+no artifacts at first glance; sustained visual validation remains pending. Keep
+full default, reduced optional; compare121 with reduced consistently on both ELFs.
 
 CI37197280659 passed all host sanitizer tests (including new actual subdivision
 release/PROFILE tests), map validation and PROFILE build. Installed7,927,024-byte

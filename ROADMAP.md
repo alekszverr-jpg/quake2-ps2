@@ -150,7 +150,8 @@ play on a retail console.
 - [x] Empty nested timer reference (Alpha.117;6.66us/trial, residual~4.00us vs real~5.20us)
 - [x] Separate Planes/Emit root sampling (Alpha.118; balanced~31.25 roots/category/frame;3.04/2.60us, empty1.32us)
 - [ ] Fixed six-plane mask classification (Alpha.119 did not improve:39.74vs11839.83FPS; reverted120)
-- [~] Distant static-light subdivision quality toggle (Alpha.120; full default,512/384 hysteresis; full/reduced speed and visual comparison pending)
+- [~] Distant static-light quality toggle (Alpha.120; full39.71 vs reduced41.88FPS, preliminary visual acceptance; full default,512/384 hysteresis)
+- [~] Batched VU0 MD2 clipping transforms with one matrix load/model (Alpha.121; host stub tests; console visual/performance pending)
 - [~] Validate long sessions for EE RAM, IOP RAM and VRAM leaks
 - [ ] Target a stable 30 FPS minimum, with 60 FPS where practical
 

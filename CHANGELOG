@@ -6,6 +6,18 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.121 - 2026-10-04 (local test build)
+
+- Batch shared MD2 clipping transforms on VU0 with one matrix load for the whole
+  vertex array, retaining per-point MAC order. Use first qword of existing alias
+  clip records as temporary output; no extra scratch allocation. Animation,
+  light colour, clipping decisions and draw ordering remain unchanged.
+- Test zero/odd/max strided counts and write bounds, mask/distance/colour records
+  and full output/batch equivalence using host VU stub. Actual assembly builds
+  through PROFILE CI; runtime VU/visual and paired speed validation pending.
+- Alpha.120 user: full39.71FPS/25.18ms, reduced41.88FPS/23.88ms (+5.5%FPS,
+  -1.30ms/frame), matching688 frames; no artifacts noticed at first glance.
+
 ## 0.1.0-alpha.120 - 2026-10-04 (local test build)
 
 - Add live VIDEO far light detail full/reduced, archived and default full.

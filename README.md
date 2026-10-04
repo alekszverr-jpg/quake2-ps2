@@ -1,7 +1,7 @@
 # Quake II for PlayStation 2
 
 [![Build](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml/badge.svg)](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml)
-[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.120-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
+[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.121-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](LICENSE)
 
 An active continuation of the unofficial Quake II port for the Sony
@@ -326,6 +326,15 @@ and remaining control work. These exclusive categories sum to Clip/emit on the
 Geometry page. They include the opaque-world seal clip/emission path, but exclude
 sky, brush entities and MD2; seal corner transforms stay in Seal prep.
 Additional timers perturb these results. Use the ordinary benchmark for speed.
+
+Alpha.121 batches the MD2 clipping-position transforms on VU0: one matrix load
+per model preparation instead of per vertex, preserving the Transform(Vec4) MAC
+order. Aligned strided inputs write temporary clip positions into the existing
+64KiB alias clip buffer, then normal distance/mask/colour preparation overwrites
+those records. No additional scratch array. Host tests use a VU stub; actual VU
+execution/visual correctness and paired120vs121 speed remain console checks.
+Alpha.120 full39.71FPS/25.18ms vs reduced41.88FPS/23.88ms (+5.5%FPS); user noticed
+no artifacts at first glance. Keep reduced consistently for paired MD2 tests.
 
 Alpha.119 fixed mask classification did not improve speed:118 measured39.83FPS,
 119 measured39.74FPS. Alpha.120 restores the118 classification loop.

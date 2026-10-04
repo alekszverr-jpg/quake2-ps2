@@ -22,6 +22,20 @@ Vec4 Transform(const Vec4 & v, const Mat4 & m) {
     ++transforms;
     return {v.x + m.offset, v.y - m.offset, v.z, v.w + v.z * 0.6f};
 }
+static int batchCalls, matrixLoads;
+void TransformStrided(const void * source,int sourceStride,void * destination,
+                      int destinationStride,int count,const Mat4 & matrix) {
+    if (count<=0) return;
+    ++batchCalls; ++matrixLoads;
+    const auto * input=static_cast<const unsigned char *>(source);
+    auto * output=static_cast<unsigned char *>(destination);
+    for (int i=0;i<count;++i) {
+        Vec4 position; std::memcpy(&position,input,sizeof(position));
+        const auto result=Transform(position,matrix);
+        std::memcpy(output,&result,sizeof(result));
+        input+=sourceStride; output+=destinationStride;
+    }
+}
 void LerpTo(Vec4 & o, const Vec4 & a, const Vec4 & b, float t) {
     o = {a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t,a.z+(b.z-a.z)*t,a.w+(b.w-a.w)*t};
 }
@@ -124,7 +138,9 @@ int main() {
         const int drawn=trisDrawn, culled=trisCulled, clipped=trisClipped;
         drawnCases+=drawn; culledCases+=culled; clippedCases+=clipped;
         Reset(); transforms=0;
+        const int beforeBatch=math::batchCalls, beforeMatrices=math::matrixLoads;
         PrepareAliasClipData(32,matrix);
+        assert(math::batchCalls==beforeBatch+1 && math::matrixLoads==beforeMatrices+1);
         PrepareAliasTexCoords(st,stCount,1.0f/128.0f,1.0f/64.0f,shell);
         assert(transforms == 32);
         for (const auto & triangle : triangles)
@@ -179,6 +195,31 @@ int main() {
     PrepareAliasClipData(MAX_VERTS,math::Mat4{0.0f});
     PrepareAliasClipData(MAX_VERTS,math::Mat4{1.0f});
     assert(sizeof(s_aliasClipData) == 65536);
+    for (int count:{0,1,3,31,32,33,MAX_VERTS}) {
+        for (int i=0;i<count;++i) {
+            s_preparedAliasVerts[i].pos={position(random),position(random),position(random),1};
+            s_preparedAliasVerts[i].color={64,96,128,128};
+        }
+        std::memset(s_aliasClipData,0xA5,sizeof(s_aliasClipData));
+        const int beforeBatches=math::batchCalls;
+        const math::Mat4 matrix={0.25f};
+        PrepareAliasClipData(count,matrix);
+        assert(math::batchCalls==beforeBatches+(count>0));
+        for (int i=0;i<count;++i) {
+            ClipDists reference;
+            SetClipDistances(reference,s_preparedAliasVerts[i].pos,matrix);
+            assert(std::memcmp(s_aliasClipData[i].distances,reference.f,6*sizeof(float))==0);
+            u32 mask=0;
+            for (int p=0;p<6;++p) if (!(reference.f[p]>=0.0f)) mask|=1u<<p;
+            assert(s_aliasClipData[i].outsideMask==mask);
+            assert(s_aliasClipData[i].packedColor==PackFloatColor(s_preparedAliasVerts[i].color));
+        }
+        if (count<MAX_VERTS) {
+            unsigned char untouched[sizeof(AliasClipData)]; std::memset(untouched,0xA5,sizeof(untouched));
+            assert(std::memcmp(&s_aliasClipData[count],untouched,sizeof(untouched))==0);
+        }
+    }
+    puts("Strided MD2 preparation: zero/odd/max counts, full records and write bounds PASS (host VU stub)");
     // World/brush MVP contexts invalidate exact shared positions without
     // retaining colour or texture state. Hash collisions must recompute.
     int reuseHits = 0;

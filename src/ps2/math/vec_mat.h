@@ -153,6 +153,38 @@ inline Vec4 Transform(const Vec4 & v, const Mat4 & m)
     return result;
 }
 
+// Transform aligned strided Vec4 records with one matrix load for the whole
+// batch. Same VU MAC order as Transform(Vec4); caller supplies disjoint arrays.
+inline void TransformStrided(const void * source, int sourceStride, void * destination,
+                             int destinationStride, int count, const Mat4 & matrix)
+{
+    if (count <= 0) return;
+    asm volatile (
+        ".set push                 \n\t"
+        ".set noreorder            \n\t"
+        "lqc2 $vf4, 0x00(%5)       \n\t"
+        "lqc2 $vf5, 0x10(%5)       \n\t"
+        "lqc2 $vf6, 0x20(%5)       \n\t"
+        "lqc2 $vf7, 0x30(%5)       \n\t"
+        "1:                        \n\t"
+        "lqc2 $vf8, 0x00(%0)       \n\t"
+        "vmulax $ACC, $vf4, $vf8   \n\t"
+        "vmadday $ACC, $vf5, $vf8   \n\t"
+        "vmaddaz $ACC, $vf6, $vf8   \n\t"
+        "vmaddw $vf9, $vf7, $vf8   \n\t"
+        "sqc2 $vf9, 0x00(%1)       \n\t"
+        "addu %0, %0, %3           \n\t"
+        "addu %1, %1, %4           \n\t"
+        "addiu %2, %2, -1          \n\t"
+        "bgtz %2, 1b               \n\t"
+        "nop                       \n\t"
+        ".set pop                  \n\t"
+        : "+&r" (source), "+&r" (destination), "+&r" (count)
+        : "r" (sourceStride), "r" (destinationStride), "r" (&matrix)
+        : "memory"
+    );
+}
+
 // Component-wise linear interpolation: out = a + t * (b - a), with the multiply and
 // the add fused into one VU multiply-accumulate. Exact at both ends: t = 0 gives a.
 // Writes through 'out', which may alias 'a' or 'b' (both are loaded up front).
