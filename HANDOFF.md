@@ -8,26 +8,30 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.116 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.117 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.116` (PROFILE CI and host tests passed; sampled diagnostics pending; Alpha.115 dense clocks strongly perturb results; Alpha.114 recovery40.33FPS/World11.64ms; Alpha.113 experiment reverted; Alpha.103 weapon/UI and supported TV modes accepted; 480p hardware unverified)
-- Current implementation commit: `895c312`
-  (`Sample BSP diagnostic root operations and report per-sample costs`); CI submodule fix `b344f3e` retained.
+- Current source/test version: `0.1.0-alpha.117` (PROFILE CI and host tests passed; empty timer reference runtime pending; Alpha.116 sampling stable; Alpha.114 recovery40.33FPS/World11.64ms; Alpha.113 experiment reverted; Alpha.103 weapon/UI and supported TV modes accepted; 480p hardware unverified)
+- Current implementation commit: `5501306`
+  (`Add separate empty nested world timer reference`); CI submodule fix `b344f3e` retained.
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.116 local PROFILE ELF SHA-256 (7,903,480 bytes):
-  `9D947CEB120C0652FA3352A1A04298699247396C97EA7C89A0997A0B51CF15D9`
-- CI `37184029848` passed all host sanitizer tests, map validation and PROFILE build for `895c312`.
+- Alpha.117 local PROFILE ELF SHA-256 (7,909,764 bytes):
+  `661BC249454F52A226F0333150AAFCD656904066D0A3A383382D79F9B9CAFF91`
+- CI `37184632653` passed all host sanitizer tests, map validation and PROFILE build for `5501306`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.117 empty nested timer reference (build pending)
+## Alpha.117 empty nested timer reference (runtime pending)
+
+CI37184632653 passed all host sanitizer tests, map validation and PROFILE build.
+Installed7,909,764-byte ELF in both roots; hashes match downloaded artifact and
+embedded117 version verified. No new release made.
 
 Separate local WorldProfile runs64 selected empty roots after RenderViewBlend.
 Each nests Clip > Planes with explicit Stop, then Emit, using production scopes.
