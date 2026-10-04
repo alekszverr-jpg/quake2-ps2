@@ -8,26 +8,26 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.110 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.111 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.110` (PROFILE CI and host tests passed; BSP reject performance/visual checks pending; Alpha.109 Geometry measured; Alpha.107 performance measured, explicit visual acceptance pending; Alpha.105 clipping accepted; Alpha.103 weapon/UI and supported TV modes accepted; 480p hardware unverified)
-- Current implementation commit: `15d5c90`
-  (`Reject cached BSP triangles before clipping record expansion`); CI submodule fix `b344f3e` retained.
+- Current source/test version: `0.1.0-alpha.111` (PROFILE CI and host tests passed; BSP rejection coverage pending; Alpha.110 normal measurements show no clear World gain, visual acceptance pending; Alpha.105 clipping accepted; Alpha.103 weapon/UI and supported TV modes accepted; 480p hardware unverified)
+- Current implementation commit: `945883f`
+  (`Measure cached BSP early rejection coverage`); CI submodule fix `b344f3e` retained.
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.110 local PROFILE ELF SHA-256 (7,879,044 bytes):
-  `0A7201AAABCEEB6103C81D25D7639C61D58FF4F7D6C630C170EA873A00D47D7F`
-- CI `37179913081` passed all host sanitizer tests, map validation and PROFILE build for `15d5c90`.
+- Alpha.111 local PROFILE ELF SHA-256 (7,886,104 bytes):
+  `39C5F45C608BE8FEA20CB56CFD5ABB5E9AE2F69E50062DA5650B4330078D046D`
+- CI `37180368579` passed all host sanitizer tests, map validation and PROFILE build for `945883f`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.111 early-reject coverage counters (build pending)
+## Alpha.111 early-reject coverage counters (runtime pending)
 
 Same GAME world profile3runs, now5 pages. Right four times opens BSP early reject
 coverage. RecordCachedTriangle counts only enabled Geometry context: all cached
@@ -37,6 +37,9 @@ diagnostic settings/restoration unchanged. Ratios use aggregated counts (not an
 average of per-frame ratios), with0 for empty denominators. Native240p fifth page
 and production cached loop counter accuracy covered by tests. This adds diagnostic
 counts only, no new rejection policy. Next: screenshot of coverage page.
+CI37180368579 passed all sanitizer tests, map validation and PROFILE build.
+Installed7,886,104-byte ELF in both roots; hashes match downloaded artifact
+and embedded111 version verified. No new release made.
 
 ## Alpha.110 cached BSP common-plane reject (runtime results received)
 
