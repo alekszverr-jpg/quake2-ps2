@@ -8,26 +8,33 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.120 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.121 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.120` (PROFILE CI and host tests passed; distant light full/reduced speed/visual validation pending; Alpha.119 mask experiment reverted; Alpha.118 categories stable/balanced; Alpha.114 recovery40.33FPS/World11.64ms; Alpha.113 experiment reverted; Alpha.103 weapon/UI and supported TV modes accepted; 480p hardware unverified)
-- Current implementation commit: `667d712`
-  (`Add experimental distant static-light subdivision quality toggle`); CI submodule fix `b344f3e` retained.
+- Current source/test version: `0.1.0-alpha.121` (PROFILE CI and host tests passed; batched VU0 MD2 runtime/visual/speed pending; Alpha.120 reduced+5.5%FPS/preliminary visuals accepted; Alpha.119 mask experiment reverted; Alpha.113 experiment reverted; Alpha.103 weapon/UI and supported TV modes accepted; 480p hardware unverified)
+- Current implementation commit: `4a5afc8`
+  (`Batch MD2 clipping transforms with one VU0 matrix load`); CI submodule fix `b344f3e` retained.
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.120 local PROFILE ELF SHA-256 (7,927,024 bytes):
-  `965DF32EF3351C726A2D06AF27C27A923AA3FDB33FD8CFC75681D8553571CD54`
-- CI `37197280659` passed all host sanitizer tests, map validation and PROFILE build for `667d712`.
+- Alpha.121 local PROFILE ELF SHA-256 (7,928,656 bytes):
+  `4D0F5DCD89718A119DC8F9A779468370F30FAC2A493D4F43859B992CD9C100CC`
+- CI `37198330720` passed all host sanitizer tests, map validation and PROFILE build for `4a5afc8`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.121 batched VU0 MD2 transforms (build pending)
+## Alpha.121 batched VU0 MD2 transforms (runtime pending)
+
+CI37198330720 passed all host sanitizer tests, map validation and PROFILE build.
+Installed7,928,656-byte ELF in both roots; hashes match build/ci-4a5afc8-profile
+artifact and embedded121 verified. Saved120 baseline to Documents project as
+quake2-alpha120-baseline.elf, SHA256965DF32EF3351C726A2D06AF27C27A923AA3FDB33FD8CFC75681D8553571CD54.
+No release made. Next user: normalbench on120and121 both reduced; visuals checking
+weapon/enemy geometry and edge clipping. Actual VU runtime not verified yet.
 
 vec_mat.h TransformStrided loads matrix vf4..7 once, loops aligned source/dest
 records; same vmulax/vmadday/vmaddaz/vmaddw sequence as Transform(Vec4). EE loop
