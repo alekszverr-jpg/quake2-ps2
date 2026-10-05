@@ -13,7 +13,7 @@ before changing renderer, audio or memory-management code.
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.124` (cross-surface clip cache CI/host tests passed, ELF installed; paired +0.6%FPS, visuals pending; Alpha.123 +0.5%FPS/visuals accepted; both quality defaults full; Alpha.119/113 experiments reverted; 480p hardware unverified)
+- Current source/test version: `0.1.0-alpha.124` (cross-surface clip cache CI/host tests passed, ELF installed; paired +0.6%FPS, visuals accepted; Alpha.123 +0.5%FPS/visuals accepted; both quality defaults full; Alpha.119/113 experiments reverted; 480p hardware unverified)
 - Current implementation commit: `ca8b5ec`
   (`Reuse BSP clip cache across surfaces with one MVP`); CI submodule fix `b344f3e` retained.
 - Current published release:
@@ -27,14 +27,14 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.124 cross-surface clip-cache lifetime (runtime results, visuals pending)
+## Alpha.124 cross-surface clip-cache lifetime (runtime results, visuals accepted)
 
 User paired ordinary benchmark with both quality toggles reduced:
 Alpha.123 42.52/42.52/42.55FPS, combined42.53FPS/23.51ms;
 Alpha.124 42.79/42.80/42.75FPS, combined42.78FPS/23.38ms.
 Matching688frames195..882 per run; about+0.6%FPS, -0.13ms/frame.
-All three124runs exceed all three123runs in this pair. Visual acceptance has
-not been reported yet; check moving doors, walls and seams before accepting.
+All three124runs exceed all three123runs in this pair. User confirms the visual
+check appears normal. Retain the optimization; broader map/session checks remain.
 
 CI37267411462 passed all host sanitizer tests, map validation and PROFILE build.
 Installed7,933,684-byte ELF in both roots; all hashes match downloaded
@@ -54,7 +54,7 @@ tests pass: compare old per-poly vs per-chain emitted bytes/batches/counts acros
 100 changing MVP contexts, different textures/colours/scroll; existing12000cache
 and12000emission/32000MD2/3500seal cases retained. Extraction checks ensure the
 reset is before chain traversal and absent from per-poly gathering/seal cache.
-Paired speed result received above; visual check pending. Preserve123baseline
+Paired speed and user visual acceptance received above. Preserve123baseline
 separately. This small measured gain does not guarantee improvement on all maps.
 
 ## Alpha.123 retained BSP seal corner indices (runtime results, visuals accepted)
