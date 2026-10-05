@@ -29,6 +29,25 @@ checkpoint does not advance `VERSION`.
 
 ## New heavy-point capture (2026-10-06; location/conditions not yet specified)
 
+User supplied same-point full overlay and reports Free VRAM constantly varying.
+User clarified no sky is visible here: Sky0 is expected, not retention evidence.
+DRAW STATS: World44780us, Ent2667us, Setup284us, Part97us,3D47826us;
+VUwait59us, TexDMA267us, VRAMwait145us. Nodes695,Surfs413,Tris3272,
+Batches64, VUvert9666. LitHit0,LitBuild1166,LitColor0,LitKB1533,
+LitStep17,LitErr8,LitFine846. This frame strongly points to EE world work.
+Allocator inspection: retained BSP lighting budget1536KiB,16chunks96KiB,
+append-only until map/sky/cache reset; full cap refuses new allocation. Gather
+still recursively builds uncached triangles into static scratch each frame and
+does not retain them. Near-full1533KiB with zerohits/1166builds is consistent
+with old-view cache occupying budget and current-view rebuilds; a single frame
+cannot establish persistence. Confirm LitHit/Build after standing several seconds.
+Free VRAM is sum of unowned GS blocks, changing as blocks split/evict/coalesce;
+not EE lighting-cache space, not proof of a leak. Next likely optimization:
+bounded reclamation/replacement of inactive lighting cache, preserving current
+frame references/seal keys and1.5MiB cap. Do not just increase budget or globally
+clear cache every frame; visible working set may itself exceed cap. Need measured
+build/hit rates and matched World timing before implementing that policy.
+
 User sent another heavy gameplay capture after127.168frames/10.01s,
 average59.58ms/max67ms (~16.8FPS); all168frames>33ms,100frames>50ms.
 E/R/S23.7/23.7/7.1. DMA/reusewait0.21/0.21ms. Types N/R/pixelKiB perframe:
