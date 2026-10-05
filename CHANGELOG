@@ -6,6 +6,14 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.124 - 2026-10-05 (local test build)
+
+- Keep the exact-position BSP clipping cache valid across surfaces and textures
+  in one DrawTextureChains call. Invalidate at each world/inline-brush draw;
+  biased crack seals do not use this cache. No extra storage or quality change.
+- Compare output, colours, flowing UVs and batches against the previous
+  per-polygon lifetime across100 changing MVP contexts. Console gain pending.
+
 ## 0.1.0-alpha.123 - 2026-10-04 (local test build)
 
 - Cache first matching source-corner indices during retained BSP topology builds.

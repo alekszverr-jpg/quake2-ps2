@@ -272,6 +272,36 @@ int main() {
     }
     std::puts("512 non-finite/signed-zero/epsilon cache inputs preserve mask and distance bits PASS");
     std::puts("12000 world/brush clip-cache results match direct transforms; context and epoch wrap PASS");
+    // Compare the old per-polygon lifetime with the new per-chain lifetime.
+    // Repeated geometry belongs to different surfaces/textures with different
+    // UVs/colours; changing MVP at each context must still force fresh results.
+    for (int context=0;context<100;++context) {
+        const math::Mat4 matrix={context*0.03f};
+        tex::Texture textures[2];
+        CachedLitVertex vertices[6] = {
+            {-0.5f,-0.5f,0,0x80706050,0,0}, {0.5f,-0.5f,0,0x80706050,1,0},
+            {0.5f,0.5f,0,0x80706050,1,1}, {-0.5f,-0.5f,0,0x80403020,2,2},
+            {0.5f,0.5f,0,0x80403020,3,3}, {-0.5f,0.5f,0,0x80403020,2,3}};
+        Reset(); s_surfaceLightMask=0;
+        for (int poly=0;poly<2;++poly) {
+            BeginWorldClipCache();
+            EmitCachedWorld(vertices,6,matrix,textures[poly],poly*0.25f);
+            FlushScratch(matrix,textures[poly]);
+        }
+        const auto expected=emitted;
+        const auto expectedBatches=batches;
+        const int drawn=trisDrawn, culled=trisCulled, clipped=trisClipped;
+        Reset(); s_surfaceLightMask=0; BeginWorldClipCache();
+        for (int poly=0;poly<2;++poly) {
+            EmitCachedWorld(vertices,6,matrix,textures[poly],poly*0.25f);
+            FlushScratch(matrix,textures[poly]);
+        }
+        assert(trisDrawn==drawn && trisCulled==culled && trisClipped==clipped);
+        assert(batches==expectedBatches && emitted.size()==expected.size());
+        if (!emitted.empty())
+            assert(std::memcmp(emitted.data(),expected.data(),emitted.size()*sizeof(vu1::DrawVertex))==0);
+    }
+    std::puts("Cross-surface clip reuse: 100 changing MVP contexts preserve output, UVs, colours and batches PASS");
     int earlyRejected = 0;
     for (int scenario=0; scenario<600; ++scenario) {
         CachedLitVertex vertices[60];

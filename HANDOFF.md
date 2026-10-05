@@ -8,12 +8,12 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.123 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.124 prepared for fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.123` (PROFILE CI and host tests passed; retained seal corners +0.5%FPS/visuals accepted; Alpha.122 flash+0.8%FPS/visuals accepted; Alpha.121 MD2+0.4%FPS/preliminary visuals accepted; Alpha.120 reduced+5.5%FPS/preliminary visuals accepted; Alpha.119/113 experiments reverted; Alpha.103 weapon/UI and supported TV modes accepted; 480p hardware unverified)
+- Current source/test version: `0.1.0-alpha.124` (cross-surface clip cache local tests passed; CI/install and runtime pending; Alpha.123 +0.5%FPS/visuals accepted; both quality defaults full; Alpha.119/113 experiments reverted; 480p hardware unverified)
 - Current implementation commit: `3d35706`
   (`Retain BSP seal corner indices with lighting topology`); CI submodule fix `b344f3e` retained.
 - Current published release:
@@ -26,6 +26,22 @@ before changing renderer, audio or memory-management code.
 
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
+
+## Alpha.124 cross-surface clip-cache lifetime (CI/runtime pending)
+
+Move BeginWorldClipCache from GatherPolyTriangles to the start of
+DrawTextureChains. All ordinary cached BSP vertices in this call use exactly
+the supplied MVP, including across different surfaces/textures. Each world or
+inline-brush draw starts a fresh epoch; no cross-frame or cross-MVP reuse.
+Biased seal geometry uses SetClipDistances directly and does not touch this
+cache. Collision replacement/exact xyz bits/NaN masks/epoch wrap unchanged.
+No extra storage, geometry or quality changes. Local alias_clip and seal_corners
+tests pass: compare old per-poly vs per-chain emitted bytes/batches/counts across
+100 changing MVP contexts, different textures/colours/scroll; existing12000cache
+and12000emission/32000MD2/3500seal cases retained. Extraction checks ensure the
+reset is before chain traversal and absent from per-poly gathering/seal cache.
+Build/install124, preserve123baseline, then compare ordinary bench with both
+quality toggles reduced and visually check moving doors, walls and seams.
 
 ## Alpha.123 retained BSP seal corner indices (runtime results, visuals accepted)
 

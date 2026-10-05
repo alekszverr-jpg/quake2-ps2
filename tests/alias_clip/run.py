@@ -12,6 +12,12 @@ def function(prefix):
     if not match: raise RuntimeError(prefix)
     return match.group(0)
 parts = []
+gather = function('void GatherPolyTriangles(')
+chains = function('void DrawTextureChains(')
+assert 'BeginWorldClipCache(' not in gather
+assert chains.count('BeginWorldClipCache();') == 1
+assert chains.index('BeginWorldClipCache();') < chains.index('for (int i = 0; i < s_chainTextureCount; ++i)')
+assert 'CachedWorldClipDistances(' not in function('void GatherPolyCrackSeals(')
 for prefix in ['union ClipDists', 'struct alignas(16) ClipVertex', 'struct alignas(16) AliasClipData', 'struct alignas(16) PreparedAliasVertex', 'struct AliasTexCoord', 'struct CachedLitVertex', 'struct WorldClipEntry']:
     parts.append(function(prefix) + ';')
 (out/'types.inc').write_text('\n'.join(parts))

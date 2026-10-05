@@ -869,7 +869,7 @@ struct CachedLitVertex
 static_assert(sizeof(CachedLitVertex) == 24,
               "CachedLitVertex must remain compact");
 
-// Shared subdivision positions within one polygon use the same MVP. Exact
+// Shared subdivision positions within one texture-chain draw use the same MVP. Exact
 // position bits prevent false reuse; collisions only replace an entry.
 struct WorldClipEntry
 {
@@ -1985,7 +1985,6 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
                          const math::Mat4 & mvp, const tex::Texture & texture,
                          const u32 topologyKey, const u32 colorKey)
 {
-    BeginWorldClipCache(); // Includes moving brushes; no reuse across MVPs.
     const u32 surfaceMask = s_surfaceLightMask;
     const float scroll = (surface.texInfo->flags & SURF_FLOWING) != 0
         ? effects::FlowingScroll(s_viewTime) : 0.0f;
@@ -2240,6 +2239,10 @@ void GatherPolyCrackSeals(const mod::ModelPoly & poly,
 void DrawTextureChains(const math::Mat4 & mvp, bool worldLightingPass = false)
 {
     s_worldLightingPass = worldLightingPass;
+    // Every ordinary polygon in this chain draw uses this exact MVP. Reuse
+    // shared positions across surfaces/textures, but invalidate for each world
+    // or inline-brush draw. The biased seal pass never accesses this cache.
+    BeginWorldClipCache();
     WorldDetailScope preparationTimer(s_worldProfile, WorldProfile::Preparation);
     // The world and each inline brush use different light coordinates. Keep
     // masks only across the ordinary/crack-seal passes in this one context.
