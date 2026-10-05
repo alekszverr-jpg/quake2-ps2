@@ -27,6 +27,43 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
+## New investigation: Base1 VRAM churn and console flood (no renderer change)
+
+User reports repeated VRAM evict/upload messages in a heavy Base1 location,
+including while console is closed (notify text appears at screen top). Screens
+show HUD Pics8KiB, wall WALs32/40KiB, infantry skin96KiB and conback96KiB replacing
+resident walls. Screens cannot establish per-frame rates or a precise repeated
+cycle, but source paths confirm evictions invalidate GS addresses only; EE
+texture pixels remain resident for later DMA upload. Not disk reload evidence.
+
+Findings: RetainSmallPic in vram.cpp protects only Pic blocks<=16KiB, recently
+used this/previous frame, bounded256KiB or quarterheap. Larger HUD images have
+no preference. World prefetch excludes current-frame residents, but can evict
+previous-frame HUD. Client cl_scrn.c draws world before stats/HUD, then pause,
+console and menu. Console conback adds96KiB when visible. Allocate can safely
+evict already-used blocks only through caller GS synchronization. Keep barriers.
+IsBetterVictim prefers retained UI before world planned-use order; widening UI
+retention can therefore increase world reloads. PCX/WAL already Palette8, so
+converting these fromRGBA32 is not an available saving. Two PSMCT32 colour
+buffers and Z16S also share the4MiB GS memory; texture heap is the remainder.
+
+Reproduced on host against production allocator (SDK/Texture stubs), constrained
+256KiB heap: HUD32KiB + futureworld224KiB resident, new8KiB demand/prefetch.
+Current16KiB policy evicts HUD, retains world; hypothetical32KiB threshold
+retains HUD, evicts224KiB world. Both demand and prefetch behave this way.
+This establishes the tradeoff, not Base1 frame cost or hardware safety/speed.
+Scratch study: build/vram-churn-study.py/.cpp, compiles copied actual allocator
+with original and hypothetical threshold; no tracked production change made.
+
+Com_DPrintf events are enabled by developer default1, call Com_Printf then
+Con_Print and Sys_ConsoleOutput(std::printf), so ongoing churn also floods
+notify text/system output. Suggested next step: separate opt-in VRAM event log
+from developer, retain aggregate stats and measure closed-console Base1
+uploads/reloads/bytes by Pic/Skin/Wall plus frame time. Existing full diagnostic
+overlay has E/R/S and UP TYPE N/R KB, but its font/UI can perturb residency;
+prefer bounded aggregate capture. Do not blindly widen retention or shrink
+framebuffers before measured evidence. Alpha.125 ELF/source unchanged.
+
 ## Alpha.125 256-slot clip cache (runtime results, visuals accepted)
 
 User paired ordinary benchmark, both quality toggles reduced:
