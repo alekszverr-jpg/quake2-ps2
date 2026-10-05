@@ -17,6 +17,9 @@ Development priorities and completion criteria are tracked in
   remain intact. Allocator tests cover survival, budget, expiry, UI priority and
   full-heap fallback. Compare Base1 capture Sky/Wall/Skin bytes and long frames
   against126; fewer sky reloads alone do not establish an overall improvement.
+- Two Base1 captures received: both33.37ms average/34ms maximum, no>50ms.
+  Sky payload0/20.5KiB perframe, total449.1/591.9KiB perframe; same-frame
+  evictions26.9/28.1. Capture labels and visual acceptance remain pending.
 
 ## 0.1.0-alpha.126 - 2026-10-05 (local test build)
 

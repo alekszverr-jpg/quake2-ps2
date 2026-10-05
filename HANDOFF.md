@@ -13,7 +13,7 @@ before changing renderer, audio or memory-management code.
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.127` (bounded active-sky VRAM retention experiment, CI/host tests passed, ELF installed; Base1 comparison pending;126 max34ms/no>50ms; quality defaults full; Alpha.119/113 reverted; 480p hardware unverified)
+- Current source/test version: `0.1.0-alpha.127` (bounded active-sky retention, CI/host tests passed, ELF installed; two Base1 captures received, labels/visual acceptance pending; sky0/20.5KiB perframe, both max34ms/no>50ms; quality defaults full; Alpha.119/113 reverted; 480p hardware unverified)
 - Current implementation commit: `77ec6c0`
   (`Try bounded retention of sky faces used this frame`); CI submodule fix `b344f3e` retained.
 - Current published release:
@@ -27,7 +27,22 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.127 bounded active-sky retention (CI passed, runtime pending)
+## Alpha.127 bounded active-sky retention (runtime captures received, acceptance pending)
+
+2026-10-06 user sent two captures; standing/turning order not explicitly labelled.
+Both300frames/10.01s, average33.37ms/max34ms,110frames>33ms,zero>50ms.
+Capture1: E/R/S40.9/40.9/26.9, DMA/reusewait0.37/0.34ms; type N/R/pixelKiB
+perframe Pic0.5/0.5/6.2, Skin6.4/6.4/285.2, Wall34.0/34.0/157.7, Sky0/0/0,
+Other/Sprite zero. Total449.1KiB/frame; worstR42/554.9KiB/reusewait0.35ms.
+Capture2: E/R/S42.6/42.6/28.1, DMA/reusewait0.41/0.44ms; Pic0.3/0.3/6.1,
+Skin6.6/6.6/289.7, Wall35.6/35.6/275.6, Sky0.2/0.2/20.5; Other/Sprite zero.
+Total591.9KiB/frame; worstR40/540.5KiB/reusewait0.31ms.
+Sky payload strongly reduced from126375-384KiB/frame. If1standing/2turning,
+total pixelpayload falls1410.3->449.1 (~68%) and676.4->591.9 (~12.5%);
+however turning average becomes33.37vs30.76ms, and same-frame evictions rise
+18.8->26.9/5.9->28.1. Sky-saving alone does not prove universal speed gain.
+Views/actors/conditions may differ; confirm capture labels and visuals before
+accepting. No new code/build requested by this screenshot report.126baseline kept.
 
 CI37337798096 passed all host sanitizer tests, map validation and PROFILE build.
 Installed7,954,992-byte ELF in both roots; hashes match downloaded
