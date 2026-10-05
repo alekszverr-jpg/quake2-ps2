@@ -155,7 +155,7 @@ play on a retail console.
 - [x] Distant dynamic-light quality toggle (Alpha.122; reduced42.38vs full42.05FPS, no visual problems reported)
 - [x] Retain BSP seal corner indices across frames (Alpha.123; exact old first-match/fallback, +4bytes/source triangle; paired42.52vs42.30FPS, visuals accepted)
 - [x] Reuse BSP clip results across surfaces within one MVP context (Alpha.124; no extra memory; paired42.78vs42.53FPS, visuals accepted)
-- [~] Try256-slot BSP clip cache (Alpha.125; +8KiB EE static memory; paired42.96vs42.77FPS, visual acceptance pending)
+- [x] Use256-slot BSP clip cache (Alpha.125; +8KiB EE static memory; paired42.96vs42.77FPS, visuals accepted)
 - [~] Validate long sessions for EE RAM, IOP RAM and VRAM leaks
 - [ ] Target a stable 30 FPS minimum, with 60 FPS where practical
 
