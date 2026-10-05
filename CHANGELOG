@@ -21,8 +21,10 @@ Development priorities and completion criteria are tracked in
   Host tests cover totals, freezing/rearming, interruptions, long hitches and
   timer wrap. First Base1 capture:300frames/10.01s,33.37ms average/34ms maximum,
   no frames>50ms. User reports FPS stabilized at30 after suppressing event spam.
-  Churn remains46.9reloads/frame, mainly Skin/Sky/Wall pixel payload; camera
-  motion unspecified, complementary capture pending.
+  Stationary capture remains46.9reloads/frame, mainly Skin/Sky/Wall pixel payload.
+  Camera-turning capture:326frames/10.03s,30.76ms average/34ms maximum, no>50ms;
+  38.1reloads/frame. Skin payload falls741.5->75.6KiB/frame while sky remains
+  near384->375.4KiB/frame; persistent sky reloads are the next investigation target.
 
 ## 0.1.0-alpha.125 - 2026-10-05 (local test build)
 

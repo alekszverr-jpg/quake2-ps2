@@ -13,7 +13,7 @@ before changing renderer, audio or memory-management code.
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.126` (bounded VRAM capture and default-off event log; CI/host tests passed, ELF installed; first Base1 capture stable30FPS, camera motion unspecified; Alpha.125 +0.44%FPS/visuals accepted; quality defaults full; Alpha.119/113 reverted; 480p hardware unverified)
+- Current source/test version: `0.1.0-alpha.126` (bounded VRAM capture and default-off event log; CI/host tests passed, ELF installed; Base1 standing/turning captures received, both max34ms/no>50ms; Alpha.125 +0.44%FPS/visuals accepted; quality defaults full; Alpha.119/113 reverted; 480p hardware unverified)
 - Current implementation commit: `4359b4a`, PS2 display conversion fix `d4d0dc7`
   (`Capture gameplay VRAM churn without per-texture log flood`); CI submodule fix `b344f3e` retained.
 - Current published release:
@@ -27,7 +27,7 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.126 bounded Base1 VRAM capture (first runtime result received)
+## Alpha.126 bounded Base1 VRAM capture (standing and turning results received)
 
 User reports FPS noticeably stabilized at30 after disabling event messages.
 Capture screenshot:300frames/10.01s, average33.37ms/max34ms,110frames>33ms,
@@ -40,12 +40,26 @@ DMA commands. Rounded displayed counters/types need not sum exactly.
 At1ms timer resolution,110samples of34ms alongside33ms are consistent with
 steady30FPS, not evidence of110hitches. Existing wait categories do not measure
 all texture-related CPU work and must not be treated as the entire VRAM cost.
-Camera stationary/rotating not specified; ask which, obtain complementary run.
+User confirmed the first capture was stationary.
 Retain default-off event logging. User comparison supports log overhead as a
 major instability contributor in this point, not proof that all churn is cheap.
 Churn still high: Skin ~53%payload, Sky ~27%, Wall ~20%, Pic negligible in this
 sample. Prioritize skin/sky residency and world plan interaction after second
 capture; this evidence does not justify HUD retention expansion as first fix.
+
+Complementary slow camera turning in same spot:326frames/10.03s,
+average30.76ms/max34ms,107frames>33ms,zero>50ms. E/R/S38.1/38.1/5.9;
+DMAwait0.45ms/reusewait0.30ms. Types N/R/pixelKiB perframe: Other0/0/0,
+Pic3.3/3.3/1.3, Skin2.4/2.4/75.6, Sprite0/0/0, Wall29.4/29.4/224.1,
+Sky2.9/2.9/375.4. Worst frame R37/663.0KiB/reusewait0.22ms.
+Payload676.4KiB/frame, about52%below stationary capture; skin payload drops
+about90%, sky stays near375-384KiB/frame. Both captures have no long frames;
+rotation does not demonstrate worse pacing in this scene. Visible scene/actor
+changes confound speed/skin differences, not a controlled skin-only benchmark.
+Sky all uploads reported as reloads (~3faces/frame) in both runs suggests a
+persistent residency/order problem worth inspecting next. Need inspect sky vs
+world plan and subsequent model allocations before choosing retention policy;
+do not pin sky blindly or claim VRAM thrash fully solved. Log-off retained.
 
 Initial CI37330340092 passed host tests but PS2 -Wconversion rejected implicit
 long-long->double display conversions. d4d0dc7 uses explicit casts and adds
@@ -72,8 +86,8 @@ hidden in menu. Menu select another mode then capture again rearms. Pixel KB
 excludes GS page padding/DMA commands. Wait categories must not be added blindly
 to frame time. No eviction/retention/format/barrier change yet.
 Host production aggregation/controller tests cover10s/freeze/rearm/interruption/
-long hitch/timerwrap and actual16-row panel bounds at320x224. Need complementary
-Base1 standing/rotating capture after identifying first sample. Do not reload selected
+long hitch/timerwrap and actual16-row panel bounds at320x224. Both Base1 captures
+received above. For future captures do not reload selected
 map from TEST MAP menu; leave back to existing game after choosing diagnostics.
 
 ## New investigation: Base1 VRAM churn and console flood (no renderer change)
