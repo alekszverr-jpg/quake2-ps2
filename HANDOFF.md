@@ -8,26 +8,35 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.124 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.125 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source version: `0.1.0-alpha.125` (256-slot clip cache experiment; CI/install pending; installed124 paired +0.6%FPS/visuals accepted; both quality defaults full; Alpha.119/113 experiments reverted; 480p hardware unverified)
-- Current implementation commit: `ca8b5ec`
-  (`Reuse BSP clip cache across surfaces with one MVP`); CI submodule fix `b344f3e` retained.
+- Current source/test version: `0.1.0-alpha.125` (256-slot clip cache CI/host tests passed, ELF installed; runtime pending; Alpha.124 paired +0.6%FPS/visuals accepted; both quality defaults full; Alpha.119/113 experiments reverted; 480p hardware unverified)
+- Current implementation commit: `1f8bed5`
+  (`Try 256 entries in the exact BSP clipping cache`); CI submodule fix `b344f3e` retained.
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.124 local PROFILE ELF SHA-256 (7,933,684 bytes):
-  `0E2E2BCF1EAB2D5EF55F8319953275236E9C17C8D75DA12C43CB6ACCA49D330B`
-- CI `37267411462` passed all host sanitizer tests, map validation and PROFILE build for `ca8b5ec`.
+- Alpha.125 local PROFILE ELF SHA-256 (7,933,756 bytes):
+  `0646605C8CF37E89BF2711427B77CB079AC54DC89D776EC7A6202543BDC446F7`
+- CI `37303253974` passed all host sanitizer tests, map validation and PROFILE build for `1f8bed5`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.125 256-slot clip cache experiment (CI/install/runtime pending)
+## Alpha.125 256-slot clip cache experiment (CI passed, runtime pending)
+
+CI37303253974 passed all host sanitizer tests, map validation and PROFILE build.
+Installed7,933,756-byte ELF in both roots; hashes match downloaded
+build/ci-1f8bed5-profile artifact, embedded125 verified. Saved verified124 as
+Documents project quake2-alpha124-baseline.elf,
+SHA2560E2E2BCF1EAB2D5EF55F8319953275236E9C17C8D75DA12C43CB6ACCA49D330B.
+No release made. Next paired ordinary bench125vs124 both quality toggles reduced;
+visually check walls, seams and moving doors. Additional8KiB in BSS is not
+reflected as8KiB of ELF file growth; memory tradeoff requires measured benefit.
 
 Double direct-mapped exact xyz clip cache from128 to256records,8->16KiB static
 EE memory. Same hash, six-plane classification, full distances and epoch/MVP
