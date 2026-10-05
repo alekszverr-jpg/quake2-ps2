@@ -13,7 +13,7 @@ menu=(root/'src/client/menu.c').read_text()
 assert '"capture vram 10s"' in menu and 'mode == 3 ? 1 : 0' in menu
 flags=[] if os.name=='nt' else ['-fsanitize=address,undefined']
 exe=out/('test.exe' if os.name=='nt' else 'test')
-subprocess.run(['g++','-std=c++17','-DPS2_PROFILE=1','-Wall','-Wextra','-Werror',*flags,
+subprocess.run(['g++','-std=c++17','-DPS2_PROFILE=1','-Wall','-Wextra','-Wconversion','-Werror',*flags,
     '-I'+str(root/'tests/vram/stubs'),'-I'+str(root/'src'),'-I'+str(out),
     str(root/'tests/vram_capture/test.cpp'),'-o',str(exe)],check=True)
 subprocess.run([str(exe)],check=True)

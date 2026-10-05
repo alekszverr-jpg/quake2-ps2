@@ -117,13 +117,13 @@ void DrawVramCaptureResult()
     std::snprintf(line,sizeof(line),"Frames %d / %.2fs",s_capture.frames,s_capture.elapsedMs/1000.0); row(line);
     std::snprintf(line,sizeof(line),"Frame avg/max %.2f/%d ms",s_capture.elapsedMs/n,s_capture.maxMs); row(line);
     std::snprintf(line,sizeof(line),">33ms %d / >50ms %d",s_capture.over33,s_capture.over50); row(line);
-    std::snprintf(line,sizeof(line),"E/R/S avg %.1f/%.1f/%.1f",s_capture.evictions/n,s_capture.reloads/n,s_capture.sameFrame/n); row(line);
-    std::snprintf(line,sizeof(line),"DMA wait / reuse wait %.2f/%.2f ms",s_capture.uploadMicros/n/1000.0,s_capture.stallMicros/n/1000.0); row(line);
+    std::snprintf(line,sizeof(line),"E/R/S avg %.1f/%.1f/%.1f",static_cast<double>(s_capture.evictions)/n,static_cast<double>(s_capture.reloads)/n,static_cast<double>(s_capture.sameFrame)/n); row(line);
+    std::snprintf(line,sizeof(line),"DMA wait / reuse wait %.2f/%.2f ms",static_cast<double>(s_capture.uploadMicros)/n/1000.0,static_cast<double>(s_capture.stallMicros)/n/1000.0); row(line);
     row("Type  uploads/reloads/KB per frame");
     const char * names[]={"Other","Pic","Skin","Sprite","Wall","Sky"};
     for(int i=0;i<6;++i) {
         const auto & t=s_capture.types[i];
-        std::snprintf(line,sizeof(line),"%-6s %5.1f/%5.1f/%7.1f",names[i],t.images/n,t.reloads/n,t.bytes/n/1024.0); row(line);
+        std::snprintf(line,sizeof(line),"%-6s %5.1f/%5.1f/%7.1f",names[i],static_cast<double>(t.images)/n,static_cast<double>(t.reloads)/n,static_cast<double>(t.bytes)/n/1024.0); row(line);
     }
     std::snprintf(line,sizeof(line),"Worst frame R %d / KB %.1f",s_capture.worstReloads,s_capture.worstBytes/1024.0); row(line);
     std::snprintf(line,sizeof(line),"Worst reuse wait %.2f ms",s_capture.worstStallMicros/1000.0); row(line);
