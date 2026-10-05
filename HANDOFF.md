@@ -13,7 +13,7 @@ before changing renderer, audio or memory-management code.
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.126` (bounded VRAM capture and default-off event log; CI/host tests passed, ELF installed; Base1 capture pending; Alpha.125 +0.44%FPS/visuals accepted; quality defaults full; Alpha.119/113 reverted; 480p hardware unverified)
+- Current source/test version: `0.1.0-alpha.126` (bounded VRAM capture and default-off event log; CI/host tests passed, ELF installed; first Base1 capture stable30FPS, camera motion unspecified; Alpha.125 +0.44%FPS/visuals accepted; quality defaults full; Alpha.119/113 reverted; 480p hardware unverified)
 - Current implementation commit: `4359b4a`, PS2 display conversion fix `d4d0dc7`
   (`Capture gameplay VRAM churn without per-texture log flood`); CI submodule fix `b344f3e` retained.
 - Current published release:
@@ -27,7 +27,25 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.126 bounded Base1 VRAM capture (CI passed, runtime pending)
+## Alpha.126 bounded Base1 VRAM capture (first runtime result received)
+
+User reports FPS noticeably stabilized at30 after disabling event messages.
+Capture screenshot:300frames/10.01s, average33.37ms/max34ms,110frames>33ms,
+zero>50ms. E/R/S average46.9/46.9/18.8. DMA wait0.60ms/reuse wait0.43ms.
+Per-frame type uploads/reloads/pixelKiB: Other0/0/0, Pic2.3/2.3/0.9,
+Skin5.6/5.6/741.5, Sprite0/0/0, Wall35.1/35.1/283.9, Sky3.0/3.0/384.0.
+Worst frame reloads54/pixelKiB944.7/reusewait0.51ms. Total average payload
+1410.3KiB/frame (~1.38MiB), about41.3MiB/s at30FPS; excludes VRAM padding,
+DMA commands. Rounded displayed counters/types need not sum exactly.
+At1ms timer resolution,110samples of34ms alongside33ms are consistent with
+steady30FPS, not evidence of110hitches. Existing wait categories do not measure
+all texture-related CPU work and must not be treated as the entire VRAM cost.
+Camera stationary/rotating not specified; ask which, obtain complementary run.
+Retain default-off event logging. User comparison supports log overhead as a
+major instability contributor in this point, not proof that all churn is cheap.
+Churn still high: Skin ~53%payload, Sky ~27%, Wall ~20%, Pic negligible in this
+sample. Prioritize skin/sky residency and world plan interaction after second
+capture; this evidence does not justify HUD retention expansion as first fix.
 
 Initial CI37330340092 passed host tests but PS2 -Wconversion rejected implicit
 long-long->double display conversions. d4d0dc7 uses explicit casts and adds
@@ -36,7 +54,7 @@ map validation and PROFILE build. Installed7,953,196-byte ELF in both roots;
 hashes match build/ci-d4d0dc7-profile artifact and embedded126 verified.
 Saved125baseline in Documents project quake2-alpha125-baseline.elf,
 SHA2560646605C8CF37E89BF2711427B77CB079AC54DC89D776EC7A6202543BDC446F7.
-No release made; gameplay benefit/panel readability await user console test.
+No release made; first panel screenshot received and stable30FPS reported above.
 
 ps2_vram_log default0 gates all3evict/upload Com_DPrintf sites independently of
 aggregate counters. TEST MAP diagnostics: off/fps/full/capture vram10s/vram
@@ -54,8 +72,8 @@ hidden in menu. Menu select another mode then capture again rearms. Pixel KB
 excludes GS page padding/DMA commands. Wait categories must not be added blindly
 to frame time. No eviction/retention/format/barrier change yet.
 Host production aggregation/controller tests cover10s/freeze/rearm/interruption/
-long hitch/timerwrap and actual16-row panel bounds at320x224. Need Base1 screenshots:
-one standing still in heavy spot, one rotating camera. Do not reload selected
+long hitch/timerwrap and actual16-row panel bounds at320x224. Need complementary
+Base1 standing/rotating capture after identifying first sample. Do not reload selected
 map from TEST MAP menu; leave back to existing game after choosing diagnostics.
 
 ## New investigation: Base1 VRAM churn and console flood (no renderer change)

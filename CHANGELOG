@@ -19,7 +19,10 @@ Development priorities and completion criteria are tracked in
   Results panel itself is excluded from measurement. Long hitches are retained.
 - Fixed-size aggregation with no heap allocations or per-frame event output.
   Host tests cover totals, freezing/rearming, interruptions, long hitches and
-  timer wrap. Base1 results and panel readability require console validation.
+  timer wrap. First Base1 capture:300frames/10.01s,33.37ms average/34ms maximum,
+  no frames>50ms. User reports FPS stabilized at30 after suppressing event spam.
+  Churn remains46.9reloads/frame, mainly Skin/Sky/Wall pixel payload; camera
+  motion unspecified, complementary capture pending.
 
 ## 0.1.0-alpha.125 - 2026-10-05 (local test build)
 
