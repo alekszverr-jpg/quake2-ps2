@@ -20,6 +20,9 @@ assert chains.index('BeginWorldClipCache();') < chains.index('for (int i = 0; i 
 assert 'CachedWorldClipDistances(' not in function('void GatherPolyCrackSeals(')
 for prefix in ['union ClipDists', 'struct alignas(16) ClipVertex', 'struct alignas(16) AliasClipData', 'struct alignas(16) PreparedAliasVertex', 'struct AliasTexCoord', 'struct CachedLitVertex', 'struct WorldClipEntry']:
     parts.append(function(prefix) + ';')
+cache_size = re.search(r'^constexpr u32 kWorldClipCacheEntries = \d+;', source, re.M)
+if not cache_size: raise RuntimeError('world clipping cache capacity')
+parts.append(cache_size.group(0))
 (out/'types.inc').write_text('\n'.join(parts))
 for name, prefixes in [('generic.inc',['int ClipAgainstPlane(', 'inline u32 PackFloatColor(', 'inline void EmitScratchVertex(const ClipVertex & v,', 'inline void EmitScratchVertex(const ClipVertex & v)', 'void SubmitWorldTriangle(', 'void SetClipDistances(ClipDists &']), ('alias.inc',['void PrepareAliasTexCoords(', 'inline AliasTexCoord AliasTexCoordsAt(', 'inline void SubmitOpaqueAliasTriangle(', 'void PrepareAliasClipData(', 'void SubmitAliasTriangle('])]:
     (out/name).write_text('\n'.join(function(prefix) for prefix in prefixes))

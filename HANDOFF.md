@@ -13,7 +13,7 @@ before changing renderer, audio or memory-management code.
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.124` (cross-surface clip cache CI/host tests passed, ELF installed; paired +0.6%FPS, visuals accepted; Alpha.123 +0.5%FPS/visuals accepted; both quality defaults full; Alpha.119/113 experiments reverted; 480p hardware unverified)
+- Current source version: `0.1.0-alpha.125` (256-slot clip cache experiment; CI/install pending; installed124 paired +0.6%FPS/visuals accepted; both quality defaults full; Alpha.119/113 experiments reverted; 480p hardware unverified)
 - Current implementation commit: `ca8b5ec`
   (`Reuse BSP clip cache across surfaces with one MVP`); CI submodule fix `b344f3e` retained.
 - Current published release:
@@ -26,6 +26,18 @@ before changing renderer, audio or memory-management code.
 
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
+
+## Alpha.125 256-slot clip cache experiment (CI/install/runtime pending)
+
+Double direct-mapped exact xyz clip cache from128 to256records,8->16KiB static
+EE memory. Same hash, six-plane classification, full distances and epoch/MVP
+lifetime; only mask/capacity changed. Goal reduce collision-driven transforms
+after124 expanded reuse across surfaces. No console gain claimed yet; broader
+working set can also regress cache locality, so paired125vs124 required.
+Host test finds a pair colliding in old128slots, split in256, verifies exact
+distance records and100alternating accesses with zero extra transforms.
+Preserve124 ELF baseline, compare ordinary bench both quality toggles reduced;
+verify walls/seams/moving doors. Revert capacity if memory tradeoff not useful.
 
 ## Alpha.124 cross-surface clip-cache lifetime (runtime results, visuals accepted)
 

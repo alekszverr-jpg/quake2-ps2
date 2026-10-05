@@ -879,7 +879,12 @@ struct WorldClipEntry
     u32 outsideMask;
 };
 static_assert(sizeof(WorldClipEntry) == 64, "Bound world clipping scratch storage");
-static WorldClipEntry s_worldClipCache[128];
+constexpr u32 kWorldClipCacheEntries = 256;
+static_assert((kWorldClipCacheEntries & (kWorldClipCacheEntries - 1)) == 0,
+              "World clipping cache requires a power of two");
+static WorldClipEntry s_worldClipCache[kWorldClipCacheEntries];
+static_assert(sizeof(s_worldClipCache) == 16 * 1024,
+              "Bound world clipping scratch storage to 16 KiB");
 static u32 s_worldClipEpoch;
 
 constexpr int kMaxCachedVertsPerTriangle =
@@ -1599,7 +1604,7 @@ void SetClipDistances(ClipVertex & vertex, const math::Mat4 & mvp)
 
 void BeginWorldClipCache()
 {
-    // Epoch invalidation avoids clearing 8 KiB for every visible polygon.
+    // Epoch invalidation avoids clearing 16 KiB for every MVP context.
     if (++s_worldClipEpoch == 0) {
         for (WorldClipEntry & entry : s_worldClipCache) entry.epoch = 0;
         s_worldClipEpoch = 1;
@@ -1616,7 +1621,7 @@ u32 CachedWorldClipDistances(ClipDists & distances, const CachedLitVertex & vert
     hash ^= bits[1] * 0x85ebca6bu;
     hash ^= bits[2] * 0xc2b2ae35u;
     hash ^= hash >> 16;
-    WorldClipEntry & entry = s_worldClipCache[hash & 127u];
+    WorldClipEntry & entry = s_worldClipCache[hash & (kWorldClipCacheEntries - 1u)];
     if (entry.epoch == s_worldClipEpoch &&
         entry.positionBits[0] == bits[0] && entry.positionBits[1] == bits[1] &&
         entry.positionBits[2] == bits[2]) {

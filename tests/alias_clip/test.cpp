@@ -53,7 +53,7 @@ static PreparedAliasVertex s_preparedAliasVerts[MAX_VERTS];
 static AliasClipData s_aliasClipData[MAX_VERTS];
 static AliasTexCoord s_preparedAliasTexCoords[MAX_VERTS];
 static bool s_aliasTexCoordsPrepared;
-static WorldClipEntry s_worldClipCache[128];
+static WorldClipEntry s_worldClipCache[kWorldClipCacheEntries];
 static u32 s_worldClipEpoch;
 static vu1::DrawVertex s_scratchVerts[kScratchMaxVerts];
 static int s_scratchVertCount;
@@ -251,7 +251,34 @@ int main() {
     SetClipDistances(reference,{0,0,0,1},moved);
     CachedWorldClipDistances(cached,origin,moved);
     assert(std::memcmp(&cached,&reference,sizeof(cached)) == 0);
-    assert(sizeof(s_worldClipCache) == 8192 && reuseHits == 12000);
+    assert(sizeof(s_worldClipCache) == 16384 && reuseHits == 12000);
+    // Find exact keys that collided in128slots but split in256slots. The new
+    // cache must retain both, while still computing byte-identical distances.
+    auto clipHash=[](const CachedLitVertex & vertex) {
+        const float xyz[3]={vertex.x,vertex.y,vertex.z};
+        u32 bits[3]; std::memcpy(bits,xyz,sizeof(bits));
+        u32 hash=bits[0]*0x9e3779b1u;
+        hash^=bits[1]*0x85ebca6bu; hash^=bits[2]*0xc2b2ae35u;
+        return hash^(hash>>16);
+    };
+    CachedLitVertex split[2]={{0,0,0,0,0,0},{0,0,0,0,0,0}};
+    bool found=false;
+    for (int i=1;i<100000 && !found;++i) {
+        split[1].x=i*0.03125f;
+        found=(clipHash(split[1])&255u)==128u;
+    }
+    assert(found && (clipHash(split[0])&127u)==(clipHash(split[1])&127u));
+    BeginWorldClipCache();
+    for (const auto & vertex:split) {
+        SetClipDistances(reference,{vertex.x,vertex.y,vertex.z,1},moved);
+        CachedWorldClipDistances(cached,vertex,moved);
+        assert(std::memcmp(&cached,&reference,sizeof(cached))==0);
+    }
+    const int beforeSplitReuse=transforms;
+    for (int i=0;i<100;++i)
+        CachedWorldClipDistances(cached,split[i&1],moved);
+    assert(transforms==beforeSplitReuse);
+    std::puts("256-slot cache retains formerly colliding exact positions without extra transforms PASS");
     // Explicit non-finite and boundary inputs exercise unordered comparisons,
     // signed zero and epsilon neighbours on both cache misses and hits.
     const float special[] = {0.0f, -0.0f, kClipEpsilon,

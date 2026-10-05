@@ -6,6 +6,15 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.125 - 2026-10-05 (local test build)
+
+- Experiment: increase the exact-position BSP clipping cache from128 to256
+  entries (8->16KiB static EE memory). Keep the same hash, exact position keys,
+  per-MVP lifetime, collision replacement, distances and plane classification.
+- Test formerly colliding keys retained separately and byte-identical clip
+  output; existing context/epoch/non-finite/emission checks retained. Paired
+  console speed/visual validation required before accepting the memory tradeoff.
+
 ## 0.1.0-alpha.124 - 2026-10-05 (local test build)
 
 - Keep the exact-position BSP clipping cache valid across surfaces and textures
