@@ -8,26 +8,33 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.124 prepared for fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.124 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.124` (cross-surface clip cache local tests passed; CI/install and runtime pending; Alpha.123 +0.5%FPS/visuals accepted; both quality defaults full; Alpha.119/113 experiments reverted; 480p hardware unverified)
-- Current implementation commit: `3d35706`
-  (`Retain BSP seal corner indices with lighting topology`); CI submodule fix `b344f3e` retained.
+- Current source/test version: `0.1.0-alpha.124` (cross-surface clip cache CI/host tests passed, ELF installed; runtime pending; Alpha.123 +0.5%FPS/visuals accepted; both quality defaults full; Alpha.119/113 experiments reverted; 480p hardware unverified)
+- Current implementation commit: `ca8b5ec`
+  (`Reuse BSP clip cache across surfaces with one MVP`); CI submodule fix `b344f3e` retained.
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.123 local PROFILE ELF SHA-256 (7,933,872 bytes):
-  `2C174B997818FEC28A28665C6FA760243FE457F0E4E2D37059C997DC5F2001EF`
-- CI `37200446077` passed all host sanitizer tests, map validation and PROFILE build for `3d35706`.
+- Alpha.124 local PROFILE ELF SHA-256 (7,933,684 bytes):
+  `0E2E2BCF1EAB2D5EF55F8319953275236E9C17C8D75DA12C43CB6ACCA49D330B`
+- CI `37267411462` passed all host sanitizer tests, map validation and PROFILE build for `ca8b5ec`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.124 cross-surface clip-cache lifetime (CI/runtime pending)
+## Alpha.124 cross-surface clip-cache lifetime (CI passed, runtime pending)
+
+CI37267411462 passed all host sanitizer tests, map validation and PROFILE build.
+Installed7,933,684-byte ELF in both roots; all hashes match downloaded
+build/ci-ca8b5ec-profile artifact and embedded124 verified. Saved verified123 as
+Documents project quake2-alpha123-baseline.elf,
+SHA2562C174B997818FEC28A28665C6FA760243FE457F0E4E2D37059C997DC5F2001EF.
+User explicitly authorized pushing124 to fork main for CI. No release made.
 
 Move BeginWorldClipCache from GatherPolyTriangles to the start of
 DrawTextureChains. All ordinary cached BSP vertices in this call use exactly
@@ -40,8 +47,8 @@ tests pass: compare old per-poly vs per-chain emitted bytes/batches/counts acros
 100 changing MVP contexts, different textures/colours/scroll; existing12000cache
 and12000emission/32000MD2/3500seal cases retained. Extraction checks ensure the
 reset is before chain traversal and absent from per-poly gathering/seal cache.
-Build/install124, preserve123baseline, then compare ordinary bench with both
-quality toggles reduced and visually check moving doors, walls and seams.
+Compare124vs123 ordinary bench with both quality toggles reduced and visually
+check moving doors, walls and seams. Preserve123baseline separately.
 
 ## Alpha.123 retained BSP seal corner indices (runtime results, visuals accepted)
 
