@@ -40,7 +40,12 @@ append-only until map/sky/cache reset; full cap refuses new allocation. Gather
 still recursively builds uncached triangles into static scratch each frame and
 does not retain them. Near-full1533KiB with zerohits/1166builds is consistent
 with old-view cache occupying budget and current-view rebuilds; a single frame
-cannot establish persistence. Confirm LitHit/Build after standing several seconds.
+cannot establish persistence by itself. User subsequently confirmed values remain
+unchanged while standing; new close-up shows LitHit0,LitBuild1383,LitColor0,
+LitKB1533,LitStep17,LitErr8,LitFine846. Per-view build count differs from earlier
+1166 but sustained no-hit/per-frame rebuild behavior is confirmed. Full-budget
+append-only refusal remains the leading source-supported cause, not a measured
+breakdown of all44.8ms. Prioritize bounded inactive-cache reuse/replacement.
 Free VRAM is sum of unowned GS blocks, changing as blocks split/evict/coalesce;
 not EE lighting-cache space, not proof of a leak. Next likely optimization:
 bounded reclamation/replacement of inactive lighting cache, preserving current
