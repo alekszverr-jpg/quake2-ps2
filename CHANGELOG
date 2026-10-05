@@ -12,8 +12,10 @@ Development priorities and completion criteria are tracked in
   entries (8->16KiB static EE memory). Keep the same hash, exact position keys,
   per-MVP lifetime, collision replacement, distances and plane classification.
 - Test formerly colliding keys retained separately and byte-identical clip
-  output; existing context/epoch/non-finite/emission checks retained. Paired
-  console speed/visual validation required before accepting the memory tradeoff.
+  output; existing context/epoch/non-finite/emission checks retained.
+- Paired ordinary benchmark, both quality toggles reduced: Alpha.12542.96FPS/
+  23.28ms vs Alpha.12442.77FPS/23.38ms (about+0.44%FPS, -0.10ms/frame).
+  Matching688frames195..882; user visual acceptance pending.
 
 ## 0.1.0-alpha.124 - 2026-10-05 (local test build)
 
