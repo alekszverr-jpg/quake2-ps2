@@ -102,7 +102,23 @@ bool RetainSmallPic(int index, int & retainedWords)
     return true;
 }
 
-bool IsBetterVictim(int candidate, int current, bool candidateRetained, bool currentRetained)
+// Sky renders before world/models. Keep a bounded set of faces used this frame
+// until its end, rather than automatically discarding them as old LRU entries.
+// Soft preference only: full-heap allocations can still recycle every block.
+bool RetainSky(int index, int & retainedWords)
+{
+    const Block & block = s_blocks[index];
+    const int budgetWords = s_heapTotalWords / 3 < 98304
+        ? s_heapTotalWords / 3 : 98304; // At most 384 KiB / one third of heap.
+    if (block.owner->type != tex::ImageType::Sky ||
+        block.lastBoundFrame != s_frame || block.sizeWords > 32768 ||
+        retainedWords + block.sizeWords > budgetWords)
+        return false;
+    retainedWords += block.sizeWords;
+    return true;
+}
+
+bool IsBetterVictim(int candidate, int current, int candidateRetained, int currentRetained)
 {
     if (current < 0)
     {
@@ -111,7 +127,7 @@ bool IsBetterVictim(int candidate, int current, bool candidateRetained, bool cur
 
     if (candidateRetained != currentRetained)
     {
-        return !candidateRetained;
+        return candidateRetained < currentRetained; // UI above sky above ordinary LRU.
     }
 
     if (s_texturePlanActive)
@@ -299,14 +315,16 @@ Address Allocate(const tex::Texture & texture, int sizeWords, bool * outEvicted)
         // frame even though safe streaming is already available.
         int victim = -1;
         int retainedWords = 0;
-        bool victimRetained = false;
+        int retainedSkyWords = 0;
+        int victimRetained = 0;
         for (int i = 0; i < s_blockCount; ++i)
         {
             if (s_blocks[i].owner == nullptr)
             {
                 continue;
             }
-            const bool retained = RetainSmallPic(i, retainedWords);
+            const int retained = RetainSmallPic(i, retainedWords) ? 2
+                : (RetainSky(i, retainedSkyWords) ? 1 : 0);
             if (IsBetterVictim(i, victim, retained, victimRetained))
             {
                 victim = i;
@@ -393,7 +411,8 @@ Address TryAllocateForPrefetch(const tex::Texture & texture, int sizeWords,
 
         int victim = -1;
         int retainedWords = 0;
-        bool victimRetained = false;
+        int retainedSkyWords = 0;
+        int victimRetained = 0;
         for (int i = 0; i < s_blockCount; ++i)
         {
             if (s_blocks[i].owner == nullptr)
@@ -402,7 +421,8 @@ Address TryAllocateForPrefetch(const tex::Texture & texture, int sizeWords,
             }
             // Count pinned images toward the same budget even though they are
             // ineligible for prefetch eviction. The fit proof remains intact.
-            const bool retained = RetainSmallPic(i, retainedWords);
+            const int retained = RetainSmallPic(i, retainedWords) ? 2
+                : (RetainSky(i, retainedSkyWords) ? 1 : 0);
             if (s_blocks[i].lastBoundFrame == s_frame)
             {
                 continue;

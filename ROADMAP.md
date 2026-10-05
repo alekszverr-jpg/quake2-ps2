@@ -157,7 +157,7 @@ play on a retail console.
 - [x] Reuse BSP clip results across surfaces within one MVP context (Alpha.124; no extra memory; paired42.78vs42.53FPS, visuals accepted)
 - [x] Use256-slot BSP clip cache (Alpha.125; +8KiB EE static memory; paired42.96vs42.77FPS, visuals accepted)
 - [x] Capture Base1 texture churn and long frames without diagnostic overlay/log flood (Alpha.126; standing33.37avg/34max ms, turning30.76avg/34max ms, no>50ms; log-off stability accepted)
-- [ ] Investigate persistent sky reloads and skin/world VRAM competition (Alpha.126 captures: sky375-384KiB/frame in both, skin741.5standing vs75.6turning)
+- [~] Reduce persistent sky reloads and skin/world VRAM competition (Alpha.127 bounded active-sky retention experiment; compare total bytes/waits/frame pacing against126)
 - [~] Validate long sessions for EE RAM, IOP RAM and VRAM leaks
 - [ ] Target a stable 30 FPS minimum, with 60 FPS where practical
 

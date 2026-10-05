@@ -87,6 +87,39 @@ int main()
     vram::Free(miss);
     assert(vram::GetStats().freeWords == 32 * page);
 #if PS2_PROFILE
+    // Active sky survives a later demand miss without becoming a hard pin.
+    // Small Pics retain their stronger existing preference.
+    tex::Texture sky, sky2;
+    sky.type=sky2.type=tex::ImageType::Sky;
+    Upload(sky,8); Upload(world,24);
+    vram::BeginFrame(); vram::Touch(sky);
+    vram::BeginPlannedTextureUses(plan,2);
+    Upload(miss,2);
+    assert(sky.vramAddr!=tex::Texture::kNotResident);
+    assert(world.vramAddr==tex::Texture::kNotResident);
+    vram::EndPlannedTextureUses();
+    Upload(world,32); // safety fallback even when sky is retained
+    assert(sky.vramAddr==tex::Texture::kNotResident);
+    vram::Free(world); vram::Free(miss);
+    // Stale/unseen sky is ordinary LRU on the next frame.
+    Upload(sky,8); Upload(world,24); vram::BeginFrame(); Upload(miss,2);
+    assert(sky.vramAddr==tex::Texture::kNotResident);
+    assert(world.vramAddr!=tex::Texture::kNotResident);
+    vram::Free(sky); vram::Free(world); vram::Free(miss);
+    // One-third budget protects only one64KiB sky face in this256KiB heap.
+    Upload(sky,8); Upload(sky2,8); Upload(world,16);
+    Upload(miss,2);
+    assert(sky.vramAddr!=tex::Texture::kNotResident);
+    assert(sky2.vramAddr==tex::Texture::kNotResident);
+    vram::Free(sky); vram::Free(sky2); vram::Free(world); vram::Free(miss);
+    // UI wins over retained sky when there is no ordinary victim.
+    Upload(hud,2); Upload(sky,8); Upload(miss,22);
+    vram::Free(miss); Upload(world,22); vram::Free(world);
+    Upload(miss,24); // free22pages cannot fit, sky must yield before HUD
+    assert(hud.vramAddr!=tex::Texture::kNotResident);
+    assert(sky.vramAddr==tex::Texture::kNotResident);
+    vram::Free(hud); vram::Free(sky); vram::Free(miss);
+    assert(vram::GetStats().freeWords==32*page);
     // Count first/dirty uploads separately from eviction reloads, attribute
     // them to their type and active phase, and reset everything next frame.
     vram::BeginFrame();

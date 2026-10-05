@@ -13,7 +13,7 @@ before changing renderer, audio or memory-management code.
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.126` (bounded VRAM capture and default-off event log; CI/host tests passed, ELF installed; Base1 standing/turning captures received, both max34ms/no>50ms; Alpha.125 +0.44%FPS/visuals accepted; quality defaults full; Alpha.119/113 reverted; 480p hardware unverified)
+- Current source version: `0.1.0-alpha.127` (bounded active-sky VRAM retention experiment, local tests passed; CI/install pending; installed126 Base1 max34ms/no>50ms; quality defaults full; Alpha.119/113 reverted; 480p hardware unverified)
 - Current implementation commit: `4359b4a`, PS2 display conversion fix `d4d0dc7`
   (`Capture gameplay VRAM churn without per-texture log flood`); CI submodule fix `b344f3e` retained.
 - Current published release:
@@ -26,6 +26,25 @@ before changing renderer, audio or memory-management code.
 
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
+
+## Alpha.127 bounded active-sky retention (CI/install/runtime pending)
+
+Sky draws before opaque world and models. World prefetch cannot evict current-
+frame residents, but later demand allocations can; known world plan contains
+no sky/model future use. Current victim ranking treats already-used sky as
+ordinary oldest LRU, including against planned future walls. Add RetainSky
+soft preference for Sky blocks touched this frame, each<=128KiB, combined
+<=384KiB or one third of heap. No prior-frame/unseen sky retention. Ranking:
+small Pic2, active sky1, ordinary0; same-rank world planned order/LRU unchanged.
+Independent UI/sky budgets; count pinned sky during prefetch scanning as well.
+All allocations remain satisfiable by evicting even preferred textures; caller
+outEvicted/GS sync paths unchanged. No extra persistent storage/quality/order.
+Local production allocator tests pass active-sky survival vs later world miss,
+full-heap fallback, stale expiry, one-third budget and stronger UI retention.
+Capture tests unchanged/pass. Tradeoff: saved sky may displace more walls or
+skins. Need paired127vs126 Base1 captures same point/view and camera-turning;
+compare TOTAL pixelKB, waits, maxframe, and Sky/Wall/Skin rows, verify sky/walls/
+model visual correctness. Reject if total streaming/pacing worsens.
 
 ## Alpha.126 bounded Base1 VRAM capture (standing and turning results received)
 

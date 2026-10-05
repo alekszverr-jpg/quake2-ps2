@@ -6,6 +6,18 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.127 - 2026-10-05 (local test build)
+
+- Experiment: prefer retaining sky faces drawn this frame during later demand
+  allocation. Protect at most384KiB or one third of the texture heap, with a
+  128KiB per-face limit. Small UI retention keeps stronger priority. Unseen sky
+  loses preference next frame; large/full-heap requests can still evict sky.
+- No texture quality, rendering order, extra storage, DMA or GS barrier change.
+  Prefetch current-frame pinning and world planned-use order within each priority
+  remain intact. Allocator tests cover survival, budget, expiry, UI priority and
+  full-heap fallback. Compare Base1 capture Sky/Wall/Skin bytes and long frames
+  against126; fewer sky reloads alone do not establish an overall improvement.
+
 ## 0.1.0-alpha.126 - 2026-10-05 (local test build)
 
 - Silence per-texture VRAM event spam by default with ps2_vram_log0; counters,
