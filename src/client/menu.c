@@ -1917,7 +1917,7 @@ static const char * s_testmap_texture_names[] =
 static const char * s_testmap_diagnostics_names[] =
 {
 #if PS2_PROFILE
-    "off", "fps only", "full", 0
+    "off", "fps only", "full", "capture vram 10s", "vram events (slow)", 0
 #else
     "off (release build)", 0
 #endif
@@ -2030,10 +2030,12 @@ static void TestMapDiagnosticsFunc(void * unused)
 #endif
     (void)unused;
 
-    Cvar_SetValue("ps2_show_fps", mode >= 1);
-    Cvar_SetValue("ps2_show_memstats", mode >= 2);
-    Cvar_SetValue("ps2_show_vramstats", mode >= 2);
-    Cvar_SetValue("ps2_show_drawstats", mode >= 2);
+    Cvar_SetValue("ps2_show_fps", mode == 1 || mode == 2);
+    Cvar_SetValue("ps2_show_memstats", mode == 2);
+    Cvar_SetValue("ps2_show_vramstats", mode == 2);
+    Cvar_SetValue("ps2_show_drawstats", mode == 2);
+    Cvar_SetValue("ps2_vram_capture", mode == 3 ? 1 : 0);
+    Cvar_SetValue("ps2_vram_log", mode == 4);
 }
 
 static void TestMapAudioTestFunc(void * unused)
@@ -2128,7 +2130,7 @@ static void TestMap_MenuInit(void)
     s_testmap_diagnostics_list.generic.x = 0;
     s_testmap_diagnostics_list.generic.y = 60;
     s_testmap_diagnostics_list.generic.name = "diagnostics";
-    s_testmap_diagnostics_list.generic.statusbar = "off for gameplay; full for profiling";
+    s_testmap_diagnostics_list.generic.statusbar = "capture: return to game, wait 10 seconds";
     s_testmap_diagnostics_list.generic.callback = TestMapDiagnosticsFunc;
     s_testmap_diagnostics_list.itemnames = s_testmap_diagnostics_names;
     Cvar_Get("ps2_show_fps", "0", 0);
@@ -2136,7 +2138,11 @@ static void TestMap_MenuInit(void)
     Cvar_Get("ps2_show_vramstats", "0", 0);
     Cvar_Get("ps2_show_drawstats", "0", 0);
 #if PS2_PROFILE
-    if (Cvar_VariableValue("ps2_show_memstats") != 0.0F ||
+    if (Cvar_VariableValue("ps2_vram_log") != 0.0F)
+        s_testmap_diagnostics_list.curvalue = 4;
+    else if (Cvar_VariableValue("ps2_vram_capture") != 0.0F)
+        s_testmap_diagnostics_list.curvalue = 3;
+    else if (Cvar_VariableValue("ps2_show_memstats") != 0.0F ||
         Cvar_VariableValue("ps2_show_vramstats") != 0.0F ||
         Cvar_VariableValue("ps2_show_drawstats") != 0.0F)
         s_testmap_diagnostics_list.curvalue = 2;

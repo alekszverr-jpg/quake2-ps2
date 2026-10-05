@@ -21,6 +21,11 @@
 #include <gs_psm.h>
 
 namespace ps2::vram {
+bool EventLoggingEnabled()
+{
+    static const cvar_t * log = Cvar_Get("ps2_vram_log", "0", 0);
+    return log->value != 0.0f;
+}
 namespace {
 
 constexpr int kVramTotalWords = 1024 * 1024; // 4 MB of GS VRAM, in 32-bit words.
@@ -310,7 +315,7 @@ Address Allocate(const tex::Texture & texture, int sizeWords, bool * outEvicted)
         }
         PS2_AssertMsg(victim >= 0, "GS texture heap has no evictable allocation!");
 
-        Com_DPrintf("VRAM: evicting '%s' (%d KB)\n",
+        if (EventLoggingEnabled()) Com_DPrintf("VRAM: evicting '%s' (%d KB)\n",
                     s_blocks[victim].owner->name, s_blocks[victim].sizeWords * 4 / 1024);
 
         if (s_blocks[victim].lastBoundFrame == s_frame)
@@ -410,7 +415,7 @@ Address TryAllocateForPrefetch(const tex::Texture & texture, int sizeWords,
         }
         PS2_AssertMsg(victim >= 0, "Prefetch fit proof lost its evictable span!");
 
-        Com_DPrintf("VRAM prefetch: evicting '%s' (%d KB)\n",
+        if (EventLoggingEnabled()) Com_DPrintf("VRAM prefetch: evicting '%s' (%d KB)\n",
                     s_blocks[victim].owner->name, s_blocks[victim].sizeWords * 4 / 1024);
         ++s_evictionsThisFrame;
         s_blocks[victim].owner->vramAddr = tex::Texture::kNotResident;

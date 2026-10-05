@@ -57,6 +57,9 @@ jobs:
       - name: Check retained BSP seal corner indices on host
         run: python3 tests/seal_corners/run.py
 
+      - name: Check bounded VRAM gameplay capture on host
+        run: python3 tests/vram_capture/run.py
+
       - name: Check VIDEO controls and output mode scaling on host
         run: python3 tests/video_menu/run.py
 

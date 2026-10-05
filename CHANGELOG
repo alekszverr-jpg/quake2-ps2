@@ -6,6 +6,21 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.126 - 2026-10-05 (local test build)
+
+- Silence per-texture VRAM event spam by default with ps2_vram_log0; counters,
+  uploads, eviction and GS barriers are unchanged. TEST MAP diagnostics offers
+  optional vram events (slow) to restore detailed developer logging.
+- Add capture vram10s in TEST MAP diagnostics. Starts after returning to active
+  game with menu/console closed; interruptions restart the measurement. No
+  diagnostic overlays are drawn during capture. Frozen results show full
+  EndFrame-to-EndFrame average/max time, frames>33/>50ms, per-frame Pic/Skin/Wall
+  uploads/reloads/pixel KiB and DMA/reuse waits; worst-frame reloads/bytes/wait.
+  Results panel itself is excluded from measurement. Long hitches are retained.
+- Fixed-size aggregation with no heap allocations or per-frame event output.
+  Host tests cover totals, freezing/rearming, interruptions, long hitches and
+  timer wrap. Base1 results and panel readability require console validation.
+
 ## 0.1.0-alpha.125 - 2026-10-05 (local test build)
 
 - Experiment: increase the exact-position BSP clipping cache from128 to256

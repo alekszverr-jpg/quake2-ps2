@@ -76,6 +76,8 @@ void Free(const tex::Texture & texture);
 // Records one texture DMA upload and whether it reloads an image evicted since
 // its previous transfer. Called by the GS upload paths; reset each frame.
 void NoteTextureUpload(const tex::Texture & texture);
+// Opt-in per-texture event output, independent of aggregate counters.
+bool EventLoggingEnabled();
 
 #if PS2_PROFILE
 enum class UploadPhase { Other2D, World, Entities, Alpha, Particles, Count };

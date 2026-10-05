@@ -13,7 +13,7 @@ before changing renderer, audio or memory-management code.
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.125` (256-slot clip cache CI/host tests passed, ELF installed; paired +0.44%FPS, visuals accepted; Alpha.124 paired +0.6%FPS/visuals accepted; both quality defaults full; Alpha.119/113 experiments reverted; 480p hardware unverified)
+- Current source version: `0.1.0-alpha.126` (bounded VRAM capture and default-off event log; CI/install pending; installed125 +0.44%FPS/visuals accepted; quality defaults full; Alpha.119/113 reverted; 480p hardware unverified)
 - Current implementation commit: `1f8bed5`
   (`Try 256 entries in the exact BSP clipping cache`); CI submodule fix `b344f3e` retained.
 - Current published release:
@@ -26,6 +26,28 @@ before changing renderer, audio or memory-management code.
 
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
+
+## Alpha.126 bounded Base1 VRAM capture (CI/install/runtime pending)
+
+ps2_vram_log default0 gates all3evict/upload Com_DPrintf sites independently of
+aggregate counters. TEST MAP diagnostics: off/fps/full/capture vram10s/vram
+events(slow). Normal modes disable event log; events opt-in preserves developer
+gate. Capture sets ps2_vram_capture1, disables other diagnostic overlays, waits
+for active game/key_game/non-stereo then starts on an EndFrame boundary.
+Client passes eligibility before drawing; menu/console interruptions discard
+partial window and restart. No capture panel until>=10seconds end-to-end frame
+intervals collected via Sys_Milliseconds (1ms resolution). Includes client
+update/render/GS present waits; retains severe hitches. Fixed aggregates only.
+Records full-frame uploads/reloads/evictions/same-frame counts, type pixelbytes,
+DMA upload/reuse waits, maxframe and matching reloadbytes/wait. Counters sampled
+after GS EndFrame, include HUD. Ready results frozen; panel excluded from samples,
+hidden in menu. Menu select another mode then capture again rearms. Pixel KB
+excludes GS page padding/DMA commands. Wait categories must not be added blindly
+to frame time. No eviction/retention/format/barrier change yet.
+Host production aggregation/controller tests cover10s/freeze/rearm/interruption/
+long hitch/timerwrap. Need CI, installation and Base1 capture screenshots:
+one standing still in heavy spot, one rotating camera. Do not reload selected
+map from TEST MAP menu; leave back to existing game after choosing diagnostics.
 
 ## New investigation: Base1 VRAM churn and console flood (no renderer change)
 

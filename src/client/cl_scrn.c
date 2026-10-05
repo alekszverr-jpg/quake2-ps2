@@ -1317,6 +1317,10 @@ void SCR_UpdateScreen(void)
         numframes = 1;
     }
 
+    {
+        extern void PS2_VramCaptureEligible(int eligible);
+        PS2_VramCaptureEligible(cls.state == ca_active && cls.key_dest == key_game && numframes == 1);
+    }
     for (i = 0; i < numframes; i++)
     {
         re.BeginFrame(separation[i]);

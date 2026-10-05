@@ -612,7 +612,7 @@ void EnsureTextureResident(const tex::Texture & texture)
         texture.mipmap.address3 = mipAddresses[2];
         texture.mipmap.width3   = mipWidths[2];
 
-        Com_DPrintf("VRAM: uploaded '%s' (%dx%d -> %dx%d, %d KB)\n", texture.name,
+        if (vram::EventLoggingEnabled()) Com_DPrintf("VRAM: uploaded '%s' (%dx%d -> %dx%d, %d KB)\n", texture.name,
                     texture.width, texture.height, texture.storageWidth,
                     texture.storageHeight, sizeWords * 4 / 1024);
     }

@@ -13,6 +13,10 @@ void Upload(tex::Texture & texture, int pages)
 
 int main()
 {
+    assert(!vram::EventLoggingEnabled());
+    Cvar_Get("ps2_vram_log","0",0)->value=1;
+    assert(vram::EventLoggingEnabled());
+    Cvar_Get("ps2_vram_log","0",0)->value=0;
     vram::Init(1024 * 1024 - 32 * page);
     vram::BeginFrame();
     // A small HUD image absent from the world plan survives a world miss,

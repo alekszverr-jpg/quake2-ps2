@@ -24,6 +24,9 @@
 #include "ps2/builtin/builtin.h"
 
 #include <cstdio>
+#if PS2_PROFILE
+#include "ps2/renderer/vram_capture.h"
+#endif
 
 namespace {
 
@@ -38,6 +41,10 @@ static const cvar_t * s_showFpsCount  = nullptr;
 static const cvar_t * s_showMemStats  = nullptr;
 static const cvar_t * s_showVramStats = nullptr;
 static const cvar_t * s_showDrawStats = nullptr;
+static const cvar_t * s_captureRequest = nullptr;
+static ps2::vram::Capture s_capture;
+static bool s_captureEligible=false, s_captureRunning=false, s_captureReady=false;
+static int s_capturePreviousMs=0;
 #endif
 
 // Built-ins used every frame, cached at init to skip the name lookup.
@@ -96,6 +103,54 @@ void DrawInternalString(int x, int y, const char * str)
             x = initialX;
         }
     }
+}
+
+void DrawVramCaptureResult()
+{
+    if (!s_captureReady || !s_captureEligible || s_captureRequest->value==0.0f) return;
+    ps2::gs::FillRect(0, 8, 320, 174, 0, 0, 0, 255);
+    int y=12;
+    char line[64];
+    const double n=s_capture.frames;
+    auto row=[&](const char * text) { DrawInternalString(4,y,text); y+=10; };
+    row("VRAM CAPTURE - frozen results");
+    std::snprintf(line,sizeof(line),"Frames %d / %.2fs",s_capture.frames,s_capture.elapsedMs/1000.0); row(line);
+    std::snprintf(line,sizeof(line),"Frame avg/max %.2f/%d ms",s_capture.elapsedMs/n,s_capture.maxMs); row(line);
+    std::snprintf(line,sizeof(line),">33ms %d / >50ms %d",s_capture.over33,s_capture.over50); row(line);
+    std::snprintf(line,sizeof(line),"E/R/S avg %.1f/%.1f/%.1f",s_capture.evictions/n,s_capture.reloads/n,s_capture.sameFrame/n); row(line);
+    std::snprintf(line,sizeof(line),"DMA wait / reuse wait %.2f/%.2f ms",s_capture.uploadMicros/n/1000.0,s_capture.stallMicros/n/1000.0); row(line);
+    row("Type  uploads/reloads/KB per frame");
+    const char * names[]={"Other","Pic","Skin","Sprite","Wall","Sky"};
+    for(int i=0;i<6;++i) {
+        const auto & t=s_capture.types[i];
+        std::snprintf(line,sizeof(line),"%-6s %5.1f/%5.1f/%7.1f",names[i],t.images/n,t.reloads/n,t.bytes/n/1024.0); row(line);
+    }
+    std::snprintf(line,sizeof(line),"Worst frame R %d / KB %.1f",s_capture.worstReloads,s_capture.worstBytes/1024.0); row(line);
+    std::snprintf(line,sizeof(line),"Worst reuse wait %.2f ms",s_capture.worstStallMicros/1000.0); row(line);
+    row("Select capture 10s again to repeat");
+}
+
+void CollectVramCapture()
+{
+    if (s_captureRequest->value==0.0f) {
+        s_captureRunning=s_captureReady=false; return;
+    }
+    if (s_captureRequest->value==1.0f) {
+        s_capture={}; s_captureRunning=s_captureReady=false;
+        Cvar_SetValue("ps2_vram_capture",2);
+    }
+    if (s_captureReady) return;
+    // Interruptions restart the window: no menu/console time in the sample.
+    if (!s_captureEligible) { s_captureRunning=false; s_capture={}; return; }
+    const int now=Sys_Milliseconds();
+    if (!s_captureRunning) {
+        s_capturePreviousMs=now; s_captureRunning=true; return;
+    }
+    const unsigned elapsed=static_cast<unsigned>(now)-static_cast<unsigned>(s_capturePreviousMs);
+    s_capturePreviousMs=now;
+    if (elapsed>0x7fffffffu) { s_capture={}; return; } // invalid/backward clock
+    s_capture.Add(static_cast<int>(elapsed),ps2::vram::GetStats(),ps2::gs::GetTimingStats());
+    if (s_capture.elapsedMs>=10000) { s_captureReady=true; s_captureRunning=false; }
 }
 
 // Frames-per-second counter at the top-right corner of the screen.
@@ -378,6 +433,7 @@ qboolean PS2_RefInit(void * hinstance, void * wndproc)
     s_showMemStats  = Cvar_Get("ps2_show_memstats", "0", 0);
     s_showVramStats = Cvar_Get("ps2_show_vramstats", "0", 0);
     s_showDrawStats = Cvar_Get("ps2_show_drawstats", "0", 0);
+    s_captureRequest = Cvar_Get("ps2_vram_capture", "0", 0);
 #endif
 
     s_texConchars = ps2::tex::Find("conchars", ps2::tex::ImageType::Pic);
@@ -554,6 +610,15 @@ void PS2_BeginFrame(float cameraSeparation)
     // each 2D->3D boundary and in gs::EndFrame() - no explicit bracket here.
 }
 
+extern "C" void PS2_VramCaptureEligible(int eligible)
+{
+#if PS2_PROFILE
+    s_captureEligible=eligible!=0;
+#else
+    (void)eligible;
+#endif
+}
+
 void PS2_EndFrame()
 {
     // Cinematic playback test: the movie quad is a 2D draw, run at frame's end
@@ -568,13 +633,19 @@ void PS2_EndFrame()
     ps2::test::DrawRotatingCube();
 
 #if PS2_PROFILE
-    DrawFpsCounter();
-    DrawMemUsageOverlay();
-    DrawVramUsageOverlay();
-    DrawDrawStatsOverlay();
+    if (s_captureRequest->value==0.0f) {
+        DrawFpsCounter();
+        DrawMemUsageOverlay();
+        DrawVramUsageOverlay();
+        DrawDrawStatsOverlay();
+    }
+    DrawVramCaptureResult();
 #endif
 
     ps2::gs::EndFrame();
+#if PS2_PROFILE
+    CollectVramCapture();
+#endif
 }
 
 // Read only after EndFrame: includes HUD uploads and final VU/GS waits.
