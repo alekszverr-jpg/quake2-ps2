@@ -13,7 +13,7 @@ before changing renderer, audio or memory-management code.
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.127` (bounded active-sky retention, CI/host tests passed, ELF installed; two Base1 captures received, labels/visual acceptance pending; sky0/20.5KiB perframe, both max34ms/no>50ms; quality defaults full; Alpha.119/113 reverted; 480p hardware unverified)
+- Current source/test version: `0.1.0-alpha.127` (bounded active-sky retention, CI/host tests passed, ELF installed; Base1 standing/turning labels and visuals accepted; payload reduced, FPS gain not established; both max34ms/no>50ms; quality defaults full; Alpha.119/113 reverted; 480p hardware unverified)
 - Current implementation commit: `77ec6c0`
   (`Try bounded retention of sky faces used this frame`); CI submodule fix `b344f3e` retained.
 - Current published release:
@@ -27,9 +27,10 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.127 bounded active-sky retention (runtime captures received, acceptance pending)
+## Alpha.127 bounded active-sky retention (runtime captures and visuals accepted)
 
-2026-10-06 user sent two captures; standing/turning order not explicitly labelled.
+2026-10-06 user sent two captures, then confirmed1standing/2turning and visuals
+of sky/walls/models normal. Retain the change for measured payload reduction.
 Both300frames/10.01s, average33.37ms/max34ms,110frames>33ms,zero>50ms.
 Capture1: E/R/S40.9/40.9/26.9, DMA/reusewait0.37/0.34ms; type N/R/pixelKiB
 perframe Pic0.5/0.5/6.2, Skin6.4/6.4/285.2, Wall34.0/34.0/157.7, Sky0/0/0,
@@ -37,19 +38,22 @@ Other/Sprite zero. Total449.1KiB/frame; worstR42/554.9KiB/reusewait0.35ms.
 Capture2: E/R/S42.6/42.6/28.1, DMA/reusewait0.41/0.44ms; Pic0.3/0.3/6.1,
 Skin6.6/6.6/289.7, Wall35.6/35.6/275.6, Sky0.2/0.2/20.5; Other/Sprite zero.
 Total591.9KiB/frame; worstR40/540.5KiB/reusewait0.31ms.
-Sky payload strongly reduced from126375-384KiB/frame. If1standing/2turning,
+Sky payload strongly reduced from126375-384KiB/frame. With1standing/2turning,
 total pixelpayload falls1410.3->449.1 (~68%) and676.4->591.9 (~12.5%);
 however turning average becomes33.37vs30.76ms, and same-frame evictions rise
 18.8->26.9/5.9->28.1. Sky-saving alone does not prove universal speed gain.
-Views/actors/conditions may differ; confirm capture labels and visuals before
-accepting. No new code/build requested by this screenshot report.126baseline kept.
+Views/actors/conditions may differ; no controlled FPS improvement established.
+Turning average is slower than126 in these captures and needs a matched repeat
+before claiming pacing/throughput gains. Same-frame evictions increased, so
+continue monitoring wall/skin churn. No new code/build in this checkpoint.
+126baseline kept for comparison and rollback.
 
 CI37337798096 passed all host sanitizer tests, map validation and PROFILE build.
 Installed7,954,992-byte ELF in both roots; hashes match downloaded
 build/ci-77ec6c0-profile artifact, embedded127 verified. Saved verified126 as
 Documents project quake2-alpha126-baseline.elf,
 SHA25697CD0120849E44024C4FB8EB36D250A6501535A1C6C47C791A6625BE117F63E1.
-No release made. Need Base1 standing/turning127vs126 capture and visual checks.
+No release made. Base1 standing/turning captures and visual checks accepted above.
 
 Sky draws before opaque world and models. World prefetch cannot evict current-
 frame residents, but later demand allocations can; known world plan contains
@@ -64,9 +68,9 @@ outEvicted/GS sync paths unchanged. No extra persistent storage/quality/order.
 Local production allocator tests pass active-sky survival vs later world miss,
 full-heap fallback, stale expiry, one-third budget and stronger UI retention.
 Capture tests unchanged/pass. Tradeoff: saved sky may displace more walls or
-skins. Need paired127vs126 Base1 captures same point/view and camera-turning;
-compare TOTAL pixelKB, waits, maxframe, and Sky/Wall/Skin rows, verify sky/walls/
-model visual correctness. Reject if total streaming/pacing worsens.
+skins. Captures reduce TOTAL pixelKB with normal visuals; throughput gain remains
+unverified. Future changes require same-view paired timing/captures and must
+consider wall/skin churn and same-frame evictions. Reject if pacing worsens.
 
 ## Alpha.126 bounded Base1 VRAM capture (standing and turning results received)
 

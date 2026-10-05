@@ -19,7 +19,10 @@ Development priorities and completion criteria are tracked in
   against126; fewer sky reloads alone do not establish an overall improvement.
 - Two Base1 captures received: both33.37ms average/34ms maximum, no>50ms.
   Sky payload0/20.5KiB perframe, total449.1/591.9KiB perframe; same-frame
-  evictions26.9/28.1. Capture labels and visual acceptance remain pending.
+  evictions26.9/28.1. User confirms first standing/second turning and normal
+  visuals. Total payload reduced about68%standing/12.5%turning vs126 captures;
+  retain for streaming reduction. FPS gain not established; turning average
+  is33.37ms vs previous30.76ms, requiring controlled repeat before speed claims.
 
 ## 0.1.0-alpha.126 - 2026-10-05 (local test build)
 
