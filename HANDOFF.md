@@ -27,6 +27,22 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
+## New heavy-point capture (2026-10-06; location/conditions not yet specified)
+
+User sent another heavy gameplay capture after127.168frames/10.01s,
+average59.58ms/max67ms (~16.8FPS); all168frames>33ms,100frames>50ms.
+E/R/S23.7/23.7/7.1. DMA/reusewait0.21/0.21ms. Types N/R/pixelKiB perframe:
+Pic0.5/0.5/3.2, Skin4.5/4.5/153.4, Wall18.6/18.6/177.9; Other/Sprite/Sky zero.
+Total334.5KiB/frame, ~5.5MiB/s at16.8FPS, less streaming than earlier faster
+captures. Worst frame R34/386.3KiB/reusewait0.34ms. Strong actual slowdown
+without sky uploads and with small measured texture waits; do not blame VRAM
+alone or equate these waits with all texture-related CPU cost. Need locate
+EE geometry/lighting/model/game processing vs VU/GS/present cost. Existing
+TEST MAP diagnostics full DRAW STATS exposes Setup/World/Ent/Part/3D us and
+VUwait/Tris etc; full overlay perturbs residency and overlaps/crops on224p,
+so use it to locate dominant work, not exact speed measurement. Ask same-point
+full screenshot plus actual scene/map/standing-vs-turning. No code change yet.
+
 ## Alpha.127 bounded active-sky retention (runtime captures and visuals accepted)
 
 2026-10-06 user sent two captures, then confirmed1standing/2turning and visuals
