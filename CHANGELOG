@@ -20,6 +20,11 @@ Development priorities and completion criteria are tracked in
   reduced-quality tests pass. CI37442835379 passed host sanitizer checks, map
   validation and PROFILE build; ELF installed in both roots,128baseline saved.
   Firing performance and visuals pending.
+- First firing capture received:232frames/10.03s,43.22ms average/51ms maximum
+  (~23.1FPS),3frames>50ms. Texture streaming nearly absent:0.1reload/frame,
+  0.8KiB/frame, waits round to0.00ms. Overlay World~21.42ms,Hit590/Build0.
+  Prior128ON snapshot World25.367ms had more geometry/model cost and texture
+  uploads; no matched128firing capture, so improvement not yet isolated.
 
 ## 0.1.0-alpha.128 - 2026-10-06 (local test build)
 
