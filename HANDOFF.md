@@ -13,7 +13,7 @@ before changing renderer, audio or memory-management code.
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.128` (bounded inactive BSP lighting-cache reuse; CI/host tests passed and ELF installed; heavy-room World/Hit/Build/FPS and visuals pending;127 retained for sky payload reduction with no established FPS gain; quality defaults full; Alpha.119/113 reverted;480p hardware unverified)
+- Current source/test version: `0.1.0-alpha.128` (bounded inactive BSP lighting-cache reuse; CI/host tests passed and ELF installed; heavy-room capture33.37ms vs prior59.58ms, LitHit1235/Build0 and World17.564ms vs44.780ms; strong point-specific gain, visual/session checks pending; quality defaults full; Alpha.119/113 reverted;480p hardware unverified)
 - Current implementation commit: `47cd4e7`
   (`Reuse inactive BSP lighting cache chunks within bounded storage`); CI submodule fix `b344f3e` retained.
 - Current published release:
@@ -46,8 +46,23 @@ Installed7,972,672-byte PROFILE ELF in both project roots; hashes match artifact
 build/ci-47cd4e7-profile and embedded128 verified. Saved Documents project
 quake2-alpha127-baseline.elf, SHA256
 A3C07B856944944CAA8E71D6B4B315DEB7BED6AF3A9C4598DAC24F58D91ED1F3.
-Runtime validation pending: compare indoor standing Hit/Build/World,10s capture,
-seams/doors/light-style changes after the same traversal. No release published.
+User supplied128heavy-room results and reports a large FPS improvement:
+300frames/10.01s, average33.37ms/max34ms,110frames>33ms,zero>50ms.
+E/R/S26.2/26.2/19.3, DMA/reusewait0.24/0.20ms. PixelKiB perframe:
+Pic0.1,Skin205.7,Wall154.0,Other/Sprite/Sky0; total359.8KiB.
+WorstR26/327.0KiB/reusewait0.17ms. Earlier127heavy capture59.58ms/max67,
+100frames>50ms: approximate16.8->30FPS (+79%), frame time reduced44%.
+Full overlay128: World17564us,Ent3730us,Nodes686,Surfs404,Tris4672,
+Batches70,VUvert14016; LitHit1235,Build0,Color0,KB958,Step17,Err8,Fine1546.
+FreeVRAM112KiB,resident37,uploads24,E/R/S22/24/15. Lighting retention
+confirmed in this view, versus sustained127Hit0/Build1166-1383/KB1533.
+World44.780->17.564ms (~61% lower); this is a pair of overlay snapshots,
+not an isolated lighting timer. Camera/weapon/geometry differ, so record a
+strong point-specific runtime gain rather than an exact matched benchmark
+or universal improvement. LitFine accounting changed in128; do not compare
+Fine846->1546 as a pure change in visible subdivision. Keep128; dedicated
+seams/doors/light-style checks and longer traversal/session tests pending.
+No release published.
 
 User supplied same-point full overlay and reports Free VRAM constantly varying.
 User clarified no sky is visible here: Sky0 is expected, not retention evidence.

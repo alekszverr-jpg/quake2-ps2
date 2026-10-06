@@ -22,7 +22,14 @@ Development priorities and completion criteria are tracked in
   future-chain/seal protection, LRU choice, bounded accounting, optional OOM,
   age wrap and existing mandatory reclamation. CI37439671459 passed host
   sanitizer checks, map validation and PROFILE build; ELF installed in both
-  test roots, with127baseline saved. FPS/visual validation pending.
+  test roots, with127baseline saved.
+- User heavy-room capture:300frames/10.01s,33.37ms average/34ms maximum,
+  zero frames>50ms, versus earlier59.58ms/67ms and100frames>50ms. Approximate
+  throughput16.8->30FPS (+79%), average frame time reduced44%. Full overlay
+  shows LitHit1235/LitBuild0/LitKB958 and World17.564ms vs earlier zero hits,
+  1166-1383builds and44.780ms. Strong point-specific improvement and retained
+  lighting confirmed; views/weapon/geometry differ, so not an exact matched
+  benchmark or universal gain. Seams/doors/light-style validation still pending.
 
 ## 0.1.0-alpha.127 - 2026-10-05 (local test build)
 

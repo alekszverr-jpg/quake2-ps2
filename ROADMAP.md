@@ -159,7 +159,7 @@ play on a retail console.
 - [x] Capture Base1 texture churn and long frames without diagnostic overlay/log flood (Alpha.126; standing33.37avg/34max ms, turning30.76avg/34max ms, no>50ms; log-off stability accepted)
 - [x] Reduce persistent sky reloads with bounded retention (Alpha.127: sky0/20.5KiB perframe, total449.1/591.9, both max34ms; standing/turning and visuals accepted; FPS gain not established)
 - [ ] Reduce skin/world VRAM competition and validate matched frame timing (Alpha.127 same-frame evictions26.9/28.1; turning33.37ms vs12630.76ms requires controlled comparison)
-- [~] Reuse inactive BSP lighting-cache chunks within1.5MiB (Alpha.128; pin visible chains/current-frame data, scratch fallback if all active; host tests passed, heavy-room World/Hit/Build/FPS and visuals pending)
+- [~] Reuse inactive BSP lighting-cache chunks within1.5MiB (Alpha.128; heavy-room capture59.58->33.37ms, Hit1235/Build0, World44.780->17.564ms; strong point-specific gain, views differ; seams/doors/light-style and session checks pending)
 - [~] Validate long sessions for EE RAM, IOP RAM and VRAM leaks
 - [ ] Target a stable 30 FPS minimum, with 60 FPS where practical
 
