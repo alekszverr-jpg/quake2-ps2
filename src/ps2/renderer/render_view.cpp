@@ -893,8 +893,9 @@ constexpr int kMaxCachedVertsPerTriangle =
 // until it consumes the EE heap. Keep the 1.5 MB cap, but obtain it in a small
 // number of chunks: thousands of 144-byte allocations fragmented long-running
 // Base1 -> Base2 -> Base3 sessions even though their total stayed bounded.
-// Entries that do not fit, or whose chunk cannot be allocated, are still built
-// and drawn from the static scratch buffer.
+// Recycle the oldest chunk unused by this frame when space runs out. Visible
+// chains pin their existing chunks before drawing. Entries that cannot fit
+// without replacing current-frame data still use the static scratch buffer.
 constexpr int kLitCacheBudgetBytes = 1536 * 1024;
 constexpr int kLitCacheChunkBytes = 96 * 1024;
 constexpr int kLitCacheChunkCount =
@@ -908,6 +909,8 @@ struct LitCacheChunk
 {
     CachedLitVertex * vertices;
     int usedVertexCount;
+    u32 lastUsedFrame;
+    int fineSplits;
 };
 
 static CachedLitVertex s_litBuildVerts[kMaxCachedVertsPerTriangle];
@@ -920,6 +923,70 @@ static bool s_litCacheDisabled = false;
 static bool s_renderingFrame = false;
 static int s_litCacheFineSplits = 0;
 static int s_litBuildFineSplits = 0;
+static u32 s_litCacheFrame = 0;
+
+void BeginLitCacheFrame()
+{
+    if (++s_litCacheFrame == 0)
+    {
+        // Preserve the cache, but forget ages at unsigned wrap.
+        s_litCacheFrame = 1;
+        for (int i = 0; i < s_litCacheChunkCount; ++i)
+            s_litCacheChunks[i].lastUsedFrame = 0;
+    }
+}
+
+bool LitCacheChunkContains(const LitCacheChunk & chunk, const void * vertices)
+{
+    // Relational comparisons of pointers to separate allocations are undefined.
+    const std::uintptr_t address = reinterpret_cast<std::uintptr_t>(vertices);
+    const std::uintptr_t start = reinterpret_cast<std::uintptr_t>(chunk.vertices);
+    return vertices != nullptr && address >= start &&
+        address - start < static_cast<std::uintptr_t>(kLitCacheChunkBytes);
+}
+
+void ResetLitTriangle(const mod::ModelTriangle & triangle)
+{
+    triangle.litCacheVertices = nullptr;
+    triangle.litCacheKey = 0;
+    triangle.litCacheColorKey = 0;
+    triangle.litCacheVertexCount = 0;
+    triangle.litCacheCapacity = 0;
+    for (int v = 0; v < 3; ++v) triangle.litCacheCornerIndices[v] = 0xFFFFu;
+}
+
+void PinLitCacheVertices(const void * vertices)
+{
+    if (vertices == nullptr) return;
+    for (int i = 0; i < s_litCacheChunkCount; ++i)
+    {
+        if (LitCacheChunkContains(s_litCacheChunks[i], vertices))
+        {
+            s_litCacheChunks[i].lastUsedFrame = s_litCacheFrame;
+            return;
+        }
+    }
+}
+
+void RecycleLitCacheChunk(LitCacheChunk & chunk)
+{
+    PS2_Assert(chunk.lastUsedFrame != s_litCacheFrame);
+    // Remove registrations as well as pointers. Otherwise recycled triangles
+    // would accumulate duplicate registrations on subsequent visits.
+    size_t retained = 0;
+    for (const mod::ModelTriangle * triangle : s_cachedLitTriangles)
+    {
+        if (LitCacheChunkContains(chunk, triangle->litCacheVertices))
+            ResetLitTriangle(*triangle);
+        else
+            s_cachedLitTriangles[retained++] = triangle;
+    }
+    s_cachedLitTriangles.resize(retained);
+    s_litCacheBytes -= chunk.usedVertexCount * static_cast<int>(sizeof(CachedLitVertex));
+    s_litCacheFineSplits -= chunk.fineSplits;
+    chunk.usedVertexCount = 0;
+    chunk.fineSplits = 0;
+}
 
 CachedLitVertex * AllocateLitCacheVertices(const int vertexCount)
 {
@@ -932,36 +999,50 @@ CachedLitVertex * AllocateLitCacheVertices(const int vertexCount)
     }
 
     LitCacheChunk * chunk = nullptr;
-    if (s_litCacheChunkCount > 0)
+    for (int i = s_litCacheChunkCount - 1; i >= 0; --i)
     {
-        LitCacheChunk & tail = s_litCacheChunks[s_litCacheChunkCount - 1];
+        LitCacheChunk & tail = s_litCacheChunks[i];
         if (tail.usedVertexCount + vertexCount <= verticesPerChunk)
         {
             chunk = &tail;
+            break;
         }
     }
 
     if (chunk == nullptr)
     {
-        if (s_litCacheChunkCount >= kLitCacheChunkCount)
+        if (s_litCacheChunkCount < kLitCacheChunkCount)
         {
-            return nullptr;
+            CachedLitVertex * storage = static_cast<CachedLitVertex *>(
+                PS2_MemTryAllocAligned(16, kLitCacheChunkBytes, MEMTAG_MDL_WORLD));
+            if (storage != nullptr)
+            {
+                chunk = &s_litCacheChunks[s_litCacheChunkCount++];
+                *chunk = {};
+                chunk->vertices = storage;
+            }
         }
-
-        CachedLitVertex * storage = static_cast<CachedLitVertex *>(
-            PS2_MemTryAllocAligned(16, kLitCacheChunkBytes, MEMTAG_MDL_WORLD));
-        if (storage == nullptr)
+        // Reuse only blocks absent from all currently prepared texture chains
+        // and not drawn earlier this frame. No extra heap allocation or flush.
+        if (chunk == nullptr)
         {
-            return nullptr;
+            for (int i = 0; i < s_litCacheChunkCount; ++i)
+            {
+                LitCacheChunk & candidate = s_litCacheChunks[i];
+                if (candidate.lastUsedFrame == s_litCacheFrame) continue;
+                if (chunk == nullptr || candidate.lastUsedFrame < chunk->lastUsedFrame)
+                    chunk = &candidate;
+            }
+            if (chunk == nullptr) return nullptr;
+            RecycleLitCacheChunk(*chunk);
         }
-
-        chunk = &s_litCacheChunks[s_litCacheChunkCount++];
-        chunk->vertices = storage;
-        chunk->usedVertexCount = 0;
     }
 
     CachedLitVertex * result = chunk->vertices + chunk->usedVertexCount;
     chunk->usedVertexCount += vertexCount;
+    chunk->lastUsedFrame = s_litCacheFrame;
+    chunk->fineSplits += s_litBuildFineSplits;
+    s_litCacheFineSplits += s_litBuildFineSplits;
     s_litCacheBytes +=
         vertexCount * static_cast<int>(sizeof(CachedLitVertex));
     return result;
@@ -971,12 +1052,7 @@ void ClearLitTriangleCaches()
 {
     for (const mod::ModelTriangle * triangle : s_cachedLitTriangles)
     {
-        triangle->litCacheVertices = nullptr;
-        triangle->litCacheKey = 0;
-        triangle->litCacheColorKey = 0;
-        triangle->litCacheVertexCount = 0;
-        triangle->litCacheCapacity = 0;
-        for (int v = 0; v < 3; ++v) triangle->litCacheCornerIndices[v] = 0xFFFFu;
+        ResetLitTriangle(*triangle);
     }
     s_cachedLitTriangles.clear();
 
@@ -2063,7 +2139,6 @@ void GatherPolyTriangles(const mod::ModelPoly & poly, const mod::ModelSurface & 
                     if (firstAllocation)
                     {
                         s_cachedLitTriangles.push_back(&tri);
-                        s_litCacheFineSplits += s_litBuildFineSplits;
                     }
                 }
             }
@@ -2240,6 +2315,19 @@ void GatherPolyCrackSeals(const mod::ModelPoly & poly,
     }
 }
 
+void PinLitTextureChains()
+{
+    // Protect future draws as well as past draws: demand recycling during an
+    // early texture must not discard lighting needed by a later texture/seal.
+    for (int i = 0; i < s_chainTextureCount; ++i)
+        for (const mod::ModelSurface * surf = s_chainTextures[i]->textureChain;
+             surf != nullptr; surf = surf->textureChain)
+            for (const mod::ModelPoly * poly = surf->polys;
+                 poly != nullptr; poly = poly->next)
+                for (int t = 0; t < poly->numVerts - 2; ++t)
+                    PinLitCacheVertices(poly->triangles[t].litCacheVertices);
+}
+
 // Draws every texture chain built by RecursiveWorldNode and resets them.
 void DrawTextureChains(const math::Mat4 & mvp, bool worldLightingPass = false)
 {
@@ -2249,6 +2337,7 @@ void DrawTextureChains(const math::Mat4 & mvp, bool worldLightingPass = false)
     // or inline-brush draw. The biased seal pass never accesses this cache.
     BeginWorldClipCache();
     WorldDetailScope preparationTimer(s_worldProfile, WorldProfile::Preparation);
+    PinLitTextureChains();
     // The world and each inline brush use different light coordinates. Keep
     // masks only across the ordinary/crack-seal passes in this one context.
     s_surfaceLightCache.Clear();
@@ -3453,6 +3542,7 @@ void RenderFrame(const refdef_t & viewDef)
         FrameGuard() { s_renderingFrame = true; }
         ~FrameGuard() { s_renderingFrame = false; }
     } guard;
+    BeginLitCacheFrame();
     PS2_Assert(viewDef.width > 0 && viewDef.height > 0);
 
 #if PS2_PROFILE

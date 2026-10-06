@@ -6,6 +6,22 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.128 - 2026-10-06 (local test build)
+
+- Reuse the least recently used inactive 96KiB BSP lighting-cache chunk when
+  existing storage fills. Keep the1.5MiB limit; protect all prepared opaque
+  texture chains and all earlier draws for the rest of the frame. Invalidate
+  triangle pointers, keys and seal indices before reusing storage; compact
+  registrations so repeat visits do not accumulate stale entries.
+- Search spare space in every allocated chunk. Allocation failure may reuse an
+  inactive chunk; a fully active cache retains the existing scratch fallback.
+  Lighting quality, colour updates, crack-seal geometry and GS ordering remain
+  unchanged. LitFine accounts subdivisions in allocated cache blocks, including
+  replacement allocations, and decreases when a block is recycled.
+- Host checks cover full-cache room transitions, retained stationary results,
+  future-chain/seal protection, LRU choice, bounded accounting, optional OOM,
+  age wrap and existing mandatory reclamation. FPS/visual validation pending.
+
 ## 0.1.0-alpha.127 - 2026-10-05 (local test build)
 
 - Experiment: prefer retaining sky faces drawn this frame during later demand

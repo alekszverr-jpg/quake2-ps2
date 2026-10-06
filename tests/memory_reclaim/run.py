@@ -10,7 +10,7 @@ out.mkdir(parents=True, exist_ok=True)
 functions = []
 for path, signatures in [
     ("heap.cpp", ["static bool ReclaimOptionalMemory", "void PS2_SetMemoryReclaimer", "void * PS2_MemAlloc", "void * PS2_MemAllocAligned", "void * PS2_MemTryAllocAligned"]),
-    ("../renderer/render_view.cpp", ["void ClearLitTriangleCaches", "int ReclaimLightingCache"]),
+    ("../renderer/render_view.cpp", ["void ResetLitTriangle", "void ClearLitTriangleCaches", "int ReclaimLightingCache"]),
 ]:
     source = (root / "src/ps2/system" / path).read_text()
     for signature in signatures:

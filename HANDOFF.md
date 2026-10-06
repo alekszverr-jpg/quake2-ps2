@@ -29,6 +29,21 @@ checkpoint does not advance `VERSION`.
 
 ## New heavy-point capture (2026-10-06; location/conditions not yet specified)
 
+Alpha.128 implementation now reuses the oldest inactive96KiB lighting-cache
+chunk on demand, with all prepared opaque texture chains pre-pinned before
+gathering and all allocations pinned through frame end. This includes brush
+chains when prepared; earlier world/seal references stay protected. It searches
+all chunks for spare space first and can reuse inactive storage on optional
+allocation failure. Pointer-range checks use uintptr_t, invalidation clears all
+triangle cache/seal fields and compacts registrations. No per-triangle metadata
+growth or larger cache budget. All-active visible working sets may still miss;
+coarse chunk pinning intentionally does not evict partially visible chunks.
+LitFine now tracks allocated-block build subdivisions including growth
+allocations, subtracting recycled-block totals. Full OOM reclaimer unchanged.
+Host lighting_cache, memory_reclaim, lighting_lod and seal_corners tests pass.
+CI/ELF installation and runtime validation pending; keep127baseline for matched
+indoor standing Hit/Build/World,10s capture, seams/doors/light-style validation.
+
 User supplied same-point full overlay and reports Free VRAM constantly varying.
 User clarified no sky is visible here: Sky0 is expected, not retention evidence.
 DRAW STATS: World44780us, Ent2667us, Setup284us, Part97us,3D47826us;

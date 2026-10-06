@@ -1,7 +1,7 @@
 # Quake II for PlayStation 2
 
 [![Build](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml/badge.svg)](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml)
-[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.127-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
+[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.128-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](LICENSE)
 
 An active continuation of the unofficial Quake II port for the Sony
@@ -326,6 +326,17 @@ and remaining control work. These exclusive categories sum to Clip/emit on the
 Geometry page. They include the opaque-world seal clip/emission path, but exclude
 sky, brush entities and MD2; seal corner transforms stay in Seal prep.
 Additional timers perturb these results. Use the ordinary benchmark for speed.
+
+Alpha.128 reuses inactive 96KiB BSP lighting-cache chunks within the existing
+1.5MiB limit. All opaque texture chains pin their existing chunks before drawing;
+chunks touched earlier in the frame remain protected through crack sealing and
+brush draws. A full active working set retains the scratch-build fallback.
+No subdivision, colour, texture quality or GS synchronization changes. Host
+checks cover stale-pointer invalidation, future-chain protection, room changes,
+bounded storage, allocation failure and frame-age wrap. Compare127vs128 at the
+heavy indoor point after walking there: LitHit/LitBuild and World time while
+standing, then a10s capture and seams/doors/flickering lights. Hardware speed
+and visuals are pending validation.
 
 Alpha.123 retains first-match cached corner indices when building each BSP
 triangle's lighting cache. Crack seals fetch current colours directly by index
