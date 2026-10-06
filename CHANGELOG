@@ -35,6 +35,11 @@ Development priorities and completion criteria are tracked in
   World15.651ms,Entities7.359ms,3D23.709ms. Texture payload520.6KiB/frame,
   DMA/reuse waits0.37/0.34ms. Remaining full-frame cost needs phase/present
   measurement; the overlay and capture are separate samples. No new change.
+- User firing ON/OFF world-light comparison: same291nodes/197surfaces and
+  Hit593/Build0. World25.367->7.063ms,3D33.764->14.933ms,displayed FPS20->29;
+  entity time7.184/7.271ms and particle time0.344/0.330ms broadly stable.
+  Strong transient-world-light cost evidence (~18.3ms world delta in these
+  snapshots), not a full-duration average. Next target is dynamic-light work.
 
 ## 0.1.0-alpha.127 - 2026-10-05 (local test build)
 

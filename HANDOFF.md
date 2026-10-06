@@ -29,6 +29,21 @@ checkpoint does not advance `VERSION`.
 
 ## New heavy-point capture (2026-10-06; location/conditions not yet specified)
 
+User supplied firing comparison, explicitly1World Lights ON /2OFF, same
+corridor/camera/weapon. Both Nodes291,Surfs197,Alpha3,LitHit593,Build0,Color0,
+KB623,Fine1140. ON World25367us,Ent7184us,Part344us,3D33764us,FPS20;
+OFF World7063us,Ent7271us,Part330us,3D14933us,FPS29. World difference18.304ms
+(~72% lower OFF),3D difference18.831ms; entity/particle costs broadly stable.
+Cache hits/topology retained; this strongly isolates transient world-light
+processing as the shooting bottleneck. Uploads differ28vs24,TexDMA284vs253us,
+VRAMwait175vs155us; these measured wait changes cannot explain18ms world delta.
+Single overlay snapshots/fire phases, not a controlled full-duration average.
+Weapon remains yellow OFF because ps2_world_dlights only controls BSP-world
+lighting. No need to disable all dynamic lighting permanently: next target is
+SelectTriangleLights/transient subdivision/colour/clip work, using existing
+world-light detail profile to separate costs and preserve close-range flashes.
+No new implementation yet; keep current quality settings for matched validation.
+
 User reports shooting strongly lowers FPS. New128corridor screenshot during
 visible yellow dynamic lighting/impact particles: FPS14,World27244us,
 Ent6957us,Part521us,3D34971us,Surfs311,Tris6793,Alpha10,VUvert20379.
