@@ -30,6 +30,11 @@ Development priorities and completion criteria are tracked in
   1166-1383builds and44.780ms. Strong point-specific improvement and retained
   lighting confirmed; views/weapon/geometry differ, so not an exact matched
   benchmark or universal gain. Seams/doors/light-style validation still pending.
+- Another heavy view sustains~20FPS:200frames/10.01s,50.05ms average/51ms
+  maximum. Lighting remains retained (Hit1504/Build0/KB1529); full overlay
+  World15.651ms,Entities7.359ms,3D23.709ms. Texture payload520.6KiB/frame,
+  DMA/reuse waits0.37/0.34ms. Remaining full-frame cost needs phase/present
+  measurement; the overlay and capture are separate samples. No new change.
 
 ## 0.1.0-alpha.127 - 2026-10-05 (local test build)
 

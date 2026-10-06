@@ -29,6 +29,27 @@ checkpoint does not advance `VERSION`.
 
 ## New heavy-point capture (2026-10-06; location/conditions not yet specified)
 
+Additional128heavy view supplied after the indoor improvement: open courtyard,
+sky visible but Sky uploads0. Full overlay FPS20,World15651us,Ent7359us,
+Setup293us,Part166us,3D23709us; Nodes615,Surfs504,Tris7011,Batches82,
+VUvert21033. LitHit1504,Build0,Color0,KB1529: even a nearly full cache retains
+this view; no evidence of renewed per-frame tessellation. TexDMA372us,
+VRAMwait279us,VUwait174us. FreeVRAM16KiB,resident34,uploads43,E/R/S40/43/27.
+Capture200frames/10.01s,average50.05ms/max51ms,all200>33ms,10>50ms.
+E/R/S41.2/41.1/27.5,DMA/reusewait0.37/0.34ms; Skin6.3/6.3/264.2KiB,
+Wall34.8/34.8/256.4KiB,all other types0,total520.6KiB/frame.
+WorstR41/510.4KiB/reusewait0.31ms. Full overlay and capture are different
+samples: do not subtract23.709ms from50.05ms as a measured residual.
+Approximately20FPS sustained rather than isolated67ms spikes. Quantized50-51ms
+is consistent with display pacing; gs::EndFrame calls graph_wait_vsync outside
+timedemo, but current counters do not isolate its cost, engine logic, final GS
+completion, HUD or full texture CPU work. Small measured texture waits do not
+prove streaming cost is negligible. Next investigation: complete frame-phase
+accounting including game/client and final render/present/vsync, then world
+cached geometry and model/weapon work (Ent7.359ms in this snapshot vs3.730ms
+in earlier128indoor snapshot). Different camera/weapon/geometry, not matched
+comparison. No new code/build; keep128 and runtime visual validation pending.
+
 Alpha.128 implementation now reuses the oldest inactive96KiB lighting-cache
 chunk on demand, with all prepared opaque texture chains pre-pinned before
 gathering and all allocations pinned through frame end. This includes brush
