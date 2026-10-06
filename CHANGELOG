@@ -10,14 +10,16 @@ Development priorities and completion criteria are tracked in
 
 - Pass dynamic-light subdivision vertices by reference instead of copying two
   arrays of96-byte ClipVertex records per split. Parent/midpoint lifetime remains
-  bounded by the same seven recursion levels; no new persistent storage.
+  bounded by the same subdivision depth cap; no new persistent storage.
 - Emit fully inside transient leaves directly from references. Preserve generic
   clipping for other leaves and the existing colour calculations, subdivision,
   midpoint transforms, counters, flush boundaries and GS synchronization.
 - Differential tests retain the old recursive reference and add400 varied
   geometry cases;3500 production leaf cases match generic output, counters and
   flushes including plane boundaries/nonfinite distances. Existing near/brush/
-  reduced-quality tests pass. Firing performance and visuals pending.
+  reduced-quality tests pass. CI37442835379 passed host sanitizer checks, map
+  validation and PROFILE build; ELF installed in both roots,128baseline saved.
+  Firing performance and visuals pending.
 
 ## 0.1.0-alpha.128 - 2026-10-06 (local test build)
 

@@ -8,19 +8,19 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.128 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.129 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.128` (bounded inactive BSP lighting-cache reuse; CI/host tests passed and ELF installed; heavy-room capture33.37ms vs prior59.58ms, LitHit1235/Build0 and World17.564ms vs44.780ms; strong point-specific gain, visual/session checks pending; quality defaults full; Alpha.119/113 reverted;480p hardware unverified)
-- Current implementation commit: `47cd4e7`
-  (`Reuse inactive BSP lighting cache chunks within bounded storage`); CI submodule fix `b344f3e` retained.
+- Current source/test version: `0.1.0-alpha.129` (dynamic-light subdivision by reference and direct inside leaves; CI/host tests passed, ELF installed; matched firing timing/visual checks pending;128 lighting-cache improvement retained; quality defaults full;480p hardware unverified)
+- Current implementation commit: `ec67b51`
+  (`Avoid transient dynamic-light triangle copies and emit inside leaves directly`); CI submodule fix `b344f3e` retained.
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.128 local PROFILE ELF SHA-256 (7,972,672 bytes):
-  `08A74BD6852A7CD3B9F7425C6A5F4B5A14AFECE9C988F36C5565105AAFF871EB`
-- CI `37439671459` passed all host sanitizer tests, map validation and PROFILE build for `47cd4e7`.
+- Alpha.129 local PROFILE ELF SHA-256 (7,997,152 bytes):
+  `7C6A6B6C8D20B1AEA64460C388AD9568D0FF002F69A024A64C1AE5CC10A81B9B`
+- CI `37442835379` passed all host sanitizer tests, map validation and PROFILE build for `ec67b51`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
@@ -39,9 +39,14 @@ the same EmitScratchVertex, counter and flush threshold. Others copy into the
 unchanged generic clipper; finite/nonfinite classification semantics preserved.
 No topology/spacing/colour/MVP-transform/GS synchronization or storage change.
 view_effects differential old recursion tests plus400varied geometry cases and
-alias_clip3500production leaf comparisons pass locally. CI/ELF installation
-pending. Save128baseline and compare sustained firing, lightsON, identical
-weapon/view/flash detail; require World/capture and flash/clipping visual checks.
+alias_clip3500production leaf comparisons pass locally. CI37442835379 passed
+all sanitizer tests, map validation and PROFILE build. Installed7,997,152-byte
+ELF in both roots with matching SHA256 and verified embedded129. Downloaded
+build/ci-ec67b51-profile;128baseline saved in Documents project as
+quake2-alpha128-baseline.elf, SHA256
+08A74BD6852A7CD3B9F7425C6A5F4B5A14AFECE9C988F36C5565105AAFF871EB.
+No release published. Compare sustained firing, lightsON, identical weapon/view/
+flash detail; require World/capture and flash/clipping visual checks.
 
 User supplied firing comparison, explicitly1World Lights ON /2OFF, same
 corridor/camera/weapon. Both Nodes291,Surfs197,Alpha3,LitHit593,Build0,Color0,
