@@ -29,8 +29,9 @@ checkpoint does not advance `VERSION`.
 
 ## New heavy-point capture (2026-10-06; location/conditions not yet specified)
 
-User supplied129firing corridor overlay/capture (settings and continuous firing
-throughout capture not explicitly confirmed). Capture232frames/10.03s,
+User supplied129firing corridor overlay/capture; subsequently confirmed firing
+continuously through all10s and normal flash/wall-edge visuals. Settings were
+not separately restated. Capture232frames/10.03s,
 average43.22ms/max51ms (~23.1FPS),176frames>33ms,3frames>50ms.
 E/R/S0.2/0.1/0.0,DMA/reuse0.00/0.00ms; Skin0.1/0.1/0.6KiB perframe,
 Wall0.0/0.0/0.2KiB,other types0. WorstR0/0.0KiB/reuse0.00ms.
@@ -42,7 +43,8 @@ Previous128ON overlay World25.367ms/Ent7.184ms/Tris5488/VUvert16452 and
 snapshot (~15.6%) is encouraging but cannot isolate129because geometry,
 model time and texture streaming also changed. There is no matched12810s
 firing capture, so do not claim percentage FPS gain from43.22ms or courtyard
-50.05ms. Visual acceptance still not provided. Need matched128/129sustained
+50.05ms. First firing/flash/wall-edge visual check accepted; retain129, longer
+session and other weapon/light regressions remain untested. Need matched128/129sustained
 firing with fixed camera/weapon/flash detail and warm textures; next suspect
 remains transient light bounds/split/colour work, use existing detail profile.
 

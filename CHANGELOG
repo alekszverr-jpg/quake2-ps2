@@ -25,6 +25,9 @@ Development priorities and completion criteria are tracked in
   0.8KiB/frame, waits round to0.00ms. Overlay World~21.42ms,Hit590/Build0.
   Prior128ON snapshot World25.367ms had more geometry/model cost and texture
   uploads; no matched128firing capture, so improvement not yet isolated.
+- User confirms continuous firing throughout the10s capture and normal flash/
+  wall-edge visuals. Retain129; isolated speed gain and broader weapon/session
+  validation remain pending.
 
 ## 0.1.0-alpha.128 - 2026-10-06 (local test build)
 
