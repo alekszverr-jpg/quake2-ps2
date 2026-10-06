@@ -119,6 +119,15 @@ void SubmitWorldTriangle(const ClipVertex (&corners)[3], const math::Mat4 &,
     }
 }
 void FlushScratch(const math::Mat4 &, const tex::Texture &, bool, int) {}
+// Recursion test records every leaf; real clipping/flush equivalence is tested
+// separately by alias_clip using the production SubmitDynamicLeaf.
+void SubmitDynamicLeaf(const ClipVertex & a, const ClipVertex & b,
+                       const ClipVertex & c, const math::Mat4 & mvp,
+                       const tex::Texture & texture)
+{
+    const ClipVertex corners[3] = { a, b, c };
+    SubmitWorldTriangle(corners, mvp, texture);
+}
 #include "effects.inc"
 #include "dynamic_reference.inc"
 #include "selection_reference.inc"
@@ -217,6 +226,34 @@ int main()
         emitted.clear(); SubmitDynamicallyLitTriangle(large,{},{},0,true);
         assert(emitted == reference && s_surfaceLightMask == selected);
     }
+    // Vary geometry, edge ties/thresholds and large translated coordinates,
+    // not only light positions. Reference recursion copies full child arrays.
+    for (int scenario = 0; scenario < 400; ++scenario) {
+        ClipVertex probe[3] = {};
+        for (int v = 0; v < 3; ++v) {
+            const float offset = scenario % 5 == 0 ? 65536.0f : 0.0f;
+            probe[v].pos = {offset + float((scenario*13+v*131)%700-350),
+                float((scenario*31+v*193)%800-400), float((scenario*7+v*41)%256), 1};
+            probe[v].st = {float(v)*0.3f, float(v)*0.7f, 0, 0};
+            probe[v].color = {20+float(v)*13, 40+float(v)*7, 70, 128};
+        }
+        if (scenario % 7 == 0) probe[2] = probe[1];
+        for (int i = 0; i < 3; ++i) {
+            lights[i] = {float(80 + (scenario*19+i*37)%500), {1, .3f, .8f}};
+            s_worldLightOrigins[i] = {probe[i].pos.x + 30, probe[i].pos.y - 50, probe[i].pos.z};
+        }
+        s_worldLightCount = 3;
+        s_surfaceLightMask = 7;
+        emitted.clear(); referenceMode = true;
+        const int depth = scenario % 9 == 0 ? 7 : 0;
+        ReferenceDynamicTriangle(probe, {}, {}, depth);
+        referenceMode = false;
+        const auto expected = emitted;
+        emitted.clear(); s_worldLightCache.Clear();
+        SubmitDynamicallyLitTriangle(probe, {}, {}, depth);
+        assert(emitted == expected && s_surfaceLightMask == 7);
+    }
+    s_worldLightCount = 32;
     s_surfaceLightMask = 0;
     s_worldLightCacheEnabled = true;
     s_lightProfile = {};
@@ -253,7 +290,7 @@ int main()
     assert(DynamicLightSpacing(768.0f*768.0f)==128.0f);
     assert(DynamicLightSpacing(600.0f*600.0f)>64.0f && DynamicLightSpacing(600.0f*600.0f)<128.0f);
     s_lightingEye={-2000,0,0};
-    assert(DynamicTriangleEdgeSquared(policyCorners)==128.0f*128.0f);
+    assert(DynamicTriangleEdgeSquared(policyCorners[0],policyCorners[1],policyCorners[2])==128.0f*128.0f);
     emitted.clear(); triangles=0; s_worldLightCache.Clear();
     SubmitDynamicallyLitTriangle(policyCorners,{},{});
     assert(triangles<fullCount && s_surfaceLightMask==1);

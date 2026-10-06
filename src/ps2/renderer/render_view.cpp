@@ -1390,15 +1390,17 @@ void SubmitWorldTriangle(const ClipVertex (&corners)[3], const math::Mat4 & mvp,
 
 // Choose a root-wide transient spacing; children inherit it without retesting
 // camera distance or weakening bounds selection.
-float DynamicTriangleEdgeSquared(const ClipVertex (&corners)[3])
+float DynamicTriangleEdgeSquared(const ClipVertex & a, const ClipVertex & b,
+                                 const ClipVertex & c)
 {
+    const ClipVertex * corners[3] = { &a, &b, &c };
     if (!s_farDynamicLightingEnabled || !s_worldLightingPass) return 64.0f*64.0f;
     float distanceSq = 0.0f;
     for (int axis = 0; axis < 3; ++axis) {
-        const auto & first = corners[0].pos;
+        const auto & first = corners[0]->pos;
         float low = axis == 0 ? first.x : (axis == 1 ? first.y : first.z), high = low;
         for (int v = 1; v < 3; ++v) {
-            const auto & point = corners[v].pos;
+            const auto & point = corners[v]->pos;
             const float value = axis == 0 ? point.x : (axis == 1 ? point.y : point.z);
             low = std::min(low,value); high = std::max(high,value);
         }
@@ -1410,46 +1412,77 @@ float DynamicTriangleEdgeSquared(const ClipVertex (&corners)[3])
     return edge*edge;
 }
 
+// Interior transient leaves can emit directly from parent/midpoint references.
+// Copy full records only for the established generic clipping fallback.
+void SubmitDynamicLeaf(const ClipVertex & a, const ClipVertex & b,
+                       const ClipVertex & c, const math::Mat4 & mvp,
+                       const tex::Texture & texture)
+{
+    WorldSampleScope sample(s_worldProfile);
+    WorldDetailScope clipTimer(s_worldProfile, WorldProfile::Clip);
+    WorldDetailScope planeTimer(s_worldProfile, WorldProfile::Planes);
+    bool inside = true;
+    for (int p = 0; p < kNumClipPlanes; ++p)
+        inside &= a.d.f[p] >= 0.0f && b.d.f[p] >= 0.0f && c.d.f[p] >= 0.0f;
+    planeTimer.Stop();
+    if (!inside)
+    {
+        const ClipVertex corners[3] = { a, b, c };
+        clipTimer.Stop();
+        SubmitWorldTriangle(corners, mvp, texture);
+        return;
+    }
+    PS2_STAT_INC(trisDrawn);
+    if (s_scratchVertCount + 3 > kScratchMaxVerts)
+        FlushScratch(mvp, texture);
+    WorldDetailScope emitTimer(s_worldProfile, WorldProfile::Emit);
+    EmitScratchVertex(a);
+    EmitScratchVertex(b);
+    EmitScratchVertex(c);
+}
+
 // A flat static-light face may have only three cached vertices. Subdivide
 // transiently near a dynamic light so a flash in the middle is not missed.
 // Bounding-box pruning and a fixed recursion cap bound both work and stack;
 // these vertices never enter the persistent lighting cache.
-void SubmitDynamicallyLitTriangle(const ClipVertex (&corners)[3],
+void SubmitDynamicTriangleVertices(const ClipVertex & a, const ClipVertex & b,
+                                  const ClipVertex & c,
                                   const math::Mat4 & mvp,
                                   const tex::Texture & texture, int depth = 0,
                                   bool boundsSelected = false,
                                   float edgeLimitSquared = 64.0f*64.0f)
 {
+    const ClipVertex * corners[3] = { &a, &b, &c };
     WorldDetailScope lightTimer(s_worldProfile, WorldProfile::Preparation);
     if (s_lightProfile.enabled) ++s_lightProfile.nodes;
     const u32 surfaceMask = s_surfaceLightMask;
     if (surfaceMask == 0)
     {
-        SubmitWorldTriangle(corners, mvp, texture);
+        SubmitDynamicLeaf(a, b, c, mvp, texture);
         return;
     }
     u32 triangleMask = surfaceMask;
     if (!boundsSelected)
     {
-        const math::Vec4 positions[3] = { corners[0].pos, corners[1].pos, corners[2].pos };
+        const math::Vec4 positions[3] = { corners[0]->pos, corners[1]->pos, corners[2]->pos };
         triangleMask = SelectTriangleLights(surfaceMask, positions);
     }
     s_surfaceLightMask = triangleMask;
     if (triangleMask == 0)
     {
-        SubmitWorldTriangle(corners, mvp, texture);
+        SubmitDynamicLeaf(a, b, c, mvp, texture);
         s_surfaceLightMask = surfaceMask;
         return;
     }
     WorldLightScope splitTimer(s_lightProfile, WorldLightProfile::Split);
-    if (depth == 0) edgeLimitSquared = DynamicTriangleEdgeSquared(corners);
+    if (depth == 0) edgeLimitSquared = DynamicTriangleEdgeSquared(a, b, c);
     int longest = 0;
     float longestSquared = 0.0f;
     for (int edge = 0; edge < 3; ++edge)
     {
-        const math::Vec4 & a = corners[edge].pos;
-        const math::Vec4 & b = corners[(edge + 1) % 3].pos;
-        const float x = a.x - b.x, y = a.y - b.y, z = a.z - b.z;
+        const math::Vec4 & edgeA = corners[edge]->pos;
+        const math::Vec4 & edgeB = corners[(edge + 1) % 3]->pos;
+        const float x = edgeA.x - edgeB.x, y = edgeA.y - edgeB.y, z = edgeA.z - edgeB.z;
         const float squared = x*x + y*y + z*z;
         if (squared > longestSquared) { longest = edge; longestSquared = squared; }
     }
@@ -1458,22 +1491,32 @@ void SubmitDynamicallyLitTriangle(const ClipVertex (&corners)[3],
         if (s_lightProfile.enabled) ++s_lightProfile.splits;
         const int next = (longest + 1) % 3, other = (longest + 2) % 3;
         ClipVertex midpoint = {};
-        math::LerpTo(midpoint.pos, corners[longest].pos, corners[next].pos, 0.5f);
-        math::LerpTo(midpoint.st, corners[longest].st, corners[next].st, 0.5f);
-        math::LerpTo(midpoint.color, corners[longest].color, corners[next].color, 0.5f);
+        math::LerpTo(midpoint.pos, corners[longest]->pos, corners[next]->pos, 0.5f);
+        math::LerpTo(midpoint.st, corners[longest]->st, corners[next]->st, 0.5f);
+        math::LerpTo(midpoint.color, corners[longest]->color, corners[next]->color, 0.5f);
         SetClipDistances(midpoint, mvp);
-        const ClipVertex first[3] = { corners[longest], midpoint, corners[other] };
-        const ClipVertex second[3] = { midpoint, corners[next], corners[other] };
         splitTimer.Stop(); // Exclude children, bounds tests and submission.
-        SubmitDynamicallyLitTriangle(first, mvp, texture, depth + 1, false, edgeLimitSquared);
-        SubmitDynamicallyLitTriangle(second, mvp, texture, depth + 1, false, edgeLimitSquared);
+        SubmitDynamicTriangleVertices(*corners[longest], midpoint, *corners[other],
+                                     mvp, texture, depth + 1, false, edgeLimitSquared);
+        SubmitDynamicTriangleVertices(midpoint, *corners[next], *corners[other],
+                                     mvp, texture, depth + 1, false, edgeLimitSquared);
     }
     else
     {
         splitTimer.Stop();
-        SubmitWorldTriangle(corners, mvp, texture);
+        SubmitDynamicLeaf(a, b, c, mvp, texture);
     }
     s_surfaceLightMask = surfaceMask;
+}
+
+void SubmitDynamicallyLitTriangle(const ClipVertex (&corners)[3],
+                                  const math::Mat4 & mvp,
+                                  const tex::Texture & texture, int depth = 0,
+                                  bool boundsSelected = false,
+                                  float edgeLimitSquared = 64.0f*64.0f)
+{
+    SubmitDynamicTriangleVertices(corners[0], corners[1], corners[2], mvp,
+                                  texture, depth, boundsSelected, edgeLimitSquared);
 }
 
 void DrawTranslucentSurface(const mod::ModelSurface & surface,

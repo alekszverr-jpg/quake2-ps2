@@ -160,6 +160,7 @@ play on a retail console.
 - [x] Reduce persistent sky reloads with bounded retention (Alpha.127: sky0/20.5KiB perframe, total449.1/591.9, both max34ms; standing/turning and visuals accepted; FPS gain not established)
 - [ ] Reduce skin/world VRAM competition and validate matched frame timing (Alpha.127 same-frame evictions26.9/28.1; turning33.37ms vs12630.76ms requires controlled comparison)
 - [~] Reuse inactive BSP lighting-cache chunks within1.5MiB (Alpha.128; heavy-room capture59.58->33.37ms, Hit1235/Build0, World44.780->17.564ms; strong point-specific gain, views differ; seams/doors/light-style and session checks pending)
+- [~] Remove transient dynamic-light vertex copies and fast-path inside leaves (Alpha.129; preserve subdivision/colour/clipping, host differential checks passed; matched firing World/capture/visual checks pending)
 - [~] Validate long sessions for EE RAM, IOP RAM and VRAM leaks
 - [ ] Target a stable 30 FPS minimum, with 60 FPS where practical
 

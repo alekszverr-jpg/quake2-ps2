@@ -24,7 +24,7 @@ cache_size = re.search(r'^constexpr u32 kWorldClipCacheEntries = \d+;', source, 
 if not cache_size: raise RuntimeError('world clipping cache capacity')
 parts.append(cache_size.group(0))
 (out/'types.inc').write_text('\n'.join(parts))
-for name, prefixes in [('generic.inc',['int ClipAgainstPlane(', 'inline u32 PackFloatColor(', 'inline void EmitScratchVertex(const ClipVertex & v,', 'inline void EmitScratchVertex(const ClipVertex & v)', 'void SubmitWorldTriangle(', 'void SetClipDistances(ClipDists &']), ('alias.inc',['void PrepareAliasTexCoords(', 'inline AliasTexCoord AliasTexCoordsAt(', 'inline void SubmitOpaqueAliasTriangle(', 'void PrepareAliasClipData(', 'void SubmitAliasTriangle('])]:
+for name, prefixes in [('generic.inc',['int ClipAgainstPlane(', 'inline u32 PackFloatColor(', 'inline void EmitScratchVertex(const ClipVertex & v,', 'inline void EmitScratchVertex(const ClipVertex & v)', 'void SubmitWorldTriangle(', 'void SubmitDynamicLeaf(', 'void SetClipDistances(ClipDists &']), ('alias.inc',['void PrepareAliasTexCoords(', 'inline AliasTexCoord AliasTexCoordsAt(', 'inline void SubmitOpaqueAliasTriangle(', 'void PrepareAliasClipData(', 'void SubmitAliasTriangle('])]:
     (out/name).write_text('\n'.join(function(prefix) for prefix in prefixes))
 (out/'worldclip.inc').write_text(function('void BeginWorldClipCache(') + '\n' + function('u32 CachedWorldClipDistances('))
 cached_loop = re.search(r'^        for \(int first = 0; first < drawVertexCount; first \+= 3\).*?^        }', source, re.M | re.S)

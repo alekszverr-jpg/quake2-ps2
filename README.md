@@ -1,7 +1,7 @@
 # Quake II for PlayStation 2
 
 [![Build](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml/badge.svg)](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml)
-[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.128-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
+[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.129-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](LICENSE)
 
 An active continuation of the unofficial Quake II port for the Sony
@@ -326,6 +326,15 @@ and remaining control work. These exclusive categories sum to Clip/emit on the
 Geometry page. They include the opaque-world seal clip/emission path, but exclude
 sky, brush entities and MD2; seal corner transforms stay in Seal prep.
 Additional timers perturb these results. Use the ordinary benchmark for speed.
+
+Alpha.129 passes parent and midpoint vertices by reference through transient
+dynamic-light subdivision, avoiding two three-vertex record copies per split.
+Fully inside leaves emit directly; clipped/rejected leaves retain the generic
+path. Midpoint transforms, selection, subdivision limits, light colours and
+GS ordering are unchanged. Differential host tests cover recursion, degenerate
+and large translated geometry, clipping, nonfinite distances, flushes and masks.
+Compare128vs129 firing in the same corridor with world lights ON, identical
+flash detail/weapon/camera. World time,10s capture and visuals are pending.
 
 Alpha.128 reuses inactive 96KiB BSP lighting-cache chunks within the existing
 1.5MiB limit. All opaque texture chains pin their existing chunks before drawing;

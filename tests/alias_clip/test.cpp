@@ -404,6 +404,50 @@ int main() {
         assert(s_worldProfile.sampleRoots==20 && s_worldProfile.sampleCount==1);
     }
     assert(earlyRejected>600);
+    // Reference-based transient leaves must preserve generic clipping output,
+    // light colour calls, counters and flush boundaries for every visibility.
+    for (int scenario = 0; scenario < 500; ++scenario) {
+        ClipVertex input[21] = {};
+        const math::Mat4 matrix{scenario % 2 ? 0.0f : 0.25f};
+        for (int i = 0; i < 21; ++i) {
+            auto & v = input[i];
+            v.pos = {position(random), position(random), position(random), 1};
+            v.color = {color(random), color(random), color(random), 128};
+            v.st = {position(random), position(random), 0, 0};
+            SetClipDistances(v.d, v.pos, matrix);
+            if (scenario % 4 == 0)
+                for (int p = 0; p < 6; ++p) v.d.f[p] = i % 2 ? 0.0f : -0.0f;
+            if (scenario % 4 == 1)
+                v.d.f[0] = std::numeric_limits<float>::quiet_NaN(); // Common-plane rejection.
+            if (scenario % 4 == 2)
+                for (int p = 0; p < 6; ++p) v.d.f[p] = std::numeric_limits<float>::infinity();
+        }
+        s_surfaceLightMask = scenario % 2 ? 1u : 0u;
+        Reset(); s_worldProfile = {};
+        for (int i = 0; i < 21; i += 3) {
+            const ClipVertex corners[3] = {input[i], input[i+1], input[i+2]};
+            SubmitWorldTriangle(corners, matrix, texture);
+        }
+        FlushScratch(matrix, texture);
+        const auto expected = emitted;
+        const auto expectedBatches = batches;
+        const int drawn = trisDrawn, culled = trisCulled, clipped = trisClipped;
+        Reset(); s_worldProfile = {};
+        s_worldProfile.enabled = scenario % 3 != 0;
+        s_worldProfile.sampled = true;
+        s_worldProfile.singleDetails = true;
+        s_worldProfile.activePhase = WorldProfile::Geometry;
+        for (int i = 0; i < 21; i += 3)
+            SubmitDynamicLeaf(input[i], input[i+1], input[i+2], matrix, texture);
+        FlushScratch(matrix, texture);
+        assert(trisDrawn == drawn && trisCulled == culled && trisClipped == clipped);
+        assert(batches == expectedBatches && emitted.size() == expected.size());
+        if (!emitted.empty())
+            assert(std::memcmp(emitted.data(), expected.data(), emitted.size()*sizeof(vu1::DrawVertex)) == 0);
+        assert(!s_worldProfile.sampleDepth);
+        assert(s_worldProfile.activeDetail == WorldProfile::DetailCount);
+    }
+    std::puts("3500 transient leaves match generic output, clipping, colours, counters and flushes PASS");
     std::puts("12000 cached BSP triangles match generic clipping/output/batches; active-light dispatch preserved PASS");
     std::printf("%d MD2 triangles match production clipper, colours, UVs, batches and alpha; shared transforms, opaque UV reuse and oversized fallback PASS\n",cases);
 }

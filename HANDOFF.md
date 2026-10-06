@@ -29,6 +29,20 @@ checkpoint does not advance `VERSION`.
 
 ## New heavy-point capture (2026-10-06; location/conditions not yet specified)
 
+Alpha.129 implements a quality-preserving dynamic-light experiment after firing
+ON/OFF evidence: SubmitDynamicTriangleVertices carries three const references
+through recursion; child calls share parent corners and stack midpoint until
+both synchronous child calls finish. Removed two96-byte*3 record copies per
+split. DynamicTriangleEdgeSquared uses three references too. SubmitDynamicLeaf
+tests existing plane distances and emits fully inside corners directly using
+the same EmitScratchVertex, counter and flush threshold. Others copy into the
+unchanged generic clipper; finite/nonfinite classification semantics preserved.
+No topology/spacing/colour/MVP-transform/GS synchronization or storage change.
+view_effects differential old recursion tests plus400varied geometry cases and
+alias_clip3500production leaf comparisons pass locally. CI/ELF installation
+pending. Save128baseline and compare sustained firing, lightsON, identical
+weapon/view/flash detail; require World/capture and flash/clipping visual checks.
+
 User supplied firing comparison, explicitly1World Lights ON /2OFF, same
 corridor/camera/weapon. Both Nodes291,Surfs197,Alpha3,LitHit593,Build0,Color0,
 KB623,Fine1140. ON World25367us,Ent7184us,Part344us,3D33764us,FPS20;
