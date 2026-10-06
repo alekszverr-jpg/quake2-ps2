@@ -29,6 +29,23 @@ checkpoint does not advance `VERSION`.
 
 ## New heavy-point capture (2026-10-06; location/conditions not yet specified)
 
+User reports shooting strongly lowers FPS. New128corridor screenshot during
+visible yellow dynamic lighting/impact particles: FPS14,World27244us,
+Ent6957us,Part521us,3D34971us,Surfs311,Tris6793,Alpha10,VUvert20379.
+LitHit907/Build0/Color0/KB619: persistent static cache remains functional.
+TexDMA440us,VRAMwait340us,VUwait211us; uploads39,E/R/S35/39/25.
+Production GatherPolyTriangles bypasses packedInside/earlyReject fast paths
+when s_surfaceLightMask is nonzero, calls SubmitDynamicallyLitTriangle with
+transient recursive longest-edge subdivision and per-vertex AddWorldLights.
+Transient vertices intentionally do not enter static lighting cache. This is
+a strong source-supported shooting-cost suspect, not quantified incremental
+cost without same-view firing/rest control. Part521us does not measure all
+particle GS raster cost. Next diagnostic: same-point sustained firing with
+VIDEO world lights ON vs OFF (keep firing/particles/weapon), then restore ON;
+compare World/Ent/Tris and capture. flash detail reduced affects distant opaque
+world spacing only and may do little for nearby illuminated walls. No code
+change or new build in this checkpoint.
+
 Additional128heavy view supplied after the indoor improvement: open courtyard,
 sky visible but Sky uploads0. Full overlay FPS20,World15651us,Ent7359us,
 Setup293us,Part166us,3D23709us; Nodes615,Surfs504,Tris7011,Batches82,
