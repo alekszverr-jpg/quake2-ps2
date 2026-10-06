@@ -20,7 +20,9 @@ Development priorities and completion criteria are tracked in
   replacement allocations, and decreases when a block is recycled.
 - Host checks cover full-cache room transitions, retained stationary results,
   future-chain/seal protection, LRU choice, bounded accounting, optional OOM,
-  age wrap and existing mandatory reclamation. FPS/visual validation pending.
+  age wrap and existing mandatory reclamation. CI37439671459 passed host
+  sanitizer checks, map validation and PROFILE build; ELF installed in both
+  test roots, with127baseline saved. FPS/visual validation pending.
 
 ## 0.1.0-alpha.127 - 2026-10-05 (local test build)
 

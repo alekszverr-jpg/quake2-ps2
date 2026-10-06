@@ -8,19 +8,19 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.127 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.128 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.127` (bounded active-sky retention, CI/host tests passed, ELF installed; Base1 standing/turning labels and visuals accepted; payload reduced, FPS gain not established; both max34ms/no>50ms; quality defaults full; Alpha.119/113 reverted; 480p hardware unverified)
-- Current implementation commit: `77ec6c0`
-  (`Try bounded retention of sky faces used this frame`); CI submodule fix `b344f3e` retained.
+- Current source/test version: `0.1.0-alpha.128` (bounded inactive BSP lighting-cache reuse; CI/host tests passed and ELF installed; heavy-room World/Hit/Build/FPS and visuals pending;127 retained for sky payload reduction with no established FPS gain; quality defaults full; Alpha.119/113 reverted;480p hardware unverified)
+- Current implementation commit: `47cd4e7`
+  (`Reuse inactive BSP lighting cache chunks within bounded storage`); CI submodule fix `b344f3e` retained.
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.127 local PROFILE ELF SHA-256 (7,954,992 bytes):
-  `A3C07B856944944CAA8E71D6B4B315DEB7BED6AF3A9C4598DAC24F58D91ED1F3`
-- CI `37337798096` passed all host sanitizer tests, map validation and PROFILE build for `77ec6c0`.
+- Alpha.128 local PROFILE ELF SHA-256 (7,972,672 bytes):
+  `08A74BD6852A7CD3B9F7425C6A5F4B5A14AFECE9C988F36C5565105AAFF871EB`
+- CI `37439671459` passed all host sanitizer tests, map validation and PROFILE build for `47cd4e7`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
@@ -41,8 +41,13 @@ coarse chunk pinning intentionally does not evict partially visible chunks.
 LitFine now tracks allocated-block build subdivisions including growth
 allocations, subtracting recycled-block totals. Full OOM reclaimer unchanged.
 Host lighting_cache, memory_reclaim, lighting_lod and seal_corners tests pass.
-CI/ELF installation and runtime validation pending; keep127baseline for matched
-indoor standing Hit/Build/World,10s capture, seams/doors/light-style validation.
+CI37439671459 passed all host sanitizer checks, map validation and PS2 build.
+Installed7,972,672-byte PROFILE ELF in both project roots; hashes match artifact
+build/ci-47cd4e7-profile and embedded128 verified. Saved Documents project
+quake2-alpha127-baseline.elf, SHA256
+A3C07B856944944CAA8E71D6B4B315DEB7BED6AF3A9C4598DAC24F58D91ED1F3.
+Runtime validation pending: compare indoor standing Hit/Build/World,10s capture,
+seams/doors/light-style changes after the same traversal. No release published.
 
 User supplied same-point full overlay and reports Free VRAM constantly varying.
 User clarified no sky is visible here: Sky0 is expected, not retention evidence.
