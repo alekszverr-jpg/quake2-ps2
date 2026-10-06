@@ -29,6 +29,18 @@ checkpoint does not advance `VERSION`.
 
 ## New heavy-point capture (2026-10-06; location/conditions not yet specified)
 
+User asks to include non-player/world explosion flashes in optimization scope.
+Verified CL_AddExplosions calls V_AddLight(origin,ex->light*ent->alpha,RGB);
+grenade/rocket/generic explosion temp events feed the same refdef.dlights as
+other client lights. SetupFrame copies all these lights without testing owner,
+then uses common SelectSurfaceLights/SelectTriangleLights/dynamic subdivision/
+AddWorldLights. Alpha129 therefore already covers their BSP light processing,
+but no explosion-specific measured improvement exists yet. Further work should
+target this shared path, preserving explosion radius/colour/fade and game logic.
+Explosion model/transparency and particles have separate entity/particle/GS
+costs, so validate non-player explosions/multiple simultaneous lights as well
+as weapon firing before attributing all explosion slowdown to world lighting.
+
 User supplied129firing corridor overlay/capture; subsequently confirmed firing
 continuously through all10s and normal flash/wall-edge visuals. Settings were
 not separately restated. Capture232frames/10.03s,
