@@ -63,6 +63,9 @@ jobs:
       - name: Check bounded VRAM gameplay capture on host
         run: python3 tests/vram_capture/run.py
 
+      - name: Check exclusive full-frame capture on host
+        run: python3 tests/frame_capture/run.py
+
       - name: Check VIDEO controls and output mode scaling on host
         run: python3 tests/video_menu/run.py
 

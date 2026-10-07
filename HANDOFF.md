@@ -27,6 +27,21 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
+## Alpha.131 work in progress
+
+User authorized lightweight complete-frame phase capture. New Test Map mode
+`capture frame 10s` (`ps2_frame_capture 1`) suppresses overlays; temporarily
+zeros ps2_profile_world/models/world_lights and restores their prior values on
+completion/cancel/shutdown. Fixed phase storage, 10s EndFrame-to-EndFrame window;
+SV_Frame and CL_Frame exclusive hooks, renderer Begin/End hooks, final VU/2D
+flush and VSync/flip hooks. Post-display client/audio is split into next interval.
+Other includes commands/throttle, Finish includes submission/completion rather
+than pure GPU raster. World/Entities/Particles are nested Render submeasurements.
+Frozen panel worst column is one longest frame (first maximum on ties).
+No changes to gameplay draw/light/cache/barrier behavior; no FPS gain claimed.
+Host frame capture, old VRAM capture, benchmark and video-menu checks passed.
+CI/build/install and user movement/world-explosion validation pending.
+
 ## New heavy-point capture (2026-10-06; location/conditions not yet specified)
 
 Latest130firing baseline in agreed light diagnostics mode: user first reports

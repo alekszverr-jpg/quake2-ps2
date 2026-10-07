@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "common/q_common.h"
+#include "ps2/frame_capture.h"
 #include "client/console.h"
 #include "client/benchmark.h"
 #include <setjmp.h>
@@ -1530,6 +1531,7 @@ Qcommon_Frame
 */
 void Qcommon_Frame(int msec)
 {
+    PS2_FramePhase(PS2_FRAME_OTHER);
     const char * s;
     int time_before = 0, time_between = 0, time_after = 0;
 
@@ -1606,14 +1608,18 @@ void Qcommon_Frame(int msec)
         time_before = Sys_Milliseconds();
     }
 
+    PS2_FramePhase(PS2_FRAME_SERVER);
     SV_Frame(msec);
+    PS2_FramePhase(PS2_FRAME_OTHER);
 
     if (host_speeds->value)
     {
         time_between = Sys_Milliseconds();
     }
 
+    PS2_FramePhase(PS2_FRAME_CLIENT);
     CL_Frame(msec);
+    PS2_FramePhase(PS2_FRAME_OTHER);
 
     if (host_speeds->value)
     {

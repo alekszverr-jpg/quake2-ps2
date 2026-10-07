@@ -29,6 +29,7 @@
 
 #include "ps2/common.h"
 #include "ps2/renderer/gs.h"
+#include "ps2/frame_capture.h"
 #include "ps2/renderer/render_packet.h"
 #include "ps2/renderer/timing.h"
 #include "ps2/renderer/texture.h"
@@ -942,6 +943,7 @@ void EndFrame()
 {
     PS2_AssertMsg(s_frameStarted, "EndFrame without BeginFrame!");
     s_frameStarted = false;
+    PS2_FramePhase(PS2_FRAME_FINISH);
 
     // No deferred PATH1 chain may survive the frame even when there is no 2D
     // overlay to make FlushPending2D perform the ordering boundary for us.
@@ -954,10 +956,12 @@ void EndFrame()
 
     // Timedemos measure throughput without display-refresh quantisation.
     // All rendering/DMA completion barriers remain in place.
-    if (Cvar_VariableValue("timedemo") == 0.0f)
+    if (Cvar_VariableValue("timedemo") == 0.0f) {
+        PS2_FramePhase(PS2_FRAME_PRESENT);
         graph_wait_vsync();
-    else if (!had2D)
+    } else if (!had2D)
         SyncGsBeforeVramReuse(); // no HUD packet supplied a GS FINISH barrier
+    PS2_FramePhase(PS2_FRAME_PRESENT);
     if (s_videoMode.filtered)
         graph_set_framebuffer_filtered(static_cast<int>(s_frame[s_drawCtx].address), kWidth, GS_PSM_32, 0, 0);
     else
@@ -966,6 +970,7 @@ void EndFrame()
     s_drawCtx ^= 1; // draw into the other buffer next frame
 
     vram::EndFrame();
+    PS2_FramePhase(PS2_FRAME_RENDER);
 }
 
 } // namespace ps2::gs

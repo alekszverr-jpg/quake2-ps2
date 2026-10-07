@@ -1,7 +1,7 @@
 # Quake II for PlayStation 2
 
 [![Build](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml/badge.svg)](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml)
-[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.130-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
+[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.131-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](LICENSE)
 
 An active continuation of the unofficial Quake II port for the Sony
@@ -424,3 +424,22 @@ on a separate profile after the rendered pass. No automatic subtraction or frame
 extrapolation: the empty reference omits geometry and repeated category scopes.
 Provide pages6 and7, plus page3 when checking sample populations. All geometry
 and coverage counters remain full; use the ordinary benchmark for speed changes.
+
+### Lightweight full-frame capture (PROFILE builds)
+
+In Test Map diagnostics, select `capture frame 10s`, then return to gameplay.
+For ten uninterrupted seconds move through the heavy area or keep firing.
+No diagnostic panel is drawn during the measurement. The frozen result shows
+average and longest-frame phases; `World`, `Entities`, `Particles` are inside
+`Render` and must not be added to it again. `Finish/GS` includes submission and
+completion work; `VSync/flip` includes display waiting. `Other/idle` includes
+commands and frame limiting. Client/audio after one display is charged to the
+following display interval. These phases are elapsed wall time, not separate
+CPU/GPU utilization measurements.
+
+Menus, console, loading and stereo rendering restart the ten-second window.
+Detailed world/model/light profilers are temporarily disabled and restored at
+completion or cancellation. Select another diagnostics mode to dismiss results;
+select capture again to repeat. Compare identical routes/settings with warm
+assets, using FPS Only for ordinary play. Captures still have a few phase-clock
+reads per frame; their overhead is not separately calibrated on hardware.

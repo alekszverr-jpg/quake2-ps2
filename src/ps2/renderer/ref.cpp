@@ -12,6 +12,7 @@
 
 #include "ps2/common.h"
 #include "client/benchmark_stats.h"
+#include "ps2/frame_capture.h"
 #include "ps2/renderer/gs.h"
 #include "ps2/renderer/vram.h"
 #include "ps2/renderer/vu1.h"
@@ -26,6 +27,8 @@
 #include <cstdio>
 #if PS2_PROFILE
 #include "ps2/renderer/vram_capture.h"
+#include "ps2/renderer/frame_capture.h"
+#include "ps2/renderer/timing.h"
 #endif
 
 namespace {
@@ -45,6 +48,88 @@ static const cvar_t * s_captureRequest = nullptr;
 static ps2::vram::Capture s_capture;
 static bool s_captureEligible=false, s_captureRunning=false, s_captureReady=false;
 static int s_capturePreviousMs=0;
+void DrawInternalString(int x, int y, const char * str);
+static const cvar_t * s_frameRequest=nullptr;
+static ps2::frame::Capture s_frameCapture;
+static bool s_frameRunning=false, s_frameReady=false, s_frameSaved=false;
+static int s_framePreviousMs=0;
+static const char * s_frameProfiles[]={"ps2_profile_world", "ps2_profile_models", "ps2_profile_world_lights"};
+static float s_frameProfileValues[3]={};
+
+std::uint32_t FrameStamp() { return static_cast<std::uint32_t>(ps2::timing::Now()); }
+void RestoreFrameProfiles() {
+    if (!s_frameSaved) return;
+    for(int i=0;i<3;++i) Cvar_SetValue(s_frameProfiles[i],s_frameProfileValues[i]);
+    s_frameSaved=false;
+}
+void PrepareFrameCapture() {
+    if (s_frameRequest->value==0.0f) {
+        RestoreFrameProfiles(); s_frameRunning=s_frameReady=false; return;
+    }
+    if (s_frameRequest->value!=1.0f) return;
+    RestoreFrameProfiles();
+    for(int i=0;i<3;++i) {
+        s_frameProfileValues[i]=Cvar_VariableValue(s_frameProfiles[i]);
+        Cvar_SetValue(s_frameProfiles[i],0);
+    }
+    s_frameSaved=true; s_frameRunning=s_frameReady=false;
+    s_frameCapture={}; s_frameCapture.Discard(FrameStamp());
+    Cvar_SetValue("ps2_frame_capture",2);
+}
+void CollectFrameCapture() {
+    if (s_frameRequest->value==0.0f || s_frameReady) return;
+    const auto stamp=FrameStamp();
+    s_frameCapture.Boundary(stamp);
+    if (!s_captureEligible) {
+        s_frameRunning=false;
+        const int phase=s_frameCapture.phase;
+        s_frameCapture={}; s_frameCapture.phase=phase; s_frameCapture.Discard(stamp);
+        return;
+    }
+    const int now=Sys_Milliseconds();
+    if (!s_frameRunning) {
+        s_framePreviousMs=now; s_frameRunning=true;
+        s_frameCapture.Discard(stamp); return;
+    }
+    const unsigned elapsed=static_cast<unsigned>(now)-static_cast<unsigned>(s_framePreviousMs);
+    s_framePreviousMs=now;
+    if(elapsed>0x7fffffffu || !s_frameCapture.valid) {
+        const int phase=s_frameCapture.phase;
+        s_frameCapture={}; s_frameCapture.phase=phase;
+    } else if(elapsed>0) {
+        const auto & draw=ps2::view::GetDrawStats();
+        const int micros[]={draw.worldMicros,draw.entityMicros,draw.particleMicros};
+        s_frameCapture.Add(static_cast<int>(elapsed),micros);
+    } else return; // retain sub-millisecond phase ticks until time advances
+    s_frameCapture.Discard(stamp);
+    if(s_frameCapture.elapsedMs>=10000) {
+        s_frameReady=true; s_frameRunning=false; RestoreFrameProfiles();
+    }
+}
+void DrawFrameCaptureResult() {
+    if(!s_frameReady || !s_captureEligible || s_frameRequest->value==0.0f) return;
+    ps2::gs::FillRect(0,8,320,184,0,0,0,255);
+    int y=12; char line[64];
+    auto row=[&](const char * text) { DrawInternalString(4,y,text); y+=10; };
+    const double n=s_frameCapture.frames;
+    const double ticksPerMs=static_cast<double>(CLOCKS_PER_SEC)/1000.0;
+    row("FRAME CAPTURE - frozen results");
+    std::snprintf(line,sizeof(line),"Frames %d / %.2fs",s_frameCapture.frames,s_frameCapture.elapsedMs/1000.0); row(line);
+    std::snprintf(line,sizeof(line),"Frame avg/max %.2f/%d ms",s_frameCapture.elapsedMs/n,s_frameCapture.maxMs); row(line);
+    std::snprintf(line,sizeof(line),">33ms %d / >50ms %d",s_frameCapture.over33,s_frameCapture.over50); row(line);
+    row("Exclusive phases: avg / worst ms");
+    const char * names[]={"Other/idle", "Server", "Client/audio", "Render", "Finish/GS", "VSync/flip"};
+    for(int i=0;i<PS2_FRAME_PHASES;++i) {
+        std::snprintf(line,sizeof(line),"%-12s %6.2f / %6.2f",names[i],static_cast<double>(s_frameCapture.total[i])/n/ticksPerMs,static_cast<double>(s_frameCapture.worst[i])/ticksPerMs); row(line);
+    }
+    row("Inside Render (do not add twice):");
+    const char * detail[]={"World", "Entities", "Particles"};
+    for(int i=0;i<3;++i) {
+        std::snprintf(line,sizeof(line),"%-12s %6.2f / %6.2f",detail[i],static_cast<double>(s_frameCapture.draw[i])/n/1000.0,static_cast<double>(s_frameCapture.worstDraw[i])/1000.0); row(line);
+    }
+    row("Worst = phases of longest frame");
+    row("Select frame capture again to repeat");
+}
 #endif
 
 // Built-ins used every frame, cached at init to skip the name lookup.
@@ -434,6 +519,7 @@ qboolean PS2_RefInit(void * hinstance, void * wndproc)
     s_showVramStats = Cvar_Get("ps2_show_vramstats", "0", 0);
     s_showDrawStats = Cvar_Get("ps2_show_drawstats", "0", 0);
     s_captureRequest = Cvar_Get("ps2_vram_capture", "0", 0);
+    s_frameRequest = Cvar_Get("ps2_frame_capture", "0", 0);
 #endif
 
     s_texConchars = ps2::tex::Find("conchars", ps2::tex::ImageType::Pic);
@@ -451,7 +537,14 @@ qboolean PS2_RefInit(void * hinstance, void * wndproc)
     return true;
 }
 
-void PS2_RefShutdown() { PS2_SetMemoryReclaimer(nullptr); }
+void PS2_RefShutdown() {
+#if PS2_PROFILE
+    RestoreFrameProfiles();
+    s_frameRunning=s_frameReady=false;
+    s_frameRequest=nullptr;
+#endif
+    PS2_SetMemoryReclaimer(nullptr);
+}
 void PS2_AppActivate(qboolean activate) { (void)activate; }
 
 // ------------------------------------------------------------------------------------------------
@@ -603,6 +696,7 @@ void PS2_CinematicSetPalette(const unsigned char * palette)
 void PS2_BeginFrame(float cameraSeparation)
 {
     (void)cameraSeparation;
+    PS2_FramePhase(PS2_FRAME_RENDER);
     ps2::vu1::BeginFrameStats();
     ps2::gs::BeginFrame();
     // 2D and 3D now draw freely between here and PS2_EndFrame: 2D primitives
@@ -610,10 +704,18 @@ void PS2_BeginFrame(float cameraSeparation)
     // each 2D->3D boundary and in gs::EndFrame() - no explicit bracket here.
 }
 
+#if PS2_PROFILE
+extern "C" void PS2_FramePhase(int phase) {
+    if(s_frameRequest && s_frameRequest->value!=0.0f && !s_frameReady)
+        s_frameCapture.Switch(phase,FrameStamp());
+}
+#endif
+
 extern "C" void PS2_VramCaptureEligible(int eligible)
 {
 #if PS2_PROFILE
     s_captureEligible=eligible!=0;
+    PrepareFrameCapture();
 #else
     (void)eligible;
 #endif
@@ -633,18 +735,21 @@ void PS2_EndFrame()
     ps2::test::DrawRotatingCube();
 
 #if PS2_PROFILE
-    if (s_captureRequest->value==0.0f) {
+    if (s_captureRequest->value==0.0f && s_frameRequest->value==0.0f) {
         DrawFpsCounter();
         DrawMemUsageOverlay();
         DrawVramUsageOverlay();
         DrawDrawStatsOverlay();
     }
     DrawVramCaptureResult();
+    DrawFrameCaptureResult();
 #endif
 
     ps2::gs::EndFrame();
+    PS2_FramePhase(PS2_FRAME_CLIENT);
 #if PS2_PROFILE
     CollectVramCapture();
+    CollectFrameCapture();
 #endif
 }
 

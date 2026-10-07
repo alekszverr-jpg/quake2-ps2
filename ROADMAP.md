@@ -450,3 +450,8 @@ ready. GitHub push/CI is authorized, while release publication awaits results.
 
 Update this file whenever priorities, milestone status or completion criteria
 change. Record completed user-visible work in `CHANGELOG` in the same commit.
+
+- [~] Lightweight exclusive full-frame capture with average/longest-frame phases
+  (Alpha.131; host accounting checks passed, PS2 runtime validation pending).
+  Next: matched movement and world explosions with light diagnostics; optimize
+  the measured dominant phase rather than detailed-overlay FPS.
