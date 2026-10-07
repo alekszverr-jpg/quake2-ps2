@@ -9,14 +9,18 @@ out = root / "build/view-effects-host"
 out.mkdir(parents=True, exist_ok=True)
 source = (root / "src/ps2/renderer/render_view.cpp").read_text()
 functions = []
-for signature in ["u32 AddWorldLights", "u32 SelectTriangleLights", "void SelectSurfaceLights", "float DynamicTriangleEdgeSquared", "void SubmitDynamicTriangleVertices", "void SubmitDynamicallyLitTriangle",
+for signature in ["u32 AddWorldLights", "u32 SelectTriangleLights", "void SelectSurfaceLights", "float DynamicTriangleEdgeSquared", "float DynamicEdgeLengthSquared", "void SubmitDynamicTriangleVertices", "void SubmitDynamicallyLitTriangle",
                   "u8 ViewBlendByte", "void RenderViewBlend", "math::Vec3 AliasShellColor",
                   "math::Vec3 AliasShellOffset", "math::Vec4 AliasShellVertexColor",
                   "void DrawTranslucentSurface"]:
     match = re.search(r"^" + re.escape(signature) + r"\(.*?^\}", source, re.M | re.S)
     if not match:
         raise RuntimeError("Cannot extract " + signature)
-    functions.append(match.group(0))
+    function = match.group(0)
+    if signature == "float DynamicEdgeLengthSquared":
+        # Host-only operation counting; no counter or timing in production.
+        function = function.replace("return x*x", "++edgeEvaluations;\n    return x*x")
+    functions.append(function)
 (out / "effects.inc").write_text("\n".join(functions))
 binary = out / ("test.exe" if os.name == "nt" else "test")
 flags = [] if os.name == "nt" else ["-fsanitize=address,undefined"]

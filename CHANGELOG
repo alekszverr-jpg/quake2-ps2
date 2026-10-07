@@ -6,6 +6,20 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.130 - 2026-10-07 (local test build)
+
+- Reuse squared edge lengths through transient dynamic-light subdivision for
+  player flashes, enemy projectiles and world explosions. Shared edges retain
+  their computed lengths; new edges are evaluated at the actual rounded
+  midpoint. Leaves at the unchanged depth cap skip unused edge arithmetic.
+- Preserve light selection, radius/colour/fade, split thresholds and tie order,
+  geometry, clipping, quality toggles and GS ordering. Small edge arrays live
+  only on the bounded recursion stack; no persistent cache or heap growth.
+- Differential checks against frozen129 cover400varied geometry/multiple-light/
+  near/far/brush cases. A synthetic fully split explosion triangle retains
+  identical leaves/colours with765->192edge evaluations (~75% fewer). This
+  measures one arithmetic workload, not total performance. Runtime checks pending.
+
 ## 0.1.0-alpha.129 - 2026-10-06 (local test build)
 
 - Pass dynamic-light subdivision vertices by reference instead of copying two

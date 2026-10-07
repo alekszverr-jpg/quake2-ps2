@@ -23,6 +23,7 @@ static bool s_worldLightCacheEnabled = true;
 using ps2::view::SurfaceLightCache;
 static SurfaceLightCache s_surfaceLightCache;
 static bool referenceMode;
+static int edgeEvaluations, referenceEdgeEvaluations;
 
 using u32 = std::uint32_t;
 using u8 = std::uint8_t;
@@ -130,6 +131,7 @@ void SubmitDynamicLeaf(const ClipVertex & a, const ClipVertex & b,
 }
 #include "effects.inc"
 #include "dynamic_reference.inc"
+#include "dynamic129_reference.inc"
 #include "selection_reference.inc"
 
 int main()
@@ -231,9 +233,11 @@ int main()
     for (int scenario = 0; scenario < 400; ++scenario) {
         ClipVertex probe[3] = {};
         for (int v = 0; v < 3; ++v) {
-            const float offset = scenario % 5 == 0 ? 65536.0f : 0.0f;
-            probe[v].pos = {offset + float((scenario*13+v*131)%700-350),
-                float((scenario*31+v*193)%800-400), float((scenario*7+v*41)%256), 1};
+            const float offset = scenario % 11 == 0 ? 33554432.0f :
+                (scenario % 5 == 0 ? 65536.0f : 0.0f);
+            probe[v].pos = {offset + float((scenario*13+v*131)%700-350) + .1f,
+                float((scenario*31+v*193)%800-400) + .3f,
+                float((scenario*7+v*41)%256) + .7f, 1};
             probe[v].st = {float(v)*0.3f, float(v)*0.7f, 0, 0};
             probe[v].color = {20+float(v)*13, 40+float(v)*7, 70, 128};
         }
@@ -252,7 +256,40 @@ int main()
         emitted.clear(); s_worldLightCache.Clear();
         SubmitDynamicallyLitTriangle(probe, {}, {}, depth);
         assert(emitted == expected && s_surfaceLightMask == 7);
+        // The frozen129 path also covers reduced distant spacing, brushes,
+        // overlapping lights and depth-cap calls. Keep every leaf byte equal.
+        s_farDynamicLightingEnabled = scenario % 2 != 0;
+        s_worldLightingPass = scenario % 3 != 0;
+        s_lightingEye = {-1000, -1000, -1000};
+        emitted.clear(); referenceMode = true;
+        Reference129DynamicVertices(probe[0], probe[1], probe[2], {}, {}, depth);
+        referenceMode = false;
+        const auto expected129 = emitted;
+        emitted.clear(); s_worldLightCache.Clear();
+        SubmitDynamicallyLitTriangle(probe, {}, {}, depth);
+        assert(emitted == expected129 && s_surfaceLightMask == 7);
+        s_farDynamicLightingEnabled = s_worldLightingPass = false;
     }
+    // A large triangle under an explosion reaches the unchanged depth cap.
+    // Count actual edge arithmetic separately from emitted geometry/cost.
+    ClipVertex explosion[3] = {};
+    explosion[0].pos = {-4096, -4096, 0, 1};
+    explosion[1].pos = {4096, -4096, 0, 1};
+    explosion[2].pos = {0, 4096, 0, 1};
+    for (auto & v : explosion) v.color = {50, 70, 80, 128};
+    lights[0] = {100000, {1, .5f, .5f}};
+    s_worldLightOrigins[0] = {0, 0, 0};
+    s_surfaceLightMask = 1;
+    emitted.clear(); referenceMode = true; referenceEdgeEvaluations = 0;
+    Reference129DynamicVertices(explosion[0], explosion[1], explosion[2], {}, {});
+    referenceMode = false;
+    const auto expectedExplosion = emitted;
+    emitted.clear(); s_worldLightCache.Clear(); edgeEvaluations = 0;
+    SubmitDynamicallyLitTriangle(explosion, {}, {});
+    assert(emitted == expectedExplosion && s_surfaceLightMask == 1);
+    assert(edgeEvaluations == 192 && referenceEdgeEvaluations == 765);
+    std::printf("Explosion depth-cap edge calculations: %d -> %d; identical leaves/colours PASS\n",
+                referenceEdgeEvaluations, edgeEvaluations);
     s_worldLightCount = 32;
     s_surfaceLightMask = 0;
     s_worldLightCacheEnabled = true;

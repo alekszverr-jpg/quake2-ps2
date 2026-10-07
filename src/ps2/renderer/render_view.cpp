@@ -1441,6 +1441,12 @@ void SubmitDynamicLeaf(const ClipVertex & a, const ClipVertex & b,
     EmitScratchVertex(c);
 }
 
+float DynamicEdgeLengthSquared(const math::Vec4 & a, const math::Vec4 & b)
+{
+    const float x = a.x - b.x, y = a.y - b.y, z = a.z - b.z;
+    return x*x + y*y + z*z;
+}
+
 // A flat static-light face may have only three cached vertices. Subdivide
 // transiently near a dynamic light so a flash in the middle is not missed.
 // Bounding-box pruning and a fixed recursion cap bound both work and stack;
@@ -1450,7 +1456,8 @@ void SubmitDynamicTriangleVertices(const ClipVertex & a, const ClipVertex & b,
                                   const math::Mat4 & mvp,
                                   const tex::Texture & texture, int depth = 0,
                                   bool boundsSelected = false,
-                                  float edgeLimitSquared = 64.0f*64.0f)
+                                  float edgeLimitSquared = 64.0f*64.0f,
+                                  const float * inheritedEdges = nullptr)
 {
     const ClipVertex * corners[3] = { &a, &b, &c };
     WorldDetailScope lightTimer(s_worldProfile, WorldProfile::Preparation);
@@ -1476,14 +1483,27 @@ void SubmitDynamicTriangleVertices(const ClipVertex & a, const ClipVertex & b,
     }
     WorldLightScope splitTimer(s_lightProfile, WorldLightProfile::Split);
     if (depth == 0) edgeLimitSquared = DynamicTriangleEdgeSquared(a, b, c);
+    if (depth >= 7)
+    {
+        splitTimer.Stop();
+        SubmitDynamicLeaf(a, b, c, mvp, texture);
+        s_surfaceLightMask = surfaceMask;
+        return;
+    }
+    float computedEdges[3];
+    const float * edges = inheritedEdges;
+    if (edges == nullptr)
+    {
+        for (int edge = 0; edge < 3; ++edge)
+            computedEdges[edge] = DynamicEdgeLengthSquared(
+                corners[edge]->pos, corners[(edge + 1) % 3]->pos);
+        edges = computedEdges;
+    }
     int longest = 0;
     float longestSquared = 0.0f;
     for (int edge = 0; edge < 3; ++edge)
     {
-        const math::Vec4 & edgeA = corners[edge]->pos;
-        const math::Vec4 & edgeB = corners[(edge + 1) % 3]->pos;
-        const float x = edgeA.x - edgeB.x, y = edgeA.y - edgeB.y, z = edgeA.z - edgeB.z;
-        const float squared = x*x + y*y + z*z;
+        const float squared = edges[edge];
         if (squared > longestSquared) { longest = edge; longestSquared = squared; }
     }
     if (triangleMask != 0 && longestSquared > edgeLimitSquared && depth < 7)
@@ -1495,11 +1515,27 @@ void SubmitDynamicTriangleVertices(const ClipVertex & a, const ClipVertex & b,
         math::LerpTo(midpoint.st, corners[longest]->st, corners[next]->st, 0.5f);
         math::LerpTo(midpoint.color, corners[longest]->color, corners[next]->color, 0.5f);
         SetClipDistances(midpoint, mvp);
+        float firstEdges[3], secondEdges[3];
+        const bool needsChildEdges = depth + 1 < 7;
+        if (needsChildEdges)
+        {
+            // Evaluate the actual rounded midpoint, not parentLength/4: that
+            // approximation can change edge ties or threshold decisions.
+            firstEdges[0] = DynamicEdgeLengthSquared(corners[longest]->pos, midpoint.pos);
+            firstEdges[1] = DynamicEdgeLengthSquared(midpoint.pos, corners[other]->pos);
+            firstEdges[2] = edges[other];
+            secondEdges[0] = DynamicEdgeLengthSquared(midpoint.pos, corners[next]->pos);
+            secondEdges[1] = edges[next];
+            // Reversing an edge negates its deltas; their squares are identical.
+            secondEdges[2] = firstEdges[1];
+        }
         splitTimer.Stop(); // Exclude children, bounds tests and submission.
         SubmitDynamicTriangleVertices(*corners[longest], midpoint, *corners[other],
-                                     mvp, texture, depth + 1, false, edgeLimitSquared);
+                                     mvp, texture, depth + 1, false, edgeLimitSquared,
+                                     needsChildEdges ? firstEdges : nullptr);
         SubmitDynamicTriangleVertices(midpoint, *corners[next], *corners[other],
-                                     mvp, texture, depth + 1, false, edgeLimitSquared);
+                                     mvp, texture, depth + 1, false, edgeLimitSquared,
+                                     needsChildEdges ? secondEdges : nullptr);
     }
     else
     {

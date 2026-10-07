@@ -1,7 +1,7 @@
 # Quake II for PlayStation 2
 
 [![Build](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml/badge.svg)](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml)
-[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.129-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
+[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.130-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](LICENSE)
 
 An active continuation of the unofficial Quake II port for the Sony
@@ -326,6 +326,16 @@ and remaining control work. These exclusive categories sum to Clip/emit on the
 Geometry page. They include the opaque-world seal clip/emission path, but exclude
 sky, brush entities and MD2; seal corner transforms stay in Seal prep.
 Additional timers perturb these results. Use the ordinary benchmark for speed.
+
+Alpha.130 reuses squared lengths of shared subdivision edges for every dynamic
+world light, including weapon flashes and non-player explosions. New edges use
+the actual rounded midpoint; no parent-length approximation. Depth-cap leaves
+skip unused edge arithmetic. Frozen129 differential tests match positions,
+colours, leaf order and masks, including overlapping lights and reduced spacing.
+A fully split synthetic explosion triangle uses192edge evaluations vs765;
+this is not a measured frame-time gain. Compare129vs130 sustained firing and
+world explosions with matching weapon/camera/light detail; visuals and speed
+remain pending.
 
 Alpha.129 passes parent and midpoint vertices by reference through transient
 dynamic-light subdivision, avoiding two three-vertex record copies per split.

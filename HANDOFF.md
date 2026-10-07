@@ -29,6 +29,20 @@ checkpoint does not advance `VERSION`.
 
 ## New heavy-point capture (2026-10-06; location/conditions not yet specified)
 
+2026-10-07 Alpha130: shared dynamic-light path now inherits three squared edge
+lengths per child. Parent edges are reused; split edges use actual rounded
+midpoint distances (not parent length/4), median squared length reused for its
+reverse direction. At depth>=7 light selection still occurs, but unused edge
+search/arithmetic is skipped before unchanged leaf emission. Selection, longest
+edge tie order, positions/UVs/colour, light radius/fade and far-detail policy
+unchanged. Three small stack edge arrays per recursion node, no persistent
+memory or optional-cache change. Frozen production129 reference retained in
+tests/view_effects/dynamic129_reference.inc;400varied geometry tests compare
+overlapping lights, reduced spacing, brushes and depth-cap output bitwise.
+Synthetic large explosion:765->192edge evaluations with identical leaves/RGB;
+not a total FPS claim. Host tests pass; CI/build/install pending. Keep129baseline
+for matched sustained firing and non-player/world explosion comparisons.
+
 User asks to include non-player/world explosion flashes in optimization scope.
 Verified CL_AddExplosions calls V_AddLight(origin,ex->light*ent->alpha,RGB);
 grenade/rocket/generic explosion temp events feed the same refdef.dlights as
