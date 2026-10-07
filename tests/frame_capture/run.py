@@ -6,8 +6,9 @@ src=(root/'src/ps2/renderer/ref.cpp').read_text()
 names=['RestoreFrameProfiles','PrepareFrameCapture','CollectFrameCapture','DrawFrameCaptureResult']
 text='\n'.join(re.search(r'^void '+name+r'\(\).*?^\}',src,re.M|re.S).group(0) for name in names)
 text+='\n'+re.search(r'^extern "C" void PS2_FramePhase\(int phase\).*?^\}',src,re.M|re.S).group(0)
+text+='\n'+re.search(r'^extern "C" void PS2_VramCaptureEligible\(int eligible\).*?^\}',src,re.M|re.S).group(0)
 (out/'production.inc').write_text(text)
-assert src.index('ps2::gs::EndFrame();')<src.index('CollectFrameCapture();')
+end=src[src.index('void PS2_EndFrame()'):]; assert end.index('ps2::gs::EndFrame();')<end.index('CollectFrameCapture();')
 assert 's_frameRequest->value==0.0f' in src
 common=(root/'src/common/common.c').read_text()
 assert re.search(r'PS2_FramePhase\(PS2_FRAME_SERVER\);\s*SV_Frame\(msec\);\s*PS2_FramePhase\(PS2_FRAME_OTHER\)',common)
@@ -20,3 +21,8 @@ subprocess.run([str(exe)],check=True)
 # The shared header must remain valid in C89, with no release-link dependency.
 (out/'release.c').write_text('#include "ps2/frame_capture.h"\nint main(void) { PS2_FramePhase(PS2_FRAME_RENDER); return 0; }\n')
 subprocess.run(['gcc','-std=c89','-pedantic','-Wall','-Wextra','-Werror','-DPS2_PROFILE=0','-I'+str(root/'src'),str(out/'release.c'),'-o',str(out/'release-test')],check=True)
+
+screen=(root/'src/client/cl_scrn.c').read_text()
+assert screen.count('PS2_VramCaptureEligible(0);')==2
+assert 'cl.refresh_prepped && !scr_draw_loading && !cl.cinematictime' in screen
+assert 'if (!s_captureEligible) CollectFrameCapture();' in src

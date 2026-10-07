@@ -54,7 +54,9 @@ int main() {
     assert(s_frameCapture.total[PS2_FRAME_RENDER]==5000 && s_frameCapture.total[PS2_FRAME_FINISH]==1000 && s_frameCapture.total[PS2_FRAME_PRESENT]==7000);
     frame(80); assert(s_frameCapture.maxMs==100 && s_frameCapture.worst[PS2_FRAME_OTHER]==80000);
     frame(0); assert(s_frameCapture.worst[PS2_FRAME_OTHER]==80000); // same worst frame, not per-phase maxima
-    s_captureEligible=false; advance(4000); CollectFrameCapture();
+    PS2_VramCaptureEligible(0); // skipped loading screen has no EndFrame
+    assert(!s_frameRunning && s_frameCapture.frames==0);
+    advance(4000); CollectFrameCapture();
     assert(!s_frameRunning && s_frameCapture.frames==0);
     s_captureEligible=true; CollectFrameCapture();
     for(int i=0;i<500;++i) frame(0);

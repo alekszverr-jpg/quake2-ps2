@@ -715,7 +715,9 @@ extern "C" void PS2_VramCaptureEligible(int eligible)
 {
 #if PS2_PROFILE
     s_captureEligible=eligible!=0;
+    if (!s_frameRequest) return;
     PrepareFrameCapture();
+    if (!s_captureEligible) CollectFrameCapture(); // also handles skipped display frames
 #else
     (void)eligible;
 #endif

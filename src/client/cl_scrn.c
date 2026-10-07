@@ -1273,11 +1273,13 @@ void SCR_UpdateScreen(void)
     int i;
     int numframes;
     float separation[2] = { 0, 0 };
+    extern void PS2_VramCaptureEligible(int eligible);
 
     // if the screen is disabled (loading plaque is up, or vid mode changing)
     // do nothing at all
     if (cls.disable_screen)
     {
+        PS2_VramCaptureEligible(0);
         if (Sys_Milliseconds() - cls.disable_screen > 120000)
         {
             cls.disable_screen = 0;
@@ -1288,6 +1290,7 @@ void SCR_UpdateScreen(void)
 
     if (!scr_initialized || !con.initialized)
     {
+        PS2_VramCaptureEligible(0);
         return; // not initialized yet
     }
 
@@ -1318,8 +1321,8 @@ void SCR_UpdateScreen(void)
     }
 
     {
-        extern void PS2_VramCaptureEligible(int eligible);
-        PS2_VramCaptureEligible(cls.state == ca_active && cls.key_dest == key_game && numframes == 1);
+        PS2_VramCaptureEligible(cls.state == ca_active && cls.key_dest == key_game &&
+            cl.refresh_prepped && !scr_draw_loading && !cl.cinematictime && numframes == 1);
     }
     for (i = 0; i < numframes; i++)
     {

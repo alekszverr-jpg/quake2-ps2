@@ -1531,9 +1531,9 @@ Qcommon_Frame
 */
 void Qcommon_Frame(int msec)
 {
-    PS2_FramePhase(PS2_FRAME_OTHER);
     const char * s;
     int time_before = 0, time_between = 0, time_after = 0;
+    PS2_FramePhase(PS2_FRAME_OTHER);
 
     if (setjmp(abortframe))
     {
