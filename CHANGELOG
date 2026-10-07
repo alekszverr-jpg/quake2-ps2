@@ -23,7 +23,9 @@ Development priorities and completion criteria are tracked in
 - Host checks cover exclusive accounting, audio crossing the boundary, one
   coherent worst frame, freeze/rearm/interruption, clock wrap/backwards reset,
   profiler restoration, 320x224 panel bounds and C89 release no-op hooks.
-  PS2 build and gameplay validation pending. This is measurement support;
+  CI37608049288 passed all sanitizer checks, map validation and PROFILE build;
+  ELF installed in both roots with Alpha130 baseline saved. Gameplay phase
+  captures pending. This is measurement support;
   no gameplay FPS increase is claimed.
 
 ## 0.1.0-alpha.130 - 2026-10-07 (local test build)

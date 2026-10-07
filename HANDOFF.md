@@ -8,26 +8,30 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.130 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.131 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.130` (reuse dynamic-light subdivision edges for all light sources; host/CI checks passed, ELF installed; matched firing/world-explosion speed and visuals pending;129 continuous-fire visuals accepted, isolated gain unconfirmed;128 lighting-cache improvement retained)
-- Current implementation commit: `97850d1`
-  (`Reuse dynamic-light subdivision edge lengths for flashes and explosions`); CI submodule fix `b344f3e` retained.
+- Current source/test version: `0.1.0-alpha.131` (lightweight full-frame capture;
+  host/sanitizer/map/PS2 CI passed and installed; runtime phase captures pending)
+- Current implementation commit: `560154d` (base `ba57449`, skipped-loading fix
+  `043bf23`, menu-selection fix `560154d`); CI submodule fix `b344f3e` retained.
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.130 local PROFILE ELF SHA-256 (8,002,516 bytes):
-  `A88758FFBB8F2B7368468B6BC32193C3787FD5FCB1D399F9C97016AB9432AE22`
-- CI `37572394637` passed all host sanitizer tests, map validation and PROFILE build for `97850d1`.
-  Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
-  contains only `quake2-profile.elf`.
+- Alpha.131 local PROFILE ELF SHA-256 (8,027,220 bytes):
+  `E7686279C0520C1206B3400BEE60929E8CE1D16A39B8E38D2E679A5CDE5D1EB5`
+- CI `37608049288` passed all host sanitizer tests, map validation and PROFILE
+  build for `560154d`. Both root ELF copies match the downloaded CI artifact
+  `build/ci-560154d-profile/quake2-profile.elf`.
+- Documents `quake2-alpha130-baseline.elf` preserves Alpha130 (8,002,516 bytes):
+  `A88758FFBB8F2B7368468B6BC32193C3787FD5FCB1D399F9C97016AB9432AE22`.
+  Older Alpha129 baseline is also retained. No release was published.
 
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.131 work in progress
+## Alpha.131 installed measurement build
 
 User authorized lightweight complete-frame phase capture. New Test Map mode
 `capture frame 10s` (`ps2_frame_capture 1`) suppresses overlays; temporarily
@@ -40,7 +44,11 @@ than pure GPU raster. World/Entities/Particles are nested Render submeasurements
 Frozen panel worst column is one longest frame (first maximum on ties).
 No changes to gameplay draw/light/cache/barrier behavior; no FPS gain claimed.
 Host frame capture, old VRAM capture, benchmark and video-menu checks passed.
-CI/build/install and user movement/world-explosion validation pending.
+CI37608049288 passed all host sanitizers/map validation/PS2 build; installed
+in both roots,130baseline saved. User movement/world-explosion captures pending.
+Disabled/uninitialized screen callbacks now interrupt immediately even without
+EndFrame; loading plaques/unprepared views/cinematics are excluded. Menu
+reopening preserves mode5. Capture clock overhead is not calibrated on PS2.
 
 ## New heavy-point capture (2026-10-06; location/conditions not yet specified)
 
