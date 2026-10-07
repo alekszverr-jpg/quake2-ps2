@@ -8,19 +8,19 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.129 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.130 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.129` (dynamic-light subdivision by reference and direct inside leaves; CI/host tests passed, ELF installed; matched firing timing/visual checks pending;128 lighting-cache improvement retained; quality defaults full;480p hardware unverified)
-- Current implementation commit: `ec67b51`
-  (`Avoid transient dynamic-light triangle copies and emit inside leaves directly`); CI submodule fix `b344f3e` retained.
+- Current source/test version: `0.1.0-alpha.130` (reuse dynamic-light subdivision edges for all light sources; host/CI checks passed, ELF installed; matched firing/world-explosion speed and visuals pending;129 continuous-fire visuals accepted, isolated gain unconfirmed;128 lighting-cache improvement retained)
+- Current implementation commit: `97850d1`
+  (`Reuse dynamic-light subdivision edge lengths for flashes and explosions`); CI submodule fix `b344f3e` retained.
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.129 local PROFILE ELF SHA-256 (7,997,152 bytes):
-  `7C6A6B6C8D20B1AEA64460C388AD9568D0FF002F69A024A64C1AE5CC10A81B9B`
-- CI `37442835379` passed all host sanitizer tests, map validation and PROFILE build for `ec67b51`.
+- Alpha.130 local PROFILE ELF SHA-256 (8,002,516 bytes):
+  `A88758FFBB8F2B7368468B6BC32193C3787FD5FCB1D399F9C97016AB9432AE22`
+- CI `37572394637` passed all host sanitizer tests, map validation and PROFILE build for `97850d1`.
   Both root ELF copies above match the downloaded CI artifact. The Alpha.72 release
   contains only `quake2-profile.elf`.
 
@@ -40,8 +40,15 @@ memory or optional-cache change. Frozen production129 reference retained in
 tests/view_effects/dynamic129_reference.inc;400varied geometry tests compare
 overlapping lights, reduced spacing, brushes and depth-cap output bitwise.
 Synthetic large explosion:765->192edge evaluations with identical leaves/RGB;
-not a total FPS claim. Host tests pass; CI/build/install pending. Keep129baseline
-for matched sustained firing and non-player/world explosion comparisons.
+not a total FPS claim. CI37572394637 passed all sanitizer tests, map validation
+and PROFILE build. Installed8,002,516-byte ELF in both roots; artifact hash and
+embedded130 verified. Artifact build/ci-97850d1-profile. Saved Documents
+quake2-alpha129-baseline.elf, SHA256
+7C6A6B6C8D20B1AEA64460C388AD9568D0FF002F69A024A64C1AE5CC10A81B9B.
+No release published. Runtime validation pending: sustained firing with fixed
+camera/weapon/world lightsON/flash detail, plus non-player/world explosions
+and multiple sources. Compare World and10s captures against129, validate RGB,
+falloff, seams/clipping and light disappearance. Keep129for rollback.
 
 User asks to include non-player/world explosion flashes in optimization scope.
 Verified CL_AddExplosions calls V_AddLight(origin,ex->light*ent->alpha,RGB);

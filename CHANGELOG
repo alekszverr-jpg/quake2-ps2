@@ -18,7 +18,9 @@ Development priorities and completion criteria are tracked in
 - Differential checks against frozen129 cover400varied geometry/multiple-light/
   near/far/brush cases. A synthetic fully split explosion triangle retains
   identical leaves/colours with765->192edge evaluations (~75% fewer). This
-  measures one arithmetic workload, not total performance. Runtime checks pending.
+  measures one arithmetic workload, not total performance. CI37572394637 passed
+  sanitizer checks, map validation and PROFILE build; ELF installed in both
+  roots,129baseline saved. Runtime firing/explosion checks pending.
 
 ## 0.1.0-alpha.129 - 2026-10-06 (local test build)
 
