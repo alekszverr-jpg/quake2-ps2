@@ -29,6 +29,24 @@ checkpoint does not advance `VERSION`.
 
 ## New heavy-point capture (2026-10-06; location/conditions not yet specified)
 
+Latest130firing baseline in agreed light diagnostics mode: user first reports
+shooting around30FPS with FPS Only rather than detailed World/full panels,
+then supplies FPS-only screenshot29 and capture295frames/10.01s,
+average33.93ms/max51ms (~29.5FPS),118frames>33ms,3frames>50ms.
+E/R/S all0.0,DMA/reusewait0.00/0.00ms; Skin pixel payload0.1KiB/frame,
+other type bytes0.0,counts round0.0;WorstR0/0.0KiB/reuse0.00ms.
+No material texture churn or measured waits in this capture. Record as new
+normal-mode firing baseline, not universal30FPS minimum (3long frames), nor
+isolated130vs129gain. Earlier~23FPS captures/full overlay conditions are not
+equivalent. User explicitly agrees future speed checks use FPS Only/overlay-
+free10s capture; detailed World/full panels only locate expensive work.
+Keep same view/weapon/light/flash settings, same diagnostic/profiling flags and
+warm residency for comparisons. TestMapDiagnosticsFunc disables visible panels
+during capture but does not itself reset ps2_profile_world/model/light timers;
+do not assume arbitrary previously enabled profilers are disabled. Cost could
+include diagnostic draw/residency and enabled timers; not separately measured.
+World explosion-specific testing and130visual acceptance still pending.
+
 First130user firing corridor overlay/capture received2026-10-07. Capture
 234frames/10.03s,42.85ms average/51ms max (~23.3FPS),173frames>33ms,
 5frames>50ms; prior129232frames/10.03s,43.22ms/51ms (~23.1FPS),176>33,3>50.

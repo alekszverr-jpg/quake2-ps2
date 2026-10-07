@@ -26,6 +26,11 @@ Development priorities and completion criteria are tracked in
   does not isolate the optimization: more visible surfaces and texture churn
   (127.1vs0.8KiB/frame). OverlayWorld24.781ms,Hit819/Build0. No large overall
   gain established; visual/world-explosion validation still pending.
+- User reports shooting near30FPS with FPS Only and supplies new light-mode
+  capture:295frames/10.01s,33.93ms average/51ms maximum (~29.5FPS),3frames>50ms.
+  Streaming and measured waits nearly zero. Adopt FPS Only/overlay-free capture
+  for speed comparisons; detailed panels for investigation only. Earlier~23FPS
+  captures are not equivalent conditions; no isolated130vs129gain claimed.
 
 ## 0.1.0-alpha.129 - 2026-10-06 (local test build)
 
