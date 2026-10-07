@@ -2139,7 +2139,9 @@ static void TestMap_MenuInit(void)
     Cvar_Get("ps2_show_vramstats", "0", 0);
     Cvar_Get("ps2_show_drawstats", "0", 0);
 #if PS2_PROFILE
-    if (Cvar_VariableValue("ps2_vram_log") != 0.0F)
+    if (Cvar_VariableValue("ps2_frame_capture") != 0.0F)
+        s_testmap_diagnostics_list.curvalue = 5;
+    else if (Cvar_VariableValue("ps2_vram_log") != 0.0F)
         s_testmap_diagnostics_list.curvalue = 4;
     else if (Cvar_VariableValue("ps2_vram_capture") != 0.0F)
         s_testmap_diagnostics_list.curvalue = 3;

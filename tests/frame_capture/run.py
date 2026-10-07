@@ -26,3 +26,5 @@ screen=(root/'src/client/cl_scrn.c').read_text()
 assert screen.count('PS2_VramCaptureEligible(0);')==2
 assert 'cl.refresh_prepped && !scr_draw_loading && !cl.cinematictime' in screen
 assert 'if (!s_captureEligible) CollectFrameCapture();' in src
+
+assert 's_testmap_diagnostics_list.curvalue = 5;' in menu
