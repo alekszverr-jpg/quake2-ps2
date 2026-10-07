@@ -21,6 +21,11 @@ Development priorities and completion criteria are tracked in
   measures one arithmetic workload, not total performance. CI37572394637 passed
   sanitizer checks, map validation and PROFILE build; ELF installed in both
   roots,129baseline saved. Runtime firing/explosion checks pending.
+- First130corridor capture234frames/10.03s,42.85ms average/51ms maximum
+  (~23.3FPS), versus12943.22ms/51ms (~23.1FPS). Small0.37ms difference
+  does not isolate the optimization: more visible surfaces and texture churn
+  (127.1vs0.8KiB/frame). OverlayWorld24.781ms,Hit819/Build0. No large overall
+  gain established; visual/world-explosion validation still pending.
 
 ## 0.1.0-alpha.129 - 2026-10-06 (local test build)
 

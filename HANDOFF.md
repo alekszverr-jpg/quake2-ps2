@@ -29,6 +29,23 @@ checkpoint does not advance `VERSION`.
 
 ## New heavy-point capture (2026-10-06; location/conditions not yet specified)
 
+First130user firing corridor overlay/capture received2026-10-07. Capture
+234frames/10.03s,42.85ms average/51ms max (~23.3FPS),173frames>33ms,
+5frames>50ms; prior129232frames/10.03s,43.22ms/51ms (~23.1FPS),176>33,3>50.
+Difference0.37ms (~0.9%) is small and cannot isolate130: camera/visible geometry
+and streaming differ. E/R/S11.7/11.7/5.3,DMA/reusewait0.16/0.10ms.
+Type N/R/pixelKiB perframe: Pic0.5/0.5/0.2,Skin4.8/4.8/94.0,
+Wall6.4/6.4/32.9;Other/Sprite/Sky0,total127.1KiB/frame.
+WorstR11/127.1KiB/reusewait0.10ms. Prior129streaming~0.8KiB/frame with
+waits0.00ms. Full overlay130World24781us,Ent4666us,Part387us,3D30118us,
+Nodes543,Surfs276,Tris4228,VUvert12684,LitHit819/Build0/KB472.
+Prior129World~21.42ms,Ent3.712ms,Nodes280,Surfs197,Tris3953; no uploads.
+Cache remains functional; no recurring static rebuild. No large overall speed
+gain shown. Visual/explosion-specific acceptance and capture firing/settings
+confirmation not explicitly supplied for130. Next priority: use existing
+world-light Select/Split/Color profile for actual dominant dynamic cost before
+further arithmetic experiments; retain129baseline for matched comparison.
+
 2026-10-07 Alpha130: shared dynamic-light path now inherits three squared edge
 lengths per child. Parent edges are reused; split edges use actual rounded
 midpoint distances (not parent length/4), median squared length reused for its
