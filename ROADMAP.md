@@ -457,4 +457,4 @@ change. Record completed user-visible work in `CHANGELOG` in the same commit.
   the measured dominant phase rather than detailed-overlay FPS.
 
 - [~] Preload base-game weapon PCM before combat and capture WAV IO
-  (Alpha.132; host lifecycle/phase checks passed; runtime cold-fire spikes pending).
+  (Alpha.132; host/CI/build passed and installed; runtime cold-fire spikes pending).

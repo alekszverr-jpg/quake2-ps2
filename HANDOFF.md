@@ -8,22 +8,25 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.131 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.132 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.131` (lightweight full-frame capture;
-  host/sanitizer/map/PS2 CI passed and installed; runtime phase captures pending)
-- Current implementation commit: `560154d` (base `ba57449`, skipped-loading fix
-  `043bf23`, menu-selection fix `560154d`); CI submodule fix `b344f3e` retained.
+- Current source/test version: `0.1.0-alpha.132` (base weapon PCM preload and
+  runtime WAV IO capture; host/sanitizer/map/PS2 CI passed, installed; user
+  first-shot/continuous-shot runtime validation pending)
+- Current implementation commit: `7261d9e` (`Preload base weapon PCM and capture
+  runtime WAV reads`); CI submodule fix `b344f3e` retained.
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.131 local PROFILE ELF SHA-256 (8,027,220 bytes):
-  `E7686279C0520C1206B3400BEE60929E8CE1D16A39B8E38D2E679A5CDE5D1EB5`
-- CI `37608049288` passed all host sanitizer tests, map validation and PROFILE
-  build for `560154d`. Both root ELF copies match the downloaded CI artifact
-  `build/ci-560154d-profile/quake2-profile.elf`.
+- Alpha.132 local PROFILE ELF SHA-256 (8,032,096 bytes):
+  `FB46A03585E1D751B5CD0EC143B4384F46AC4D85AC7A9A6B4C11AEB233189621`
+- CI `37913960896` passed all host sanitizer tests, map validation and PROFILE
+  build for `7261d9e`. Both root ELF copies match downloaded artifact
+  `build/ci-7261d9e-profile/quake2-profile.elf`.
+- Documents `quake2-alpha131-baseline.elf` preserves Alpha131 (8,027,220 bytes):
+  `E7686279C0520C1206B3400BEE60929E8CE1D16A39B8E38D2E679A5CDE5D1EB5`.
 - Documents `quake2-alpha130-baseline.elf` preserves Alpha130 (8,002,516 bytes):
   `A88758FFBB8F2B7368468B6BC32193C3787FD5FCB1D399F9C97016AB9432AE22`.
   Older Alpha129 baseline is also retained. No release was published.
@@ -31,7 +34,7 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.132 in progress (2026-10-09)
+## Alpha.132 installed (2026-10-09)
 
 User authorized next step from131phase captures: investigate/preload weapon PCM
 before optimizing models. 34base-game weapon sounds registered in CL_RegisterSounds
@@ -44,7 +47,9 @@ Frame capture adds per-miss FS_LoadFile attempts/time with PROFILE hooks, counts
 avg and same worst frame; includes failed opens, excludes resample/decode.
 Host production registration tests cover40maps, no firing IO, bounded slots;
 phasecapture old/accounting/panel bounds and transitionpurge tests passed.
-Build/install/runtime validation pending. Save131baseline before replacingELF.
+CI37913960896 passed host sanitizers/map validation/PS2 build; installed both
+roots and verified hash;131baseline saved before replacing ELF. Runtime first
+shot/repeated fire/no sound loss/WAV reads and long spikes still pending.
 
 131user captures: first300frames/10.01s,33.37avg/34max,110>33,0>50,
 Other.01/.01,Server1.16/.54,Client2.46/4.34,Render15.33/15.55,

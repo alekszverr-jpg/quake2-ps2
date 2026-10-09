@@ -24,7 +24,9 @@ Development priorities and completion criteria are tracked in
 - Host tests use production registration/purge functions to cover preload,
   deduplication, no combat reads for loaded assets and40bounded map cycles.
   Phase capture checks preserve one coherent worst frame and224p panel bounds.
-  PS2 CI/build/runtime validation pending; no measured FPS improvement claimed.
+  CI37913960896 passed sanitizer checks, map validation and PROFILE build;
+  ELF installed in both roots,131baseline saved. Runtime validation pending;
+  no measured FPS improvement claimed.
 
 ## 0.1.0-alpha.131 - 2026-10-07 (local test build)
 
