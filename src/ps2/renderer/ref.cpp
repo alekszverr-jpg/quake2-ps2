@@ -108,7 +108,7 @@ void CollectFrameCapture() {
 }
 void DrawFrameCaptureResult() {
     if(!s_frameReady || !s_captureEligible || s_frameRequest->value==0.0f) return;
-    ps2::gs::FillRect(0,8,320,184,0,0,0,255);
+    ps2::gs::FillRect(0,8,320,214,0,0,0,255);
     int y=12; char line[64];
     auto row=[&](const char * text) { DrawInternalString(4,y,text); y+=10; };
     const double n=s_frameCapture.frames;
@@ -127,6 +127,9 @@ void DrawFrameCaptureResult() {
     for(int i=0;i<3;++i) {
         std::snprintf(line,sizeof(line),"%-12s %6.2f / %6.2f",detail[i],static_cast<double>(s_frameCapture.draw[i])/n/1000.0,static_cast<double>(s_frameCapture.worstDraw[i])/1000.0); row(line);
     }
+    row("WAV IO (included in frame phases):");
+    std::snprintf(line,sizeof(line),"Reads avg/worst %.2f / %d",static_cast<double>(s_frameCapture.reads)/n,s_frameCapture.worstReads); row(line);
+    std::snprintf(line,sizeof(line),"IO ms avg/worst %.2f / %.2f",static_cast<double>(s_frameCapture.io)/n/ticksPerMs,static_cast<double>(s_frameCapture.worstIO)/ticksPerMs); row(line);
     row("Worst = phases of longest frame");
     row("Select frame capture again to repeat");
 }
@@ -705,6 +708,13 @@ void PS2_BeginFrame(float cameraSeparation)
 }
 
 #if PS2_PROFILE
+extern "C" void PS2_FrameSoundIO(unsigned ticks) {
+    if(s_frameRequest && s_frameRequest->value!=0.0f && !s_frameReady) {
+        ++s_frameCapture.pendingReads;
+        if(ticks<=0x7fffffffu) s_frameCapture.pendingIO+=ticks;
+        else s_frameCapture.valid=false;
+    }
+}
 extern "C" void PS2_FramePhase(int phase) {
     if(s_frameRequest && s_frameRequest->value!=0.0f && !s_frameReady)
         s_frameCapture.Switch(phase,FrameStamp());

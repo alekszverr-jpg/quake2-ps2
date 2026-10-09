@@ -31,6 +31,33 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
+## Alpha.132 in progress (2026-10-09)
+
+User authorized next step from131phase captures: investigate/preload weapon PCM
+before optimizing models. 34base-game weapon sounds registered in CL_RegisterSounds
+inside Begin/EndRegistration (after tent sounds, before server config sounds).
+S_EndRegistration loads PCM; no extra persistent cache, name dedup/purge retained.
+Local PAK all34present, total677274allocation payload bytes at11025Hz (allocation
+uses original width before forced8-bit resampling; headers/allocator extra).
+Actual incremental residency smaller where map already precaches these assets.
+Frame capture adds per-miss FS_LoadFile attempts/time with PROFILE hooks, counts
+avg and same worst frame; includes failed opens, excludes resample/decode.
+Host production registration tests cover40maps, no firing IO, bounded slots;
+phasecapture old/accounting/panel bounds and transitionpurge tests passed.
+Build/install/runtime validation pending. Save131baseline before replacingELF.
+
+131user captures: first300frames/10.01s,33.37avg/34max,110>33,0>50,
+Other.01/.01,Server1.16/.54,Client2.46/4.34,Render15.33/15.55,
+Finish.02/.02,VSync14.38/12.91; World6.77/6.88,Entities6.40/6.25,
+Particles0/0. Second245/10.03s,40.93/117ms,130>33,26>50,
+Other.01/.01,Server2.11/6.19,Client3.51/64.23,Render25.66/30.34,
+Finish.03/.03,VSync9.61/15.99; World9.04/9.90,Entities10.46/12.16,
+Particles.43/2.47. Screen shows PackFile weapons WAV line; consistent with
+synchronous first-load hypothesis, not proof of117ms spike cause. Conditions
+movement vs firing inferred from requested two samples, not explicitly labeled.
+No isolated131vs130speed gain. Model preparation now comparable to world cost;
+next afterPCMtest: profile models selectively without comparing full-overlayFPS.
+
 ## Alpha.131 installed measurement build
 
 User authorized lightweight complete-frame phase capture. New Test Map mode

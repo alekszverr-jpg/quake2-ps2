@@ -20,6 +20,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // cl_parse.c  -- parse a message received from the server
 
 #include "client.h"
+#ifdef PS2_QUAKE
+#include "client/weapon_sounds.h"
+#endif
 
 char * svc_strings[256] =
 {
@@ -181,6 +184,15 @@ void CL_RegisterSounds(void)
 
     S_BeginRegistration();
     CL_RegisterTEntSounds();
+#ifdef PS2_QUAKE
+    // Weapons acquired later (or retained across maps) must not first read PCM
+    // in a combat frame. S_EndRegistration performs the actual loading.
+    for (i = 0; i < (int)(sizeof(ps2_weapon_sounds) / sizeof(ps2_weapon_sounds[0])); ++i)
+    {
+        S_RegisterSound(ps2_weapon_sounds[i]);
+        Sys_SendKeyEvents();
+    }
+#endif
     for (i = 1; i < MAX_SOUNDS; i++)
     {
         if (!cl.configstrings[CS_SOUNDS + i][0])

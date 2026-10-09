@@ -52,7 +52,8 @@ int main() {
     frame(0); assert(s_frameCapture.elapsedMs==20 && s_frameCapture.frames==1);
     assert(s_frameCapture.total[PS2_FRAME_CLIENT]==4000 && s_frameCapture.total[PS2_FRAME_SERVER]==3000);
     assert(s_frameCapture.total[PS2_FRAME_RENDER]==5000 && s_frameCapture.total[PS2_FRAME_FINISH]==1000 && s_frameCapture.total[PS2_FRAME_PRESENT]==7000);
-    frame(80); assert(s_frameCapture.maxMs==100 && s_frameCapture.worst[PS2_FRAME_OTHER]==80000);
+    PS2_FrameSoundIO(60000); frame(80); assert(s_frameCapture.maxMs==100 && s_frameCapture.worst[PS2_FRAME_OTHER]==80000);
+    assert(s_frameCapture.worstReads==1 && s_frameCapture.worstIO==60000);
     frame(0); assert(s_frameCapture.worst[PS2_FRAME_OTHER]==80000); // same worst frame, not per-phase maxima
     PS2_VramCaptureEligible(0); // skipped loading screen has no EndFrame
     assert(!s_frameRunning && s_frameCapture.frames==0);
@@ -63,8 +64,8 @@ int main() {
     assert(s_frameReady && s_frameCapture.frames==500 && s_frameCapture.elapsedMs==10000);
     assert(!s_frameSaved && profiles[0]==1 && profiles[1]==2 && profiles[2]==3);
     const auto total=s_frameCapture.total[PS2_FRAME_CLIENT]; frame(100); assert(total==s_frameCapture.total[PS2_FRAME_CLIENT]);
-    DrawFrameCaptureResult(); assert(rows==17);
-    s_captureEligible=false; DrawFrameCaptureResult(); assert(rows==17);
+    DrawFrameCaptureResult(); assert(rows==20);
+    s_captureEligible=false; DrawFrameCaptureResult(); assert(rows==20);
     request.value=1; PrepareFrameCapture(); assert(!s_frameReady && profiles[0]==0);
     request.value=0; PrepareFrameCapture(); assert(profiles[0]==1 && !s_frameSaved);
     // Unsigned tick and millisecond wrap keep real positive intervals.

@@ -6,6 +6,26 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.132 - 2026-10-09 (local test build)
+
+- Register 34 base-game weapon/muzzle/reload/loop/projectile sounds before
+  S_EndRegistration on each map, including all five randomized machinegun
+  samples. Weapons acquired later or retained across maps reuse loaded PCM.
+  No expansion assets, sound playback/volume changes or persistent new cache.
+- Existing level purge still frees PCM; registration deduplicates sound names.
+  Local PAK contains all 34 assets. Their allocation payload at the fixed
+  11025Hz output rate totals677274bytes before cache headers/allocator overhead;
+  incremental cost is lower where these sounds already belong to map precache.
+  Missing/custom assets retain existing fallback behavior, not guaranteed hot.
+- Lightweight frame capture now reports WAV filesystem read attempts and time
+  (average and same-longest-frame). IO is already included in frame phases;
+  it excludes decoding/resampling and does not mean all Client/audio is sound.
+  Cache hits do not read clocks; disabled builds compile reporting away.
+- Host tests use production registration/purge functions to cover preload,
+  deduplication, no combat reads for loaded assets and40bounded map cycles.
+  Phase capture checks preserve one coherent worst frame and224p panel bounds.
+  PS2 CI/build/runtime validation pending; no measured FPS improvement claimed.
+
 ## 0.1.0-alpha.131 - 2026-10-07 (local test build)
 
 - Add Test Map diagnostics `capture frame 10s`: measure complete consecutive

@@ -66,6 +66,9 @@ jobs:
       - name: Check exclusive full-frame capture on host
         run: python3 tests/frame_capture/run.py
 
+      - name: Check weapon PCM preloading and level lifecycle
+        run: python3 tests/sound_precache/run.py
+
       - name: Check VIDEO controls and output mode scaling on host
         run: python3 tests/video_menu/run.py
 

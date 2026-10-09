@@ -21,6 +21,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "client.h"
 #include "snd_loc.h"
+#include "ps2/frame_capture.h"
+#if PS2_PROFILE
+#include <time.h>
+#endif
 
 int cache_full_cycle;
 
@@ -104,6 +108,9 @@ sfxcache_t * S_LoadSound(sfx_t * s)
     sfxcache_t * sc;
     int size;
     char * name;
+#if PS2_PROFILE
+    unsigned soundTicks;
+#endif
 
     if (s->name[0] == '*')
         return NULL;
@@ -127,7 +134,13 @@ sfxcache_t * S_LoadSound(sfx_t * s)
 
     //	Com_Printf ("loading %s\n",namebuffer);
 
+#if PS2_PROFILE
+    soundTicks = (unsigned)clock();
+#endif
     size = FS_LoadFile(namebuffer, (void **)&data);
+#if PS2_PROFILE
+    PS2_FrameSoundIO((unsigned)clock() - soundTicks);
+#endif
 
     if (!data)
     {

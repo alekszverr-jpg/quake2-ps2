@@ -7,6 +7,7 @@ names=['RestoreFrameProfiles','PrepareFrameCapture','CollectFrameCapture','DrawF
 text='\n'.join(re.search(r'^void '+name+r'\(\).*?^\}',src,re.M|re.S).group(0) for name in names)
 text+='\n'+re.search(r'^extern "C" void PS2_FramePhase\(int phase\).*?^\}',src,re.M|re.S).group(0)
 text+='\n'+re.search(r'^extern "C" void PS2_VramCaptureEligible\(int eligible\).*?^\}',src,re.M|re.S).group(0)
+text+='\n'+re.search(r'^extern "C" void PS2_FrameSoundIO\(unsigned ticks\).*?^\}',src,re.M|re.S).group(0)
 (out/'production.inc').write_text(text)
 end=src[src.index('void PS2_EndFrame()'):]; assert end.index('ps2::gs::EndFrame();')<end.index('CollectFrameCapture();')
 assert 's_frameRequest->value==0.0f' in src

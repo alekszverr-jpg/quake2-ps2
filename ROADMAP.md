@@ -455,3 +455,6 @@ change. Record completed user-visible work in `CHANGELOG` in the same commit.
   (Alpha.131; host/CI/PS2 build passed and installed; runtime captures pending).
   Next: matched movement and world explosions with light diagnostics; optimize
   the measured dominant phase rather than detailed-overlay FPS.
+
+- [~] Preload base-game weapon PCM before combat and capture WAV IO
+  (Alpha.132; host lifecycle/phase checks passed; runtime cold-fire spikes pending).

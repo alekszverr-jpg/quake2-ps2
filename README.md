@@ -1,7 +1,7 @@
 # Quake II for PlayStation 2
 
 [![Build](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml/badge.svg)](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml)
-[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.131-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
+[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.132-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](LICENSE)
 
 An active continuation of the unofficial Quake II port for the Sony
@@ -443,3 +443,10 @@ completion or cancellation. Select another diagnostics mode to dismiss results;
 select capture again to repeat. Compare identical routes/settings with warm
 assets, using FPS Only for ordinary play. Captures still have a few phase-clock
 reads per frame; their overhead is not separately calibrated on hardware.
+
+Alpha132 also preloads the fixed base-game weapon sound set during map
+registration. Frame capture reports WAV read attempts/time, already included in
+the frame phases; these rows do not include WAV resampling or mixing. Missing
+custom assets retain existing behavior. Map registration can take longer and
+PCM residency may increase (whole set approximately0.65MiB plus allocation
+headers at current11025Hz output; some sounds were already loaded per map).
