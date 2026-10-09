@@ -35,6 +35,28 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
+## Alpha.134 in progress (2026-10-09)
+
+User authorized coarse breakdown of CL_AddEntities/entity sort after133capture.
+Mode7 capture scene10s ->ps2_frame_capture_detail2, samecollector andprofile
+save/restore lifecycle. Scene stage clocks accrue only duringRender/View:
+Other/pre2D,Camera/gun,Objects/FX(CL_AddPacketEntities includesparticletrails),
+TempEffects(CL_AddTEnts),Particles(CL_AddParticles simulation/list),Dlights,
+Lightstyles,Sort(qsort). Fixedarrays, O(1)stagecalls, noperitemclocks/logs.
+Outputcounts before re.RenderFrame: refdefentities/particles/dlights. Worst
+coherentfullframe, no gameplay algorithmchanges. Stage sum exactlymatchesView
+clockticks; panels320x224. Hostscene/phase/video/benchmarkchecks passed.
+CI/build/install pending; save133baseline. Runtime requested samefiringpoint.
+
+Latest133capture258/10.01s,38.80avg/100max (~25.8FPS). Begin.01/.01,
+View3.07/25.88,3D20.07/39.11,HUD.39/.51; Setup.27/.22,
+World10.37/22.24,Entities8.01/13.87,Particles.24/1.61,3Drest1.18/1.16;
+VUwait.16/.22,VRAMreuse.19/.14,TexDMA.25/.37,2Dsend.01/.01.
+Residual3Dsmallthisrun; Viewspike andworlddominantvisiblepeakcosts. Full100ms
+alsoincludesserver/client/finish/vsyncnotshownthispanel, nofullcausalattribution.
+Capturedweapon/viewdiffersprevious132(max67), noisolatedFPSgainorregression.
+Movement/continuousfire/all10s details inferredrequest, notexplicitlyconfirmed.
+
 ## Alpha.133 installed (2026-10-09)
 
 User authorized splitting remainingRender. Menu mode6 `capture render 10s`

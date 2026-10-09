@@ -6,6 +6,22 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.134 - 2026-10-09 (local test build)
+
+- Add lightweight Test Map `capture scene 10s`: partition View/pre3D into
+  camera/weapon preparation, packet entities and their effects, temporary
+  effects, particle update/list assembly, dynamic lights, lightstyles, entity
+  sorting and remaining/pre2D work. Existing frame/render capture modes remain.
+- Fixed arrays aggregate coarse stage boundaries only while in Render/View;
+  no timers per entity/particle or logs/draws during measurement. Report
+  average and same-longest-full-frame durations plus output entity/particle/
+  light counts. Sum of scene stages equals measured View time; nested figures
+  must not be added to Render again. No simulation or rendering changes.
+- Reuse capture interruption/rearm/freeze/wrap and detailed-profiler restoration.
+  Host tests cover scene/View partition, output counts, release C89 no-op hooks,
+  production hook placement, worst-frame/panel bounds and existing video and
+  benchmark behavior. CI/build/runtime captures pending; no FPS gain claimed.
+
 ## 0.1.0-alpha.133 - 2026-10-09 (local test build)
 
 - Add lightweight Test Map `capture render 10s`. Same uninterrupted ten-second

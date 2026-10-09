@@ -17,22 +17,32 @@ struct Capture {
     int renderPart=PS2_RENDER_VIEW;
     long long pendingRender[PS2_RENDER_PARTS]={}, render[PS2_RENDER_PARTS]={}, worstRender[PS2_RENDER_PARTS]={};
     long long aux[5]={}, worstAux[5]={}; // setup, VU wait, reuse, upload DMA, 2D submission (us)
+    int scenePart=PS2_SCENE_OTHER;
+    long long pendingScene[PS2_SCENE_PARTS]={}, scene[PS2_SCENE_PARTS]={}, worstScene[PS2_SCENE_PARTS]={};
+    int pendingCounts[3]={}, worstCounts[3]={};
+    long long counts[3]={};
     bool valid=true;
     void Switch(int next, std::uint32_t now) {
         const std::uint32_t dt=now-stamp;
         if (dt>0x7fffffffu) valid=false;
         else {
             pending[phase]+=dt;
-            if(phase==PS2_FRAME_RENDER) pendingRender[renderPart]+=dt;
+            if(phase==PS2_FRAME_RENDER) {
+                pendingRender[renderPart]+=dt;
+                if(renderPart==PS2_RENDER_VIEW) pendingScene[scenePart]+=dt;
+            }
         }
         stamp=now; phase=next;
     }
     void RenderPart(int next, std::uint32_t now) { Switch(phase,now); renderPart=next; }
+    void ScenePart(int next, std::uint32_t now) { Switch(phase,now); scenePart=next; }
     void Boundary(std::uint32_t now) { Switch(phase,now); }
     void Discard(std::uint32_t now) {
         stamp=now; valid=true; pendingReads=0; pendingIO=0;
         for (auto & value:pending) value=0;
         for (auto & value:pendingRender) value=0;
+        for (auto & value:pendingScene) value=0;
+        for (auto & value:pendingCounts) value=0;
     }
     void Add(int ms, const int micros[3], const int auxiliary[5]) {
         if (ms<=0 || !valid) return;
@@ -42,12 +52,16 @@ struct Capture {
         for(int i=0;i<3;++i) draw[i]+=micros[i];
         for(int i=0;i<PS2_RENDER_PARTS;++i) render[i]+=pendingRender[i];
         for(int i=0;i<5;++i) aux[i]+=auxiliary[i];
+        for(int i=0;i<PS2_SCENE_PARTS;++i) scene[i]+=pendingScene[i];
+        for(int i=0;i<3;++i) counts[i]+=pendingCounts[i];
         if(ms>maxMs) {
             maxMs=ms; worstReads=pendingReads; worstIO=pendingIO;
             for(int i=0;i<PS2_FRAME_PHASES;++i) worst[i]=pending[i];
             for(int i=0;i<3;++i) worstDraw[i]=micros[i];
             for(int i=0;i<PS2_RENDER_PARTS;++i) worstRender[i]=pendingRender[i];
             for(int i=0;i<5;++i) worstAux[i]=auxiliary[i];
+            for(int i=0;i<PS2_SCENE_PARTS;++i) worstScene[i]=pendingScene[i];
+            for(int i=0;i<3;++i) worstCounts[i]=pendingCounts[i];
         }
     }
 };

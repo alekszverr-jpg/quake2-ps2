@@ -51,7 +51,11 @@ void frame(int other) {
     advance(3); PS2_FramePhase(PS2_FRAME_CLIENT);
     advance(2); PS2_FrameRenderPart(PS2_RENDER_BEGIN); PS2_FramePhase(PS2_FRAME_RENDER);
     advance(1); PS2_FrameRenderPart(PS2_RENDER_VIEW);
-    advance(1); PS2_FrameRenderPart(PS2_RENDER_3D);
+    PS2_FrameScenePart(PS2_SCENE_CAMERA);
+    tick+=400; PS2_FrameScenePart(PS2_SCENE_OBJECTS);
+    tick+=600; ++now; PS2_FrameScenePart(PS2_SCENE_OTHER);
+    PS2_FrameSceneCounts(12,34,5);
+    PS2_FrameRenderPart(PS2_RENDER_3D);
     advance(2); PS2_FrameRenderPart(PS2_RENDER_HUD);
     advance(1); PS2_FramePhase(PS2_FRAME_FINISH);
     advance(1); PS2_FramePhase(PS2_FRAME_PRESENT);
@@ -68,6 +72,10 @@ int main() {
     long long renderSum=0; for(auto value:s_frameCapture.render) renderSum+=value;
     assert(renderSum==s_frameCapture.total[PS2_FRAME_RENDER]);
     assert(s_frameCapture.render[PS2_RENDER_BEGIN]==1000 && s_frameCapture.render[PS2_RENDER_3D]==2000);
+    long long sceneSum=0; for(auto value:s_frameCapture.scene) sceneSum+=value;
+    assert(sceneSum==s_frameCapture.render[PS2_RENDER_VIEW]);
+    assert(s_frameCapture.scene[PS2_SCENE_CAMERA]==400 && s_frameCapture.scene[PS2_SCENE_OBJECTS]==600);
+    assert(s_frameCapture.counts[0]==12 && s_frameCapture.worstCounts[1]==34);
     assert(s_frameCapture.aux[0]==100 && s_frameCapture.aux[4]==40);
     PS2_FrameSoundIO(60000); frame(80); assert(s_frameCapture.maxMs==100 && s_frameCapture.worst[PS2_FRAME_OTHER]==80000);
     assert(s_frameCapture.worstReads==1 && s_frameCapture.worstIO==60000);
@@ -85,7 +93,8 @@ int main() {
     const auto total=s_frameCapture.total[PS2_FRAME_CLIENT]; frame(100); assert(total==s_frameCapture.total[PS2_FRAME_CLIENT]);
     DrawFrameCaptureResult(); assert(rows==20);
     detailPage.value=1; DrawFrameCaptureResult(); assert(rows==41);
-    s_captureEligible=false; DrawFrameCaptureResult(); assert(rows==41);
+    detailPage.value=2; DrawFrameCaptureResult(); assert(rows==60);
+    s_captureEligible=false; DrawFrameCaptureResult(); assert(rows==60);
     request.value=1; PrepareFrameCapture(); assert(!s_frameReady && profiles[0]==0);
     request.value=0; PrepareFrameCapture(); assert(profiles[0]==1 && !s_frameSaved);
     // Unsigned tick and millisecond wrap keep real positive intervals.

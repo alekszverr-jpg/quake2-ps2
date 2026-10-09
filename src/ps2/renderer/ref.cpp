@@ -110,6 +110,31 @@ void CollectFrameCapture() {
         s_frameReady=true; s_frameRunning=false; RestoreFrameProfiles();
     }
 }
+void DrawSceneCaptureResult() {
+    ps2::gs::FillRect(0,8,320,194,0,0,0,255);
+    int y=12; char line[64];
+    auto row=[&](const char * text) { DrawInternalString(4,y,text); y+=10; };
+    const double n=s_frameCapture.frames;
+    const double ticksPerMs=static_cast<double>(CLOCKS_PER_SEC)/1000.0;
+    auto pair=[&](const char * name,double avg,double worst) {
+        std::snprintf(line,sizeof(line),"%-12s %6.2f / %6.2f",name,avg,worst); row(line);
+    };
+    row("SCENE CAPTURE - frozen results");
+    std::snprintf(line,sizeof(line),"Frames %d / %.2fs",s_frameCapture.frames,s_frameCapture.elapsedMs/1000.0); row(line);
+    std::snprintf(line,sizeof(line),"Frame avg/max %.2f/%d ms",s_frameCapture.elapsedMs/n,s_frameCapture.maxMs); row(line);
+    row("Inside View: avg / worst ms");
+    pair("View total",static_cast<double>(s_frameCapture.render[PS2_RENDER_VIEW])/n/ticksPerMs,static_cast<double>(s_frameCapture.worstRender[PS2_RENDER_VIEW])/ticksPerMs);
+    const char * names[]={"Other/pre2D","Camera/gun","Objects/FX","Temp effects","Particles","Dlights","Lightstyles","Entity sort"};
+    for(int i=0;i<PS2_SCENE_PARTS;++i)
+        pair(names[i],static_cast<double>(s_frameCapture.scene[i])/n/ticksPerMs,static_cast<double>(s_frameCapture.worstScene[i])/ticksPerMs);
+    row("Output counts: avg / worst frame");
+    const char * counts[]={"Entities","Particles","Lights"};
+    for(int i=0;i<3;++i) {
+        std::snprintf(line,sizeof(line),"%-12s %6.1f / %d",counts[i],static_cast<double>(s_frameCapture.counts[i])/n,s_frameCapture.worstCounts[i]); row(line);
+    }
+    row("Worst = same longest full frame");
+    row("Select scene capture to repeat");
+}
 void DrawRenderCaptureResult() {
     ps2::gs::FillRect(0,8,320,214,0,0,0,255);
     int y=12; char line[64];
@@ -144,6 +169,7 @@ void DrawRenderCaptureResult() {
 }
 void DrawFrameCaptureResult() {
     if(!s_frameReady || !s_captureEligible || s_frameRequest->value==0.0f) return;
+    if(s_frameDetailPage->value>=2.0f) { DrawSceneCaptureResult(); return; }
     if(s_frameDetailPage->value!=0.0f) { DrawRenderCaptureResult(); return; }
     ps2::gs::FillRect(0,8,320,214,0,0,0,255);
     int y=12; char line[64];
@@ -748,6 +774,17 @@ void PS2_BeginFrame(float cameraSeparation)
 }
 
 #if PS2_PROFILE
+extern "C" void PS2_FrameScenePart(int part) {
+    if(s_frameRequest && s_frameRequest->value!=0.0f && !s_frameReady)
+        s_frameCapture.ScenePart(part,FrameStamp());
+}
+extern "C" void PS2_FrameSceneCounts(int entities,int particles,int lights) {
+    if(s_frameRequest && s_frameRequest->value!=0.0f && !s_frameReady) {
+        s_frameCapture.pendingCounts[0]=entities;
+        s_frameCapture.pendingCounts[1]=particles;
+        s_frameCapture.pendingCounts[2]=lights;
+    }
+}
 extern "C" void PS2_FrameRenderPart(int part) {
     if(s_frameRequest && s_frameRequest->value!=0.0f && !s_frameReady)
         s_frameCapture.RenderPart(part,FrameStamp());

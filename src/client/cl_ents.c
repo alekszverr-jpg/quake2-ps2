@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // cl_ents.c -- entity parsing and management
 
 #include "client.h"
+#include "ps2/frame_capture.h"
 
 extern struct model_s * cl_mod_powerscreen;
 
@@ -1442,16 +1443,23 @@ void CL_AddEntities(void)
     //  CL_AddDLights ();
     //  CL_AddLightStyles ();
 
+    PS2_FrameScenePart(PS2_SCENE_CAMERA);
     CL_CalcViewValues();
+    PS2_FrameScenePart(PS2_SCENE_OBJECTS);
     // PMM - moved this here so the heat beam has the right values for the vieworg, and can lock the beam to the gun
     CL_AddPacketEntities(&cl.frame);
 #if 0
     CL_AddProjectiles ();
 #endif
+    PS2_FrameScenePart(PS2_SCENE_EFFECTS);
     CL_AddTEnts();
+    PS2_FrameScenePart(PS2_SCENE_PARTICLES);
     CL_AddParticles();
+    PS2_FrameScenePart(PS2_SCENE_LIGHTS);
     CL_AddDLights();
+    PS2_FrameScenePart(PS2_SCENE_STYLES);
     CL_AddLightStyles();
+    PS2_FrameScenePart(PS2_SCENE_OTHER);
 }
 
 /*

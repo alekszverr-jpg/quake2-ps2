@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // cl_view.c -- player rendering positioning
 
 #include "client.h"
+#include "ps2/frame_capture.h"
 
 //=============
 //
@@ -561,10 +562,13 @@ void V_RenderView(float stereo_separation)
         cl.refdef.rdflags = cl.frame.playerstate.rdflags;
 
         // sort entities for better cache locality
+        PS2_FrameScenePart(PS2_SCENE_SORT);
         qsort(cl.refdef.entities, cl.refdef.num_entities, sizeof(cl.refdef.entities[0]),
               (int (*)(const void *, const void *))entitycmpfnc);
+        PS2_FrameScenePart(PS2_SCENE_OTHER);
     }
 
+    PS2_FrameSceneCounts(cl.refdef.num_entities,cl.refdef.num_particles,cl.refdef.num_dlights);
     re.RenderFrame(&cl.refdef);
 
     if (cl_stats->value)

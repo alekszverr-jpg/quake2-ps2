@@ -1,7 +1,7 @@
 # Quake II for PlayStation 2
 
 [![Build](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml/badge.svg)](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml)
-[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.133-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
+[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.134-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](LICENSE)
 
 An active continuation of the unofficial Quake II port for the Sony
@@ -459,3 +459,10 @@ Setup/world/entities/particles and3Drest partition the3Dtotal approximately
 view blend and other remaining work; it is not pure GPU raster time.
 VU/VRAM/DMA/2Dsend figures are nested, overlapping timings for the whole frame,
 including final Finish; do not sum them or add them to the phase totals.
+
+Select `capture scene 10s` to break down View/pre3D. Camera/gun, Objects/FX,
+temporary effects, particles, lights, lightstyles, entity sorting and other/pre2D
+work partition View. Objects/FX includes effect generation from packet entities;
+Particles measures client update/list assembly, not the3Drenderer particle pass.
+Counts describe the submitted entity/particle/light lists. Worst values always
+belong to one longest complete frame, not independent maxima of each stage.

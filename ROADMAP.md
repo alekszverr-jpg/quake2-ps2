@@ -461,3 +461,6 @@ change. Record completed user-visible work in `CHANGELOG` in the same commit.
 
 - [~] Split lightweight Render capture into clear/view/3D/HUD and nested waits
   (Alpha.133; host/CI/build passed and installed; runtime validation pending).
+
+- [~] Lightweight scene assembly stage capture and output counts
+  (Alpha.134; host accounting/menu checks passed; runtime spikes pending).
