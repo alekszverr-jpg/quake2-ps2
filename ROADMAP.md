@@ -460,4 +460,4 @@ change. Record completed user-visible work in `CHANGELOG` in the same commit.
   (Alpha.132; host/CI/build passed and installed; runtime cold-fire spikes pending).
 
 - [~] Split lightweight Render capture into clear/view/3D/HUD and nested waits
-  (Alpha.133; host accounting/panel checks passed; runtime validation pending).
+  (Alpha.133; host/CI/build passed and installed; runtime validation pending).

@@ -8,23 +8,24 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.132 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.133 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.132` (base weapon PCM preload and
-  runtime WAV IO capture; host/sanitizer/map/PS2 CI passed, installed; user
-  first-shot/continuous-shot runtime validation pending)
-- Current implementation commit: `7261d9e` (`Preload base weapon PCM and capture
-  runtime WAV reads`); CI submodule fix `b344f3e` retained.
+- Current source/test version: `0.1.0-alpha.133` (lightweight Render breakdown;
+  host/sanitizer/map/PS2 CI passed and installed; runtime capture pending)
+- Current implementation commit: `fdaab80` (`Split lightweight Render capture
+  into clear scene 3D and HUD`); CI submodule fix `b344f3e` retained.
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.132 local PROFILE ELF SHA-256 (8,032,096 bytes):
-  `FB46A03585E1D751B5CD0EC143B4384F46AC4D85AC7A9A6B4C11AEB233189621`
-- CI `37913960896` passed all host sanitizer tests, map validation and PROFILE
-  build for `7261d9e`. Both root ELF copies match downloaded artifact
-  `build/ci-7261d9e-profile/quake2-profile.elf`.
+- Alpha.133 local PROFILE ELF SHA-256 (8,055,860 bytes):
+  `1D5885649434377832568C6171E4BC43500E649FFF96B103772A2C39688135CA`
+- CI `37944563498` passed all host sanitizer tests, map validation and PROFILE
+  build for `fdaab80`. Both root ELF copies match downloaded artifact
+  `build/ci-fdaab80-profile/quake2-profile.elf`.
+- Documents `quake2-alpha132-baseline.elf` preserves Alpha132 (8,032,096 bytes):
+  `FB46A03585E1D751B5CD0EC143B4384F46AC4D85AC7A9A6B4C11AEB233189621`.
 - Documents `quake2-alpha131-baseline.elf` preserves Alpha131 (8,027,220 bytes):
   `E7686279C0520C1206B3400BEE60929E8CE1D16A39B8E38D2E679A5CDE5D1EB5`.
 - Documents `quake2-alpha130-baseline.elf` preserves Alpha130 (8,002,516 bytes):
@@ -34,7 +35,7 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.133 in progress (2026-10-09)
+## Alpha.133 installed (2026-10-09)
 
 User authorized splitting remainingRender. Menu mode6 `capture render 10s`
 uses samecollector asmode5, detailresult cvar ps2_frame_capture_detail=1.
@@ -44,8 +45,9 @@ Sum exactlymatchesRender excepttimingroundoff; stages paused duringFinish/VSync.
 3Drest subtractssetup/world/entities/particles, includesalpha/beams/finalflush/
 viewblend/calibration, notpureGPU. Waitsarewholeframenested overlapping: VU,
 VRAMreuse,texDMA andnewFlushPending2Dtimer AFTERVUflush. Existingbarriersunchanged.
-Worstcolumnsamefullframe, result21rows fits224p. Hostchecks passed; build/install
-pending. Save132baseline. Runtime movement/firing/renderdetail pending.
+Worstcolumnsamefullframe, result21rows fits224p. Hostchecks and CI37944563498 passed sanitizers/map/PS2build; installed both
+roots with verified hash.132baseline saved. Runtime movement/firing/renderdetail
+pending. Same route/light/weapon/warm assets for comparing phase captures.
 
 User132capture254/10.03s,39.49avg/67max,140>33,23>50; Other.01/.01,
 Server2.30/6.40,Client2.67/1.73,Render26.27/47.79,Finish.02/.02,

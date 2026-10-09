@@ -24,8 +24,9 @@ Development priorities and completion criteria are tracked in
   Original flush/send/wait/barrier order and gameplay behavior unchanged.
 - Host checks cover Render subdivision sums, disabled C89 hooks, coherent
   worst-frame auxiliary counters, repeat/cancel/interrupt/wrap and both panels
-  within320x224. Existing VRAM, weapon PCM and video checks pass. CI/build and
-  runtime Render captures pending; no gameplay performance gain claimed.
+  within320x224. CI37944563498 passed all host sanitizers, map validation and
+  PROFILE build; ELF installed in both roots,132baseline saved. Runtime Render
+  captures pending; no gameplay performance gain claimed.
 
 ## 0.1.0-alpha.132 - 2026-10-09 (local test build)
 
