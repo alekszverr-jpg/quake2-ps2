@@ -5,6 +5,8 @@
 #include <ctime>
 struct cvar_t { float value; } request={1};
 static const cvar_t * s_frameRequest=&request;
+static cvar_t detailPage={0};
+static const cvar_t * s_frameDetailPage=&detailPage;
 static ps2::frame::Capture s_frameCapture;
 static bool s_frameRunning=false,s_frameReady=false,s_frameSaved=false,s_captureEligible=false;
 static int s_framePreviousMs=0, now=0;
@@ -28,8 +30,16 @@ void DrawInternalString(int x,int y,const char * text) {
     assert(y>=0 && y+8<=224); ++rows;
 }
 namespace ps2::gs { void FillRect(int x,int y,int w,int h,int,int,int,int) { assert(x+w<=320 && y+h<=224); } }
+namespace ps2::gs {
+struct TimingStats { int vramStallMicros=20,textureUploadMicros=30,overlaySubmitMicros=40; } timing;
+const TimingStats & GetTimingStats() { return timing; }
+}
+namespace ps2::vu1 {
+struct TimingStats { int waitMicros=50; } timing;
+const TimingStats & GetTimingStats() { return timing; }
+}
 namespace ps2::view {
-struct DrawStats { int worldMicros=3000,entityMicros=1000,particleMicros=500; } draw;
+struct DrawStats { int worldMicros=800,entityMicros=400,particleMicros=100,setupMicros=100; } draw;
 const DrawStats & GetDrawStats() { return draw; }
 }
 #include "production.inc"
@@ -39,8 +49,11 @@ void frame(int other) {
     advance(2); PS2_FramePhase(PS2_FRAME_OTHER);
     advance(other); PS2_FramePhase(PS2_FRAME_SERVER);
     advance(3); PS2_FramePhase(PS2_FRAME_CLIENT);
-    advance(2); PS2_FramePhase(PS2_FRAME_RENDER);
-    advance(5); PS2_FramePhase(PS2_FRAME_FINISH);
+    advance(2); PS2_FrameRenderPart(PS2_RENDER_BEGIN); PS2_FramePhase(PS2_FRAME_RENDER);
+    advance(1); PS2_FrameRenderPart(PS2_RENDER_VIEW);
+    advance(1); PS2_FrameRenderPart(PS2_RENDER_3D);
+    advance(2); PS2_FrameRenderPart(PS2_RENDER_HUD);
+    advance(1); PS2_FramePhase(PS2_FRAME_FINISH);
     advance(1); PS2_FramePhase(PS2_FRAME_PRESENT);
     advance(7); PS2_FramePhase(PS2_FRAME_RENDER);
     PS2_FramePhase(PS2_FRAME_CLIENT); CollectFrameCapture();
@@ -52,9 +65,15 @@ int main() {
     frame(0); assert(s_frameCapture.elapsedMs==20 && s_frameCapture.frames==1);
     assert(s_frameCapture.total[PS2_FRAME_CLIENT]==4000 && s_frameCapture.total[PS2_FRAME_SERVER]==3000);
     assert(s_frameCapture.total[PS2_FRAME_RENDER]==5000 && s_frameCapture.total[PS2_FRAME_FINISH]==1000 && s_frameCapture.total[PS2_FRAME_PRESENT]==7000);
+    long long renderSum=0; for(auto value:s_frameCapture.render) renderSum+=value;
+    assert(renderSum==s_frameCapture.total[PS2_FRAME_RENDER]);
+    assert(s_frameCapture.render[PS2_RENDER_BEGIN]==1000 && s_frameCapture.render[PS2_RENDER_3D]==2000);
+    assert(s_frameCapture.aux[0]==100 && s_frameCapture.aux[4]==40);
     PS2_FrameSoundIO(60000); frame(80); assert(s_frameCapture.maxMs==100 && s_frameCapture.worst[PS2_FRAME_OTHER]==80000);
     assert(s_frameCapture.worstReads==1 && s_frameCapture.worstIO==60000);
-    frame(0); assert(s_frameCapture.worst[PS2_FRAME_OTHER]==80000); // same worst frame, not per-phase maxima
+    ps2::gs::timing.overlaySubmitMicros=900;
+    frame(0); assert(s_frameCapture.worstAux[4]==40);
+    assert(s_frameCapture.worst[PS2_FRAME_OTHER]==80000); // same worst frame, not per-phase maxima
     PS2_VramCaptureEligible(0); // skipped loading screen has no EndFrame
     assert(!s_frameRunning && s_frameCapture.frames==0);
     advance(4000); CollectFrameCapture();
@@ -65,7 +84,8 @@ int main() {
     assert(!s_frameSaved && profiles[0]==1 && profiles[1]==2 && profiles[2]==3);
     const auto total=s_frameCapture.total[PS2_FRAME_CLIENT]; frame(100); assert(total==s_frameCapture.total[PS2_FRAME_CLIENT]);
     DrawFrameCaptureResult(); assert(rows==20);
-    s_captureEligible=false; DrawFrameCaptureResult(); assert(rows==20);
+    detailPage.value=1; DrawFrameCaptureResult(); assert(rows==41);
+    s_captureEligible=false; DrawFrameCaptureResult(); assert(rows==41);
     request.value=1; PrepareFrameCapture(); assert(!s_frameReady && profiles[0]==0);
     request.value=0; PrepareFrameCapture(); assert(profiles[0]==1 && !s_frameSaved);
     // Unsigned tick and millisecond wrap keep real positive intervals.

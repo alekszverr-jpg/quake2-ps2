@@ -1917,7 +1917,7 @@ static const char * s_testmap_texture_names[] =
 static const char * s_testmap_diagnostics_names[] =
 {
 #if PS2_PROFILE
-    "off", "fps only", "full", "capture vram 10s", "vram events (slow)", "capture frame 10s", 0
+    "off", "fps only", "full", "capture vram 10s", "vram events (slow)", "capture frame 10s", "capture render 10s", 0
 #else
     "off (release build)", 0
 #endif
@@ -2035,7 +2035,8 @@ static void TestMapDiagnosticsFunc(void * unused)
     Cvar_SetValue("ps2_show_vramstats", mode == 2);
     Cvar_SetValue("ps2_show_drawstats", mode == 2);
     Cvar_SetValue("ps2_vram_capture", mode == 3 ? 1 : 0);
-    Cvar_SetValue("ps2_frame_capture", mode == 5 ? 1 : 0);
+    Cvar_SetValue("ps2_frame_capture", mode == 5 || mode == 6 ? 1 : 0);
+    Cvar_SetValue("ps2_frame_capture_detail", mode == 6);
     Cvar_SetValue("ps2_vram_log", mode == 4);
 }
 
@@ -2140,7 +2141,7 @@ static void TestMap_MenuInit(void)
     Cvar_Get("ps2_show_drawstats", "0", 0);
 #if PS2_PROFILE
     if (Cvar_VariableValue("ps2_frame_capture") != 0.0F)
-        s_testmap_diagnostics_list.curvalue = 5;
+        s_testmap_diagnostics_list.curvalue = Cvar_VariableValue("ps2_frame_capture_detail") != 0.0F ? 6 : 5;
     else if (Cvar_VariableValue("ps2_vram_log") != 0.0F)
         s_testmap_diagnostics_list.curvalue = 4;
     else if (Cvar_VariableValue("ps2_vram_capture") != 0.0F)

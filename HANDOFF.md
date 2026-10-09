@@ -34,6 +34,28 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
+## Alpha.133 in progress (2026-10-09)
+
+User authorized splitting remainingRender. Menu mode6 `capture render 10s`
+uses samecollector asmode5, detailresult cvar ps2_frame_capture_detail=1.
+Coarse Render stage clocks accrue only while exclusivephaseRender: Begin/clear,
+View/pre3D (incltileclear/clientscene),3Dtotal(refRenderFrame),HUD/post3D.
+Sum exactlymatchesRender excepttimingroundoff; stages paused duringFinish/VSync.
+3Drest subtractssetup/world/entities/particles, includesalpha/beams/finalflush/
+viewblend/calibration, notpureGPU. Waitsarewholeframenested overlapping: VU,
+VRAMreuse,texDMA andnewFlushPending2Dtimer AFTERVUflush. Existingbarriersunchanged.
+Worstcolumnsamefullframe, result21rows fits224p. Hostchecks passed; build/install
+pending. Save132baseline. Runtime movement/firing/renderdetail pending.
+
+User132capture254/10.03s,39.49avg/67max,140>33,23>50; Other.01/.01,
+Server2.30/6.40,Client2.67/1.73,Render26.27/47.79,Finish.02/.02,
+VSync8.15/10.70; World11.40/9.13,Entities9.65/12.86,Particles.19/.24.
+WAVreadsavg0.00/worst0,IO0.00/0.00; noWAVfilesystemattempts reportedthiswindow.
+117msmaxprior131notrepeated; compatiblewithpreloadbenefit, notcausalproof.
+Audioaudibility/cold-firstshotprotocolnotexplicitlyconfirmed. Renderworst
+47.79vsaccounted9.13+12.86+.24=22.23 leaves25.56msunclassified, motivating133.
+Average~25.3FPSvs~24.4prior, lighting/workload differ; noisolatedspeedclaim.
+
 ## Alpha.132 installed (2026-10-09)
 
 User authorized next step from131phase captures: investigate/preload weapon PCM

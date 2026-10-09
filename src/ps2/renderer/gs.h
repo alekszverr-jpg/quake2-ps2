@@ -22,6 +22,7 @@ struct TimingStats
     int textureUploadMicros; // Texture-transfer DMA wait time this frame.
     int vramStallMicros;     // Full GS waits before reusing resident VRAM.
     int textureUploads;      // Synchronous texture upload batches this frame.
+    int overlaySubmitMicros; // Pending 2D packet preparation/send/wait, excludes preceding VU flush.
     int vramStalls;          // Full GS reuse synchronizations this frame.
 };
 

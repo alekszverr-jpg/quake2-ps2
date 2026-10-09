@@ -458,3 +458,6 @@ change. Record completed user-visible work in `CHANGELOG` in the same commit.
 
 - [~] Preload base-game weapon PCM before combat and capture WAV IO
   (Alpha.132; host/CI/build passed and installed; runtime cold-fire spikes pending).
+
+- [~] Split lightweight Render capture into clear/view/3D/HUD and nested waits
+  (Alpha.133; host accounting/panel checks passed; runtime validation pending).

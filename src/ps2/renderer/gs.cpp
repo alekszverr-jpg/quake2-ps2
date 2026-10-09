@@ -434,6 +434,9 @@ void FlushPending2D()
     // Deferred PATH1 geometry was issued before this overlay was accumulated.
     // Submit it first so the later PATH3 2D packet remains visually on top.
     vu1::Flush();
+#if PS2_PROFILE
+    const timing::Stamp overlayStart=timing::Now();
+#endif
     s_in2D = false;
 
     RenderPacket & pkt = FramePacket();
@@ -443,6 +446,9 @@ void FlushPending2D()
     pkt.SendNormal();
     draw_wait_finish();
 
+#if PS2_PROFILE
+    s_timingStats.overlaySubmitMicros+=timing::ElapsedMicros(overlayStart);
+#endif
     s_vramReuseHazard = false; // GS idle again
 }
 

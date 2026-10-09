@@ -50,6 +50,7 @@ static bool s_captureEligible=false, s_captureRunning=false, s_captureReady=fals
 static int s_capturePreviousMs=0;
 void DrawInternalString(int x, int y, const char * str);
 static const cvar_t * s_frameRequest=nullptr;
+static const cvar_t * s_frameDetailPage=nullptr;
 static ps2::frame::Capture s_frameCapture;
 static bool s_frameRunning=false, s_frameReady=false, s_frameSaved=false;
 static int s_framePreviousMs=0;
@@ -99,15 +100,51 @@ void CollectFrameCapture() {
     } else if(elapsed>0) {
         const auto & draw=ps2::view::GetDrawStats();
         const int micros[]={draw.worldMicros,draw.entityMicros,draw.particleMicros};
-        s_frameCapture.Add(static_cast<int>(elapsed),micros);
+        const auto & vu=ps2::vu1::GetTimingStats();
+        const auto & gs=ps2::gs::GetTimingStats();
+        const int auxiliary[]={draw.setupMicros,vu.waitMicros,gs.vramStallMicros,gs.textureUploadMicros,gs.overlaySubmitMicros};
+        s_frameCapture.Add(static_cast<int>(elapsed),micros,auxiliary);
     } else return; // retain sub-millisecond phase ticks until time advances
     s_frameCapture.Discard(stamp);
     if(s_frameCapture.elapsedMs>=10000) {
         s_frameReady=true; s_frameRunning=false; RestoreFrameProfiles();
     }
 }
+void DrawRenderCaptureResult() {
+    ps2::gs::FillRect(0,8,320,214,0,0,0,255);
+    int y=12; char line[64];
+    auto row=[&](const char * text) { DrawInternalString(4,y,text); y+=10; };
+    const double n=s_frameCapture.frames;
+    const double ticksPerMs=static_cast<double>(CLOCKS_PER_SEC)/1000.0;
+    auto pair=[&](const char * name,double avg,double worst) {
+        std::snprintf(line,sizeof(line),"%-12s %6.2f / %6.2f",name,avg,worst); row(line);
+    };
+    row("RENDER CAPTURE - frozen results");
+    std::snprintf(line,sizeof(line),"Frames %d / %.2fs",s_frameCapture.frames,s_frameCapture.elapsedMs/1000.0); row(line);
+    std::snprintf(line,sizeof(line),"Frame avg/max %.2f/%d ms",s_frameCapture.elapsedMs/n,s_frameCapture.maxMs); row(line);
+    row("Inside Render: avg / worst ms");
+    const char * names[]={"Begin/clear","View/pre3D","3D total","HUD/post3D"};
+    for(int i=0;i<PS2_RENDER_PARTS;++i)
+        pair(names[i],static_cast<double>(s_frameCapture.render[i])/n/ticksPerMs,static_cast<double>(s_frameCapture.worstRender[i])/ticksPerMs);
+    row("Inside 3D (do not add twice):");
+    pair("Setup",static_cast<double>(s_frameCapture.aux[0])/n/1000.0,static_cast<double>(s_frameCapture.worstAux[0])/1000.0);
+    const char * detail[]={"World","Entities","Particles"};
+    long long measured=s_frameCapture.aux[0],worstMeasured=s_frameCapture.worstAux[0];
+    for(int i=0;i<3;++i) {
+        pair(detail[i],static_cast<double>(s_frameCapture.draw[i])/n/1000.0,static_cast<double>(s_frameCapture.worstDraw[i])/1000.0);
+        measured+=s_frameCapture.draw[i]; worstMeasured+=s_frameCapture.worstDraw[i];
+    }
+    pair("3D rest",static_cast<double>(s_frameCapture.render[PS2_RENDER_3D])/n/ticksPerMs-static_cast<double>(measured)/n/1000.0,
+         static_cast<double>(s_frameCapture.worstRender[PS2_RENDER_3D])/ticksPerMs-static_cast<double>(worstMeasured)/1000.0);
+    row("Nested waits ALL frame (overlap):");
+    const char * waits[]={"VU wait","VRAM reuse","Tex DMA","2D send/wait"};
+    for(int i=1;i<5;++i) pair(waits[i-1],static_cast<double>(s_frameCapture.aux[i])/n/1000.0,static_cast<double>(s_frameCapture.worstAux[i])/1000.0);
+    row("Worst = same longest full frame");
+    row("Select render capture to repeat");
+}
 void DrawFrameCaptureResult() {
     if(!s_frameReady || !s_captureEligible || s_frameRequest->value==0.0f) return;
+    if(s_frameDetailPage->value!=0.0f) { DrawRenderCaptureResult(); return; }
     ps2::gs::FillRect(0,8,320,214,0,0,0,255);
     int y=12; char line[64];
     auto row=[&](const char * text) { DrawInternalString(4,y,text); y+=10; };
@@ -523,6 +560,7 @@ qboolean PS2_RefInit(void * hinstance, void * wndproc)
     s_showDrawStats = Cvar_Get("ps2_show_drawstats", "0", 0);
     s_captureRequest = Cvar_Get("ps2_vram_capture", "0", 0);
     s_frameRequest = Cvar_Get("ps2_frame_capture", "0", 0);
+    s_frameDetailPage = Cvar_Get("ps2_frame_capture_detail", "0", 0);
 #endif
 
     s_texConchars = ps2::tex::Find("conchars", ps2::tex::ImageType::Pic);
@@ -699,15 +737,21 @@ void PS2_CinematicSetPalette(const unsigned char * palette)
 void PS2_BeginFrame(float cameraSeparation)
 {
     (void)cameraSeparation;
+    PS2_FrameRenderPart(PS2_RENDER_BEGIN);
     PS2_FramePhase(PS2_FRAME_RENDER);
     ps2::vu1::BeginFrameStats();
     ps2::gs::BeginFrame();
+    PS2_FrameRenderPart(PS2_RENDER_VIEW);
     // 2D and 3D now draw freely between here and PS2_EndFrame: 2D primitives
     // open the deferred overlay batch lazily and it flushes automatically at
     // each 2D->3D boundary and in gs::EndFrame() - no explicit bracket here.
 }
 
 #if PS2_PROFILE
+extern "C" void PS2_FrameRenderPart(int part) {
+    if(s_frameRequest && s_frameRequest->value!=0.0f && !s_frameReady)
+        s_frameCapture.RenderPart(part,FrameStamp());
+}
 extern "C" void PS2_FrameSoundIO(unsigned ticks) {
     if(s_frameRequest && s_frameRequest->value!=0.0f && !s_frameReady) {
         ++s_frameCapture.pendingReads;
@@ -848,7 +892,9 @@ void PS2_RenderFrame(refdef_t * viewDef)
     {
         return;
     }
+    PS2_FrameRenderPart(PS2_RENDER_3D);
     ps2::view::RenderFrame(*viewDef);
+    PS2_FrameRenderPart(PS2_RENDER_HUD);
 }
 
 } // extern "C"

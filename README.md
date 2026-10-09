@@ -1,7 +1,7 @@
 # Quake II for PlayStation 2
 
 [![Build](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml/badge.svg)](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml)
-[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.132-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
+[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.133-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](LICENSE)
 
 An active continuation of the unofficial Quake II port for the Sony
@@ -450,3 +450,12 @@ the frame phases; these rows do not include WAV resampling or mixing. Missing
 custom assets retain existing behavior. Map registration can take longer and
 PCM residency may increase (whole set approximately0.65MiB plus allocation
 headers at current11025Hz output; some sounds were already loaded per map).
+
+For the remaining renderer cost, select `capture render 10s`. It uses the same
+lightweight capture but shows Begin/clear, View/pre3D (including client scene
+assembly and tile clear), complete3D and HUD/post3D. These partition Render.
+Setup/world/entities/particles and3Drest partition the3Dtotal approximately
+(clock rounding applies).3Drest includes alpha surfaces, beams, final flush,
+view blend and other remaining work; it is not pure GPU raster time.
+VU/VRAM/DMA/2Dsend figures are nested, overlapping timings for the whole frame,
+including final Finish; do not sum them or add them to the phase totals.

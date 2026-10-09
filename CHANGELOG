@@ -6,6 +6,27 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.133 - 2026-10-09 (local test build)
+
+- Add lightweight Test Map `capture render 10s`. Same uninterrupted ten-second
+  sample and profiler restoration as frame capture; shows Begin/clear,
+  View/pre3D, complete3D and HUD/post3D subdivisions of Render. Four coarse
+  boundary hooks per frame, no per-glyph/per-surface timers or diagnostic draws
+  during capture. Fixed storage and same-longest-frame snapshots retained.
+- Show camera setup, world/entities/particles and3Dresidual. Residual includes
+  alpha surfaces/beams/player-light work/final flush/view blend/remaining setup
+  and timer overhead; it is not pure GPU time. View/pre3D includes tile clear
+  and client scene assembly; HUD/post3D includes client work after3D returns.
+- Reuse existing whole-frame VU wait, texture DMA and VRAM reuse timings; add
+  one timer around actual deferred2Dsubmission/wait, after preceding VU flush.
+  These are nested/overlapping whole-frame figures (including final Finish),
+  not exclusive Render costs. Rounding can leave a tiny negative3Dresidual.
+  Original flush/send/wait/barrier order and gameplay behavior unchanged.
+- Host checks cover Render subdivision sums, disabled C89 hooks, coherent
+  worst-frame auxiliary counters, repeat/cancel/interrupt/wrap and both panels
+  within320x224. Existing VRAM, weapon PCM and video checks pass. CI/build and
+  runtime Render captures pending; no gameplay performance gain claimed.
+
 ## 0.1.0-alpha.132 - 2026-10-09 (local test build)
 
 - Register 34 base-game weapon/muzzle/reload/loop/projectile sounds before
