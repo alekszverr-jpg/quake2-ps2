@@ -20,7 +20,9 @@ Development priorities and completion criteria are tracked in
 - Reuse capture interruption/rearm/freeze/wrap and detailed-profiler restoration.
   Host tests cover scene/View partition, output counts, release C89 no-op hooks,
   production hook placement, worst-frame/panel bounds and existing video and
-  benchmark behavior. CI/build/runtime captures pending; no FPS gain claimed.
+  benchmark behavior. CI37948890499 passed all host sanitizer checks, map
+  validation and PROFILE build; installed in both roots with133baseline saved.
+  Runtime captures pending; no FPS gain claimed.
 
 ## 0.1.0-alpha.133 - 2026-10-09 (local test build)
 

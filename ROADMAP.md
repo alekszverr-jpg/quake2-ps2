@@ -463,4 +463,4 @@ change. Record completed user-visible work in `CHANGELOG` in the same commit.
   (Alpha.133; host/CI/build passed and installed; runtime validation pending).
 
 - [~] Lightweight scene assembly stage capture and output counts
-  (Alpha.134; host accounting/menu checks passed; runtime spikes pending).
+  (Alpha.134; host/CI/build passed and installed; runtime spikes pending).
