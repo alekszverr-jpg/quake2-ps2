@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // cl_fx.c -- entity effects parsing and management
 
 #include "client.h"
+#include "ps2/frame_capture.h"
 
 void CL_LogoutEffect(vec3_t org, int type);
 void CL_ItemRespawnParticles(vec3_t org);
@@ -1014,15 +1015,25 @@ Wall impact puffs
 */
 void CL_ParticleEffect(vec3_t org, vec3_t dir, int color, int count)
 {
+#if PS2_PROFILE
+    ps2_fx_counters_t * fxCapture=PS2_FrameFXCounters();
+#endif
     int i, j;
     cparticle_t * p;
     float d;
 
     for (i = 0; i < count; i++)
     {
-        if (!free_particles)
+        if (!free_particles) {
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->exhausted;
+#endif
             return;
+        }
         p = free_particles;
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->particles;
+#endif
         free_particles = p->next;
         p->next = active_particles;
         active_particles = p;
@@ -1052,15 +1063,25 @@ CL_ParticleEffect2
 */
 void CL_ParticleEffect2(vec3_t org, vec3_t dir, int color, int count)
 {
+#if PS2_PROFILE
+    ps2_fx_counters_t * fxCapture=PS2_FrameFXCounters();
+#endif
     int i, j;
     cparticle_t * p;
     float d;
 
     for (i = 0; i < count; i++)
     {
-        if (!free_particles)
+        if (!free_particles) {
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->exhausted;
+#endif
             return;
+        }
         p = free_particles;
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->particles;
+#endif
         free_particles = p->next;
         p->next = active_particles;
         active_particles = p;
@@ -1091,15 +1112,25 @@ CL_ParticleEffect3
 */
 void CL_ParticleEffect3(vec3_t org, vec3_t dir, int color, int count)
 {
+#if PS2_PROFILE
+    ps2_fx_counters_t * fxCapture=PS2_FrameFXCounters();
+#endif
     int i, j;
     cparticle_t * p;
     float d;
 
     for (i = 0; i < count; i++)
     {
-        if (!free_particles)
+        if (!free_particles) {
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->exhausted;
+#endif
             return;
+        }
         p = free_particles;
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->particles;
+#endif
         free_particles = p->next;
         p->next = active_particles;
         active_particles = p;
@@ -1129,14 +1160,24 @@ CL_TeleporterParticles
 */
 void CL_TeleporterParticles(entity_state_t * ent)
 {
+#if PS2_PROFILE
+    ps2_fx_counters_t * fxCapture=PS2_FrameFXCounters();
+#endif
     int i, j;
     cparticle_t * p;
 
     for (i = 0; i < 8; i++)
     {
-        if (!free_particles)
+        if (!free_particles) {
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->exhausted;
+#endif
             return;
+        }
         p = free_particles;
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->particles;
+#endif
         free_particles = p->next;
         p->next = active_particles;
         active_particles = p;
@@ -1169,14 +1210,24 @@ CL_LogoutEffect
 */
 void CL_LogoutEffect(vec3_t org, int type)
 {
+#if PS2_PROFILE
+    ps2_fx_counters_t * fxCapture=PS2_FrameFXCounters();
+#endif
     int i, j;
     cparticle_t * p;
 
     for (i = 0; i < 500; i++)
     {
-        if (!free_particles)
+        if (!free_particles) {
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->exhausted;
+#endif
             return;
+        }
         p = free_particles;
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->particles;
+#endif
         free_particles = p->next;
         p->next = active_particles;
         active_particles = p;
@@ -1213,14 +1264,24 @@ CL_ItemRespawnParticles
 */
 void CL_ItemRespawnParticles(vec3_t org)
 {
+#if PS2_PROFILE
+    ps2_fx_counters_t * fxCapture=PS2_FrameFXCounters();
+#endif
     int i, j;
     cparticle_t * p;
 
     for (i = 0; i < 64; i++)
     {
-        if (!free_particles)
+        if (!free_particles) {
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->exhausted;
+#endif
             return;
+        }
         p = free_particles;
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->particles;
+#endif
         free_particles = p->next;
         p->next = active_particles;
         active_particles = p;
@@ -1251,14 +1312,24 @@ CL_ExplosionParticles
 */
 void CL_ExplosionParticles(vec3_t org)
 {
+#if PS2_PROFILE
+    ps2_fx_counters_t * fxCapture=PS2_FrameFXCounters();
+#endif
     int i, j;
     cparticle_t * p;
 
     for (i = 0; i < 256; i++)
     {
-        if (!free_particles)
+        if (!free_particles) {
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->exhausted;
+#endif
             return;
+        }
         p = free_particles;
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->particles;
+#endif
         free_particles = p->next;
         p->next = active_particles;
         active_particles = p;
@@ -1287,6 +1358,9 @@ CL_BigTeleportParticles
 */
 void CL_BigTeleportParticles(vec3_t org)
 {
+#if PS2_PROFILE
+    ps2_fx_counters_t * fxCapture=PS2_FrameFXCounters();
+#endif
     int i;
     cparticle_t * p;
     float angle, dist;
@@ -1294,9 +1368,16 @@ void CL_BigTeleportParticles(vec3_t org)
 
     for (i = 0; i < 4096; i++)
     {
-        if (!free_particles)
+        if (!free_particles) {
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->exhausted;
+#endif
             return;
+        }
         p = free_particles;
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->particles;
+#endif
         free_particles = p->next;
         p->next = active_particles;
         active_particles = p;
@@ -1333,6 +1414,9 @@ Wall impact puffs
 */
 void CL_BlasterParticles(vec3_t org, vec3_t dir)
 {
+#if PS2_PROFILE
+    ps2_fx_counters_t * fxCapture=PS2_FrameFXCounters();
+#endif
     int i, j;
     cparticle_t * p;
     float d;
@@ -1341,9 +1425,16 @@ void CL_BlasterParticles(vec3_t org, vec3_t dir)
     count = 40;
     for (i = 0; i < count; i++)
     {
-        if (!free_particles)
+        if (!free_particles) {
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->exhausted;
+#endif
             return;
+        }
         p = free_particles;
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->particles;
+#endif
         free_particles = p->next;
         p->next = active_particles;
         active_particles = p;
@@ -1374,6 +1465,9 @@ CL_BlasterTrail
 */
 void CL_BlasterTrail(vec3_t start, vec3_t end)
 {
+#if PS2_PROFILE
+    ps2_fx_counters_t * fxCapture=PS2_FrameFXCounters();
+#endif
     vec3_t move;
     vec3_t vec;
     float len;
@@ -1381,9 +1475,19 @@ void CL_BlasterTrail(vec3_t start, vec3_t end)
     cparticle_t * p;
     int dec;
 
+    if (!free_particles) {
+#if PS2_PROFILE
+        if(fxCapture) ++fxCapture->exhausted;
+#endif
+        return;
+    }
+
     VectorCopy(start, move);
     VectorSubtract(end, start, vec);
     len = VectorNormalize(vec);
+#if PS2_PROFILE
+    if(fxCapture) { ++fxCapture->passes; fxCapture->length+=len; if(len>fxCapture->longest) fxCapture->longest=len; }
+#endif
 
     dec = 5;
     VectorScale(vec, 5, vec);
@@ -1391,11 +1495,21 @@ void CL_BlasterTrail(vec3_t start, vec3_t end)
     // FIXME: this is a really silly way to have a loop
     while (len > 0)
     {
+#if PS2_PROFILE
+        if(fxCapture) ++fxCapture->steps;
+#endif
         len -= dec;
 
-        if (!free_particles)
+        if (!free_particles) {
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->exhausted;
+#endif
             return;
+        }
         p = free_particles;
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->particles;
+#endif
         free_particles = p->next;
         p->next = active_particles;
         active_particles = p;
@@ -1425,6 +1539,9 @@ CL_QuadTrail
 */
 void CL_QuadTrail(vec3_t start, vec3_t end)
 {
+#if PS2_PROFILE
+    ps2_fx_counters_t * fxCapture=PS2_FrameFXCounters();
+#endif
     vec3_t move;
     vec3_t vec;
     float len;
@@ -1435,17 +1552,30 @@ void CL_QuadTrail(vec3_t start, vec3_t end)
     VectorCopy(start, move);
     VectorSubtract(end, start, vec);
     len = VectorNormalize(vec);
+#if PS2_PROFILE
+    if(fxCapture) { ++fxCapture->passes; fxCapture->length+=len; if(len>fxCapture->longest) fxCapture->longest=len; }
+#endif
 
     dec = 5;
     VectorScale(vec, 5, vec);
 
     while (len > 0)
     {
+#if PS2_PROFILE
+        if(fxCapture) ++fxCapture->steps;
+#endif
         len -= dec;
 
-        if (!free_particles)
+        if (!free_particles) {
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->exhausted;
+#endif
             return;
+        }
         p = free_particles;
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->particles;
+#endif
         free_particles = p->next;
         p->next = active_particles;
         active_particles = p;
@@ -1475,6 +1605,9 @@ CL_FlagTrail
 */
 void CL_FlagTrail(vec3_t start, vec3_t end, float color)
 {
+#if PS2_PROFILE
+    ps2_fx_counters_t * fxCapture=PS2_FrameFXCounters();
+#endif
     vec3_t move;
     vec3_t vec;
     float len;
@@ -1485,17 +1618,30 @@ void CL_FlagTrail(vec3_t start, vec3_t end, float color)
     VectorCopy(start, move);
     VectorSubtract(end, start, vec);
     len = VectorNormalize(vec);
+#if PS2_PROFILE
+    if(fxCapture) { ++fxCapture->passes; fxCapture->length+=len; if(len>fxCapture->longest) fxCapture->longest=len; }
+#endif
 
     dec = 5;
     VectorScale(vec, 5, vec);
 
     while (len > 0)
     {
+#if PS2_PROFILE
+        if(fxCapture) ++fxCapture->steps;
+#endif
         len -= dec;
 
-        if (!free_particles)
+        if (!free_particles) {
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->exhausted;
+#endif
             return;
+        }
         p = free_particles;
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->particles;
+#endif
         free_particles = p->next;
         p->next = active_particles;
         active_particles = p;
@@ -1525,6 +1671,9 @@ CL_DiminishingTrail
 */
 void CL_DiminishingTrail(vec3_t start, vec3_t end, centity_t * old, int flags)
 {
+#if PS2_PROFILE
+    ps2_fx_counters_t * fxCapture=PS2_FrameFXCounters();
+#endif
     vec3_t move;
     vec3_t vec;
     float len;
@@ -1534,9 +1683,19 @@ void CL_DiminishingTrail(vec3_t start, vec3_t end, centity_t * old, int flags)
     float orgscale;
     float velscale;
 
+    if (!free_particles) {
+#if PS2_PROFILE
+        if(fxCapture) ++fxCapture->exhausted;
+#endif
+        return;
+    }
+
     VectorCopy(start, move);
     VectorSubtract(end, start, vec);
     len = VectorNormalize(vec);
+#if PS2_PROFILE
+    if(fxCapture) { ++fxCapture->passes; fxCapture->length+=len; if(len>fxCapture->longest) fxCapture->longest=len; }
+#endif
 
     dec = 0.5;
     VectorScale(vec, dec, vec);
@@ -1559,15 +1718,25 @@ void CL_DiminishingTrail(vec3_t start, vec3_t end, centity_t * old, int flags)
 
     while (len > 0)
     {
+#if PS2_PROFILE
+        if(fxCapture) ++fxCapture->steps;
+#endif
         len -= dec;
 
-        if (!free_particles)
+        if (!free_particles) {
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->exhausted;
+#endif
             return;
+        }
 
         // drop less particles as it flies
         if ((rand() & 1023) < old->trailcount)
         {
             p = free_particles;
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->particles;
+#endif
             free_particles = p->next;
             p->next = active_particles;
             active_particles = p;
@@ -1646,12 +1815,22 @@ CL_RocketTrail
 */
 void CL_RocketTrail(vec3_t start, vec3_t end, centity_t * old)
 {
+#if PS2_PROFILE
+    ps2_fx_counters_t * fxCapture=PS2_FrameFXCounters();
+#endif
     vec3_t move;
     vec3_t vec;
     float len;
     int j;
     cparticle_t * p;
     float dec;
+
+    if (!free_particles) {
+#if PS2_PROFILE
+        if(fxCapture) ++fxCapture->exhausted;
+#endif
+        return;
+    }
 
     // smoke
     CL_DiminishingTrail(start, end, old, EF_ROCKET);
@@ -1660,20 +1839,33 @@ void CL_RocketTrail(vec3_t start, vec3_t end, centity_t * old)
     VectorCopy(start, move);
     VectorSubtract(end, start, vec);
     len = VectorNormalize(vec);
+#if PS2_PROFILE
+    if(fxCapture) { ++fxCapture->passes; fxCapture->length+=len; if(len>fxCapture->longest) fxCapture->longest=len; }
+#endif
 
     dec = 1;
     VectorScale(vec, dec, vec);
 
     while (len > 0)
     {
+#if PS2_PROFILE
+        if(fxCapture) ++fxCapture->steps;
+#endif
         len -= dec;
 
-        if (!free_particles)
+        if (!free_particles) {
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->exhausted;
+#endif
             return;
+        }
 
         if ((rand() & 7) == 0)
         {
             p = free_particles;
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->particles;
+#endif
             free_particles = p->next;
             p->next = active_particles;
             active_particles = p;
@@ -1703,6 +1895,9 @@ CL_RailTrail
 */
 void CL_RailTrail(vec3_t start, vec3_t end)
 {
+#if PS2_PROFILE
+    ps2_fx_counters_t * fxCapture=PS2_FrameFXCounters();
+#endif
     vec3_t move;
     vec3_t vec;
     float len;
@@ -1718,15 +1913,25 @@ void CL_RailTrail(vec3_t start, vec3_t end)
     VectorCopy(start, move);
     VectorSubtract(end, start, vec);
     len = VectorNormalize(vec);
+#if PS2_PROFILE
+    if(fxCapture) { ++fxCapture->passes; fxCapture->length+=len; if(len>fxCapture->longest) fxCapture->longest=len; }
+#endif
 
     MakeNormalVectors(vec, right, up);
 
     for (i = 0; i < len; i++)
     {
-        if (!free_particles)
+        if (!free_particles) {
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->exhausted;
+#endif
             return;
+        }
 
         p = free_particles;
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->particles;
+#endif
         free_particles = p->next;
         p->next = active_particles;
         active_particles = p;
@@ -1759,11 +1964,21 @@ void CL_RailTrail(vec3_t start, vec3_t end)
 
     while (len > 0)
     {
+#if PS2_PROFILE
+        if(fxCapture) ++fxCapture->steps;
+#endif
         len -= dec;
 
-        if (!free_particles)
+        if (!free_particles) {
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->exhausted;
+#endif
             return;
+        }
         p = free_particles;
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->particles;
+#endif
         free_particles = p->next;
         p->next = active_particles;
         active_particles = p;
@@ -1794,6 +2009,9 @@ CL_IonripperTrail
 */
 void CL_IonripperTrail(vec3_t start, vec3_t ent)
 {
+#if PS2_PROFILE
+    ps2_fx_counters_t * fxCapture=PS2_FrameFXCounters();
+#endif
     vec3_t move;
     vec3_t vec;
     float len;
@@ -1805,17 +2023,30 @@ void CL_IonripperTrail(vec3_t start, vec3_t ent)
     VectorCopy(start, move);
     VectorSubtract(ent, start, vec);
     len = VectorNormalize(vec);
+#if PS2_PROFILE
+    if(fxCapture) { ++fxCapture->passes; fxCapture->length+=len; if(len>fxCapture->longest) fxCapture->longest=len; }
+#endif
 
     dec = 5;
     VectorScale(vec, 5, vec);
 
     while (len > 0)
     {
+#if PS2_PROFILE
+        if(fxCapture) ++fxCapture->steps;
+#endif
         len -= dec;
 
-        if (!free_particles)
+        if (!free_particles) {
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->exhausted;
+#endif
             return;
+        }
         p = free_particles;
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->particles;
+#endif
         free_particles = p->next;
         p->next = active_particles;
         active_particles = p;
@@ -1857,6 +2088,9 @@ CL_BubbleTrail
 */
 void CL_BubbleTrail(vec3_t start, vec3_t end)
 {
+#if PS2_PROFILE
+    ps2_fx_counters_t * fxCapture=PS2_FrameFXCounters();
+#endif
     vec3_t move;
     vec3_t vec;
     float len;
@@ -1867,16 +2101,26 @@ void CL_BubbleTrail(vec3_t start, vec3_t end)
     VectorCopy(start, move);
     VectorSubtract(end, start, vec);
     len = VectorNormalize(vec);
+#if PS2_PROFILE
+    if(fxCapture) { ++fxCapture->passes; fxCapture->length+=len; if(len>fxCapture->longest) fxCapture->longest=len; }
+#endif
 
     dec = 32;
     VectorScale(vec, dec, vec);
 
     for (i = 0; i < len; i += dec)
     {
-        if (!free_particles)
+        if (!free_particles) {
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->exhausted;
+#endif
             return;
+        }
 
         p = free_particles;
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->particles;
+#endif
         free_particles = p->next;
         p->next = active_particles;
         active_particles = p;
@@ -1910,6 +2154,9 @@ CL_FlyParticles
 */
 void CL_FlyParticles(vec3_t origin, int count)
 {
+#if PS2_PROFILE
+    ps2_fx_counters_t * fxCapture=PS2_FrameFXCounters();
+#endif
     int i;
     cparticle_t * p;
     float angle;
@@ -1944,9 +2191,16 @@ void CL_FlyParticles(vec3_t origin, int count)
         forward[1] = cp * sy;
         forward[2] = -sp;
 
-        if (!free_particles)
+        if (!free_particles) {
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->exhausted;
+#endif
             return;
+        }
         p = free_particles;
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->particles;
+#endif
         free_particles = p->next;
         p->next = active_particles;
         active_particles = p;
@@ -2008,6 +2262,9 @@ CL_BfgParticles
 
 void CL_BfgParticles(entity_t * ent)
 {
+#if PS2_PROFILE
+    ps2_fx_counters_t * fxCapture=PS2_FrameFXCounters();
+#endif
     int i;
     cparticle_t * p;
     float angle;
@@ -2040,9 +2297,16 @@ void CL_BfgParticles(entity_t * ent)
         forward[1] = cp * sy;
         forward[2] = -sp;
 
-        if (!free_particles)
+        if (!free_particles) {
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->exhausted;
+#endif
             return;
+        }
         p = free_particles;
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->particles;
+#endif
         free_particles = p->next;
         p->next = active_particles;
         active_particles = p;
@@ -2075,6 +2339,9 @@ CL_TrapParticles
 // RAFAEL
 void CL_TrapParticles(entity_t * ent)
 {
+#if PS2_PROFILE
+    ps2_fx_counters_t * fxCapture=PS2_FrameFXCounters();
+#endif
     vec3_t move;
     vec3_t vec;
     vec3_t start, end;
@@ -2091,6 +2358,9 @@ void CL_TrapParticles(entity_t * ent)
     VectorCopy(start, move);
     VectorSubtract(end, start, vec);
     len = VectorNormalize(vec);
+#if PS2_PROFILE
+    if(fxCapture) { ++fxCapture->passes; fxCapture->length+=len; if(len>fxCapture->longest) fxCapture->longest=len; }
+#endif
 
     dec = 5;
     VectorScale(vec, 5, vec);
@@ -2098,11 +2368,21 @@ void CL_TrapParticles(entity_t * ent)
     // FIXME: this is a really silly way to have a loop
     while (len > 0)
     {
+#if PS2_PROFILE
+        if(fxCapture) ++fxCapture->steps;
+#endif
         len -= dec;
 
-        if (!free_particles)
+        if (!free_particles) {
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->exhausted;
+#endif
             return;
+        }
         p = free_particles;
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->particles;
+#endif
         free_particles = p->next;
         p->next = active_particles;
         active_particles = p;
@@ -2142,6 +2422,9 @@ void CL_TrapParticles(entity_t * ent)
                     if (!free_particles)
                         return;
                     p = free_particles;
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->particles;
+#endif
                     free_particles = p->next;
                     p->next = active_particles;
                     active_particles = p;
@@ -2178,14 +2461,24 @@ CL_BFGExplosionParticles
 //FIXME combined with CL_ExplosionParticles
 void CL_BFGExplosionParticles(vec3_t org)
 {
+#if PS2_PROFILE
+    ps2_fx_counters_t * fxCapture=PS2_FrameFXCounters();
+#endif
     int i, j;
     cparticle_t * p;
 
     for (i = 0; i < 256; i++)
     {
-        if (!free_particles)
+        if (!free_particles) {
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->exhausted;
+#endif
             return;
+        }
         p = free_particles;
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->particles;
+#endif
         free_particles = p->next;
         p->next = active_particles;
         active_particles = p;
@@ -2215,6 +2508,9 @@ CL_TeleportParticles
 */
 void CL_TeleportParticles(vec3_t org)
 {
+#if PS2_PROFILE
+    ps2_fx_counters_t * fxCapture=PS2_FrameFXCounters();
+#endif
     int i, j, k;
     cparticle_t * p;
     float vel;
@@ -2227,6 +2523,9 @@ void CL_TeleportParticles(vec3_t org)
                 if (!free_particles)
                     return;
                 p = free_particles;
+#if PS2_PROFILE
+            if(fxCapture) ++fxCapture->particles;
+#endif
                 free_particles = p->next;
                 p->next = active_particles;
                 active_particles = p;

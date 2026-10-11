@@ -110,6 +110,35 @@ void CollectFrameCapture() {
         s_frameReady=true; s_frameRunning=false; RestoreFrameProfiles();
     }
 }
+void DrawObjectFXCaptureResult() {
+    ps2::gs::FillRect(0,8,320,194,0,0,0,255);
+    int y=12; char line[64];
+    auto row=[&](const char * text) { DrawInternalString(4,y,text); y+=10; };
+    const double n=s_frameCapture.frames, ticksPerMs=static_cast<double>(CLOCKS_PER_SEC)/1000.0;
+    auto pair=[&](const char * name,double avg,double worst) {
+        std::snprintf(line,sizeof(line),"%-12s %6.2f / %6.2f",name,avg,worst); row(line);
+    };
+    row("OBJECT FX CAPTURE - frozen results");
+    std::snprintf(line,sizeof(line),"Frames %d / %.2fs",s_frameCapture.frames,s_frameCapture.elapsedMs/1000.0); row(line);
+    std::snprintf(line,sizeof(line),"Frame avg/max %.2f/%d ms",s_frameCapture.elapsedMs/n,s_frameCapture.maxMs); row(line);
+    row("Inside Objects: avg / worst ms");
+    pair("Objects all",static_cast<double>(s_frameCapture.scene[PS2_SCENE_OBJECTS])/n/ticksPerMs,static_cast<double>(s_frameCapture.worstScene[PS2_SCENE_OBJECTS])/ticksPerMs);
+    const char * names[]={"Base/models","Auto FX/light"};
+    for(int i=0;i<PS2_OBJECT_PARTS;++i) pair(names[i],static_cast<double>(s_frameCapture.object[i])/n/ticksPerMs,static_cast<double>(s_frameCapture.worstObject[i])/ticksPerMs);
+    row("Base FX emitters: avg / worst frame");
+    const auto & f=s_frameCapture.fx; const auto & w=s_frameCapture.worstFX;
+    pair("FX blocks",f.effects/n,w.effects);
+    pair("Trail passes",f.passes/n,w.passes);
+    pair("Loop steps",f.steps/n,w.steps);
+    pair("New particles",f.particles/n,w.particles);
+    pair("Pool empty",f.exhausted/n,w.exhausted);
+    pair("Trail units",f.length/n,w.length);
+    pair("Longest trail",s_frameCapture.longestSum/n,w.longest);
+    row("Passes include rocket smoke + fire");
+    row("Per-FX clocks: timing overhead varies");
+    row("Worst = same longest full frame");
+    row("Select object FX capture to repeat");
+}
 void DrawSceneCaptureResult() {
     ps2::gs::FillRect(0,8,320,194,0,0,0,255);
     int y=12; char line[64];
@@ -169,6 +198,7 @@ void DrawRenderCaptureResult() {
 }
 void DrawFrameCaptureResult() {
     if(!s_frameReady || !s_captureEligible || s_frameRequest->value==0.0f) return;
+    if(s_frameDetailPage->value>=3.0f) { DrawObjectFXCaptureResult(); return; }
     if(s_frameDetailPage->value>=2.0f) { DrawSceneCaptureResult(); return; }
     if(s_frameDetailPage->value!=0.0f) { DrawRenderCaptureResult(); return; }
     ps2::gs::FillRect(0,8,320,214,0,0,0,255);
@@ -774,6 +804,20 @@ void PS2_BeginFrame(float cameraSeparation)
 }
 
 #if PS2_PROFILE
+extern "C" int PS2_FrameObjectProfile() {
+    return s_frameRequest && s_frameRequest->value!=0.0f && !s_frameReady && s_frameDetailPage->value>=3.0f;
+}
+extern "C" void PS2_FrameObjectPart(int part) {
+    if(PS2_FrameObjectProfile()) {
+        s_frameCapture.ObjectPart(part,FrameStamp());
+        if(part==PS2_OBJECT_AUTO_FX && s_frameCapture.scenePart==PS2_SCENE_OBJECTS) ++s_frameCapture.pendingFX.effects;
+    }
+}
+extern "C" ps2_fx_counters_t * PS2_FrameFXCounters() {
+    if(PS2_FrameObjectProfile() && s_frameCapture.phase==PS2_FRAME_RENDER && s_frameCapture.renderPart==PS2_RENDER_VIEW && s_frameCapture.scenePart==PS2_SCENE_OBJECTS)
+        return &s_frameCapture.pendingFX;
+    return nullptr;
+}
 extern "C" void PS2_FrameScenePart(int part) {
     if(s_frameRequest && s_frameRequest->value!=0.0f && !s_frameReady)
         s_frameCapture.ScenePart(part,FrameStamp());

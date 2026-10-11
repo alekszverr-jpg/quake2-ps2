@@ -1,7 +1,7 @@
 # Quake II for PlayStation 2
 
 [![Build](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml/badge.svg)](https://github.com/alekszverr-jpg/quake2-ps2/actions/workflows/build.yml)
-[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.134-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
+[![Version](https://img.shields.io/badge/version-v0.1.0--alpha.135-orange.svg)](https://github.com/alekszverr-jpg/quake2-ps2/releases)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](LICENSE)
 
 An active continuation of the unofficial Quake II port for the Sony
@@ -466,3 +466,13 @@ work partition View. Objects/FX includes effect generation from packet entities;
 Particles measures client update/list assembly, not the3Drenderer particle pass.
 Counts describe the submitted entity/particle/light lists. Worst values always
 belong to one longest complete frame, not independent maxima of each stage.
+
+`capture object fx 10s` targets packet objects: base/model preparation versus
+automatic FX and their lights. It adds per-effect-block clocks only in this
+mode, so use it to locate cost rather than comparing its FPS with coarse
+captures. Base-game CL_FX counters show particle allocations, trail passes,
+loop steps, total units, longest trail and empty-pool exits. Rocket smoke and
+fire count as separate passes; expansion CL_NEWFX emitters are not counted.
+Counters do not time individual particles. Blaster/diminishing/rocket trails
+skip direction calculations when the particle pool is already empty; emission
+and random sequences otherwise remain unchanged.

@@ -830,6 +830,7 @@ void CL_AddPacketEntities(frame_t * frame)
     int autoanim;
     clientinfo_t * ci;
     unsigned int effects, renderfx;
+    const int profileObjectFX=PS2_FrameObjectProfile();
 
     // bonus items rotate at a fixed rate
     autorotate = anglemod(cl.time / 10);
@@ -1128,6 +1129,7 @@ void CL_AddPacketEntities(frame_t * frame)
         // add automatic particle trails
         if ((effects & ~EF_ROTATE))
         {
+            if(profileObjectFX) PS2_FrameObjectPart(PS2_OBJECT_AUTO_FX);
             if (effects & EF_ROCKET)
             {
                 CL_RocketTrail(cent->lerp_origin, ent.origin, cent);
@@ -1265,8 +1267,8 @@ void CL_AddPacketEntities(frame_t * frame)
                 }
                 V_AddLight(ent.origin, 130, 1, 0.5, 0.5);
             }
+            if(profileObjectFX) PS2_FrameObjectPart(PS2_OBJECT_BASE);
         }
-
         VectorCopy(ent.origin, cent->lerp_origin);
     }
 }

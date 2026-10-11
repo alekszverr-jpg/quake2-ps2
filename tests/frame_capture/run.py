@@ -3,7 +3,7 @@ from pathlib import Path
 root=Path(__file__).resolve().parents[2]
 out=root/'build/frame-capture-host'; out.mkdir(parents=True,exist_ok=True)
 src=(root/'src/ps2/renderer/ref.cpp').read_text()
-names=['RestoreFrameProfiles','PrepareFrameCapture','CollectFrameCapture','DrawSceneCaptureResult','DrawRenderCaptureResult','DrawFrameCaptureResult']
+names=['RestoreFrameProfiles','PrepareFrameCapture','CollectFrameCapture','DrawObjectFXCaptureResult','DrawSceneCaptureResult','DrawRenderCaptureResult','DrawFrameCaptureResult']
 text='\n'.join(re.search(r'^void '+name+r'\(\).*?^\}',src,re.M|re.S).group(0) for name in names)
 text+='\n'+re.search(r'^extern "C" void PS2_FramePhase\(int phase\).*?^\}',src,re.M|re.S).group(0)
 text+='\n'+re.search(r'^extern "C" void PS2_VramCaptureEligible\(int eligible\).*?^\}',src,re.M|re.S).group(0)
@@ -11,13 +11,15 @@ text+='\n'+re.search(r'^extern "C" void PS2_FrameSoundIO\(unsigned ticks\).*?^\}
 text+='\n'+re.search(r'^extern "C" void PS2_FrameRenderPart\(int part\).*?^\}',src,re.M|re.S).group(0)
 for name,args in [('PS2_FrameScenePart','int part'),('PS2_FrameSceneCounts','int entities,int particles,int lights')]:
  text+='\n'+re.search(r'^extern "C" void '+name+r'\('+re.escape(args)+r'\).*?^\}',src,re.M|re.S).group(0)
+for signature in ['extern "C" int PS2_FrameObjectProfile()', 'extern "C" void PS2_FrameObjectPart(int part)', 'extern "C" ps2_fx_counters_t * PS2_FrameFXCounters()']:
+ text+='\n'+re.search(r'^'+re.escape(signature)+r'.*?^\}',src,re.M|re.S).group(0)
 (out/'production.inc').write_text(text)
 end=src[src.index('void PS2_EndFrame()'):]; assert end.index('ps2::gs::EndFrame();')<end.index('CollectFrameCapture();')
 assert 's_frameRequest->value==0.0f' in src
 common=(root/'src/common/common.c').read_text()
 assert re.search(r'PS2_FramePhase\(PS2_FRAME_SERVER\);\s*SV_Frame\(msec\);\s*PS2_FramePhase\(PS2_FRAME_OTHER\)',common)
 assert re.search(r'PS2_FramePhase\(PS2_FRAME_CLIENT\);\s*CL_Frame\(msec\);\s*PS2_FramePhase\(PS2_FRAME_OTHER\)',common)
-menu=(root/'src/client/menu.c').read_text(); assert '"capture frame 10s"' in menu and 'mode >= 5 && mode <= 7 ? 1 : 0' in menu
+menu=(root/'src/client/menu.c').read_text(); assert '"capture frame 10s"' in menu and 'mode >= 5 && mode <= 8 ? 1 : 0' in menu
 flags=[] if os.name=='nt' else ['-fsanitize=address,undefined']
 exe=out/('test.exe' if os.name=='nt' else 'test')
 subprocess.run(['g++','-std=c++17','-DPS2_PROFILE=1','-Wall','-Wextra','-Wconversion','-Werror',*flags,'-I'+str(root/'src'),'-I'+str(out),str(root/'tests/frame_capture/test.cpp'),'-o',str(exe)],check=True)

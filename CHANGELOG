@@ -6,6 +6,28 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.135 - 2026-10-11 (local test build)
+
+- Add Test Map `capture object fx 10s`: split packet-object assembly into
+  base/models and automatic FX/light. Per-effect-block clocks are enabled only
+  in this targeted mode; timings include instrumentation overhead and are not
+  directly comparable to FPS Only or older coarse modes.
+- Fixed counters for base-game CL_FX emitters report allocated particles,
+  trail passes/length, longest trail, loop steps and pool exhaustion, only in
+  packet-object assembly. Rocket smoke/fire are separate passes; expansion
+  emitters in cl_newfx.c are not counted. No per-particle clock calls or logs.
+  Preserve coherent worst-full-frame snapshots and320x224 result layout.
+- Blaster, diminishing and rocket trails now return before vector normalization
+  when the free particle pool is already empty. Original particles, emission
+  density, random sequence, trailcount and lighting behavior remain unchanged.
+  No distance caps or quality reduction introduced. Existing loops already stop
+  at pool exhaustion; random thinning makes iterations differ from allocations.
+- Differential540cases against frozen134 cover zero/short/long trails, empty/
+  tiny/full pools and smoke/gib flags, in PROFILE and disabled builds. Compare
+  particle memory/list pointers, RNG state and trailcount; empty pools skip one
+  or two normalization calls. Capture partition/gating/bounds/menu checks pass.
+  CI/build and runtime FX verification pending; no measured FPS gain claimed.
+
 ## 0.1.0-alpha.134 - 2026-10-09 (local test build)
 
 - Add lightweight Test Map `capture scene 10s`: partition View/pre3D into

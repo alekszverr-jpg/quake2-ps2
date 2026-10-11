@@ -69,6 +69,9 @@ jobs:
       - name: Check weapon PCM preloading and level lifecycle
         run: python3 tests/sound_precache/run.py
 
+      - name: Check object FX exhausted-pool equivalence
+        run: python3 tests/object_fx/run.py
+
       - name: Check VIDEO controls and output mode scaling on host
         run: python3 tests/video_menu/run.py
 

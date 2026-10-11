@@ -37,6 +37,28 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
+## Alpha.135 in progress (2026-10-11)
+
+User authorized separationofautomaticFX and checkinglongtrailloops. Mode8
+captureobjectfx10s/detail3: base/models vs autoFX/light, perFXblockclockpair
+onlyactiveinmode8. No perparticleclock. Integercounters forCL_FXbase emitters
+onlyduringRender/View/Objects: allocatedparticles, trailpasses/totalunits/
+longest, whilelensteps, empty-pool exits. Rocket smoke/firecountasseparatepasses;
+cl_newfxexpansionemittersnotcounted. Per-blocktimer overheaduncalibrated, noFPS
+comparison againstFPSOnly/coarsemodes. Pools alreadyboundedallocation, randomly
+thinnedtrailsmayiteratewithoutallocating. No lengthcaps/visualdowngrade.
+Safefastreturn foralreadyempty pool inBlaster/Diminishing/Rocket beforevector
+normalization; frozen134 differential540scenarios passbothPROFILE0/1 including
+particles/listpointers/RNGstate/trailcount. Hostcapture/gating/menucheckspass.
+Build/install pending; save134baseline. Runtime sameheavyfiringpointrequested.
+
+Latest134capture217/10.01s,46.13avg/100max (~21.7FPS),View3.83/25.11;
+Other/pre2D.08/.09,Camera.07/.07,Objects/FX2.97/22.96,
+TempEffects.02/.03,Particles.56/1.83,Dlights0/0,Styles0/0,Sort.09/.10.
+OutputEntities56.2/66,Particles705.8/952,Lights3.7/4. Objects~91%ofView
+worstframe; particleupdate/sortnotprimaryspike. GeneratedtrailsstillObjectsstage.
+NoisolatedFPSgain/regression versus133 becauseweapon/view/workload notmatched.
+
 ## Alpha.134 installed (2026-10-09)
 
 User authorized coarse breakdown of CL_AddEntities/entity sort after133capture.

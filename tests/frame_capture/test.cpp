@@ -63,6 +63,21 @@ void frame(int other) {
     PS2_FramePhase(PS2_FRAME_CLIENT); CollectFrameCapture();
 }
 int main() {
+    ps2::frame::Capture partition;
+    partition.Switch(PS2_FRAME_RENDER,0); partition.ScenePart(PS2_SCENE_OBJECTS,0);
+    partition.ObjectPart(PS2_OBJECT_AUTO_FX,10); partition.ObjectPart(PS2_OBJECT_BASE,40);
+    partition.ScenePart(PS2_SCENE_OTHER,60);
+    assert(partition.pendingObject[0]==30 && partition.pendingObject[1]==30);
+    assert(partition.pendingScene[PS2_SCENE_OBJECTS]==60);
+
+    detailPage.value=3;
+    s_frameCapture.Switch(PS2_FRAME_RENDER,0); s_frameCapture.ScenePart(PS2_SCENE_OBJECTS,0);
+    assert(PS2_FrameObjectProfile() && PS2_FrameFXCounters()!=nullptr);
+    PS2_FrameFXCounters()->particles=17;
+    PS2_FrameObjectPart(PS2_OBJECT_AUTO_FX); assert(s_frameCapture.pendingFX.effects==1);
+    s_frameCapture.ScenePart(PS2_SCENE_OTHER,0); assert(PS2_FrameFXCounters()==nullptr);
+    s_frameReady=true; assert(!PS2_FrameObjectProfile()); s_frameReady=false;
+    detailPage.value=0;
     PrepareFrameCapture(); assert(request.value==2 && s_frameSaved);
     for(auto p:profiles) assert(p==0);
     s_captureEligible=true; PS2_FramePhase(PS2_FRAME_CLIENT); CollectFrameCapture();
@@ -94,7 +109,8 @@ int main() {
     DrawFrameCaptureResult(); assert(rows==20);
     detailPage.value=1; DrawFrameCaptureResult(); assert(rows==41);
     detailPage.value=2; DrawFrameCaptureResult(); assert(rows==60);
-    s_captureEligible=false; DrawFrameCaptureResult(); assert(rows==60);
+    detailPage.value=3; DrawFrameCaptureResult(); assert(rows==79);
+    s_captureEligible=false; DrawFrameCaptureResult(); assert(rows==79);
     request.value=1; PrepareFrameCapture(); assert(!s_frameReady && profiles[0]==0);
     request.value=0; PrepareFrameCapture(); assert(profiles[0]==1 && !s_frameSaved);
     // Unsigned tick and millisecond wrap keep real positive intervals.
