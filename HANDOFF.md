@@ -8,22 +8,24 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.134 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.135 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.134` (lightweight scene assembly
-  stages/counts; host/sanitizer/map/PS2 CI passed and installed; runtime pending)
-- Current implementation commit: `59033aa` (`Add lightweight client scene
-  assembly capture and output counts`); CI submodule fix `b344f3e` retained.
+- Current source/test version: `0.1.0-alpha.135` (packet-object FX capture and
+  exhausted-pool trail fast return; host/sanitizer/map/PS2 CI passed and installed; runtime pending)
+- Current implementation commit: `0d36b96` (strict-build fix), following
+  `496fbaa` (object FX capture/empty-pool return); CI submodule fix `b344f3e` retained.
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.134 local PROFILE ELF SHA-256 (8,074,544 bytes):
-  `864FDB10936381BD6B8771A36DF79D1B67C58A772B1F8FD8CC3F810F498D893F`
-- CI `37948890499` passed all host sanitizer tests, map validation and PROFILE
-  build for `59033aa`. Both root ELF copies match downloaded artifact
-  `build/ci-59033aa-profile/quake2-profile.elf`.
+- Alpha.135 local PROFILE ELF SHA-256 (8,109,680 bytes):
+  `6F71212AE937D38F58833157AF9BEBDB1BD7E3D16D1F5934EC9A77989354E5D4`
+- CI `38120364104` passed all host sanitizer tests, map validation and PROFILE
+  build for `0d36b96`. Both root ELF copies match downloaded artifact
+  `build/ci-0d36b96-profile/quake2-profile.elf`.
+- Documents `quake2-alpha134-baseline.elf` preserves Alpha134 (8,074,544 bytes):
+  `864FDB10936381BD6B8771A36DF79D1B67C58A772B1F8FD8CC3F810F498D893F`.
 - Documents `quake2-alpha133-baseline.elf` preserves Alpha133 (8,055,860 bytes):
   `1D5885649434377832568C6171E4BC43500E649FFF96B103772A2C39688135CA`.
 - Documents `quake2-alpha132-baseline.elf` preserves Alpha132 (8,032,096 bytes):
@@ -37,7 +39,7 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.135 in progress (2026-10-11)
+## Alpha.135 installed (2026-10-11)
 
 User authorized separationofautomaticFX and checkinglongtrailloops. Mode8
 captureobjectfx10s/detail3: base/models vs autoFX/light, perFXblockclockpair
@@ -50,7 +52,9 @@ thinnedtrailsmayiteratewithoutallocating. No lengthcaps/visualdowngrade.
 Safefastreturn foralreadyempty pool inBlaster/Diminishing/Rocket beforevector
 normalization; frozen134 differential540scenarios passbothPROFILE0/1 including
 particles/listpointers/RNGstate/trailcount. Hostcapture/gating/menucheckspass.
-Build/install pending; save134baseline. Runtime sameheavyfiringpointrequested.
+CI38120364104 passed sanitizer tests, maps and PS2 PROFILE build after explicit
+float-to-double accumulator conversion. Both root ELFs installed and hashes
+verified; Alpha134 baseline saved. Runtime same heavy firing point requested.
 
 Latest134capture217/10.01s,46.13avg/100max (~21.7FPS),View3.83/25.11;
 Other/pre2D.08/.09,Camera.07/.07,Objects/FX2.97/22.96,

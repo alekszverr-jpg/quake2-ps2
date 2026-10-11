@@ -466,4 +466,5 @@ change. Record completed user-visible work in `CHANGELOG` in the same commit.
   (Alpha.134; host/CI/build passed and installed; runtime spikes pending).
 
 - [~] Packet-object FX split/trail workload counters and empty-pool fast return
-  (Alpha.135;540differential cases pass; runtime FX spike validation pending).
+  (Alpha.135;540 differential cases, host/CI/PS2 build passed and installed;
+  runtime FX spike validation pending).

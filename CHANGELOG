@@ -26,7 +26,9 @@ Development priorities and completion criteria are tracked in
   tiny/full pools and smoke/gib flags, in PROFILE and disabled builds. Compare
   particle memory/list pointers, RNG state and trailcount; empty pools skip one
   or two normalization calls. Capture partition/gating/bounds/menu checks pass.
-  CI/build and runtime FX verification pending; no measured FPS gain claimed.
+  CI38120364104 passed host sanitizers, map checks and PS2 PROFILE build.
+  Installed in both projects; Alpha134 baseline retained. Runtime FX verification
+  pending; no measured FPS gain claimed.
 
 ## 0.1.0-alpha.134 - 2026-10-09 (local test build)
 
