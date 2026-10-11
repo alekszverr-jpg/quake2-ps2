@@ -59,7 +59,7 @@ struct Capture {
         reads+=pendingReads; io+=pendingIO;
         fx.effects+=pendingFX.effects; fx.passes+=pendingFX.passes; fx.steps+=pendingFX.steps;
         fx.particles+=pendingFX.particles; fx.exhausted+=pendingFX.exhausted; fx.length+=pendingFX.length;
-        longestSum+=pendingFX.longest;
+        longestSum+=static_cast<double>(pendingFX.longest);
         for(int i=0;i<PS2_OBJECT_PARTS;++i) object[i]+=pendingObject[i];
         ++frames; elapsedMs+=ms; over33+=ms>33; over50+=ms>50;
         for(int i=0;i<PS2_FRAME_PHASES;++i) total[i]+=pending[i];

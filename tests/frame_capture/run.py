@@ -22,7 +22,7 @@ assert re.search(r'PS2_FramePhase\(PS2_FRAME_CLIENT\);\s*CL_Frame\(msec\);\s*PS2
 menu=(root/'src/client/menu.c').read_text(); assert '"capture frame 10s"' in menu and 'mode >= 5 && mode <= 8 ? 1 : 0' in menu
 flags=[] if os.name=='nt' else ['-fsanitize=address,undefined']
 exe=out/('test.exe' if os.name=='nt' else 'test')
-subprocess.run(['g++','-std=c++17','-DPS2_PROFILE=1','-Wall','-Wextra','-Wconversion','-Werror',*flags,'-I'+str(root/'src'),'-I'+str(out),str(root/'tests/frame_capture/test.cpp'),'-o',str(exe)],check=True)
+subprocess.run(['g++','-std=c++17','-DPS2_PROFILE=1','-Wall','-Wextra','-Wconversion','-Wdouble-promotion','-Werror',*flags,'-I'+str(root/'src'),'-I'+str(out),str(root/'tests/frame_capture/test.cpp'),'-o',str(exe)],check=True)
 subprocess.run([str(exe)],check=True)
 # The shared header must remain valid in C89, with no release-link dependency.
 (out/'release.c').write_text('#include "ps2/frame_capture.h"\nint main(void) { PS2_FramePhase(PS2_FRAME_RENDER); PS2_FrameRenderPart(PS2_RENDER_BEGIN); PS2_FrameScenePart(PS2_SCENE_CAMERA); PS2_FrameSceneCounts(1,2,3); return 0; }\n')
