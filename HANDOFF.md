@@ -8,22 +8,24 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.135 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.136 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.135` (packet-object FX capture and
-  exhausted-pool trail fast return; host/sanitizer/map/PS2 CI passed and installed; runtime pending)
-- Current implementation commit: `0d36b96` (strict-build fix), following
-  `496fbaa` (object FX capture/empty-pool return); CI submodule fix `b344f3e` retained.
+- Current source/test version: `0.1.0-alpha.136` (exact per-draw MD2 normal
+  colour reuse; host/sanitizer/map/PS2 CI passed and installed; runtime pending)
+- Current implementation commit: `f1cfcb0` (`Reuse exact MD2 colours by normal
+  within each model draw`); CI submodule fix `b344f3e` retained.
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.135 local PROFILE ELF SHA-256 (8,109,680 bytes):
-  `6F71212AE937D38F58833157AF9BEBDB1BD7E3D16D1F5934EC9A77989354E5D4`
-- CI `38120364104` passed all host sanitizer tests, map validation and PROFILE
-  build for `0d36b96`. Both root ELF copies match downloaded artifact
-  `build/ci-0d36b96-profile/quake2-profile.elf`.
+- Alpha.136 local PROFILE ELF SHA-256 (8,112,680 bytes):
+  `CDE0116AB3ADD7110C9A79C835D9EC932E8ACD34C1379D2D77795C1125109415`
+- CI `40211255568` passed all host sanitizer tests, map validation and PROFILE
+  build for `f1cfcb0`. Both root ELF copies match downloaded artifact
+  `build/ci-f1cfcb0-profile/quake2-profile.elf`.
+- Documents `quake2-alpha135-baseline.elf` preserves Alpha135 (8,109,680 bytes):
+  `6F71212AE937D38F58833157AF9BEBDB1BD7E3D16D1F5934EC9A77989354E5D4`.
 - Documents `quake2-alpha134-baseline.elf` preserves Alpha134 (8,074,544 bytes):
   `864FDB10936381BD6B8771A36DF79D1B67C58A772B1F8FD8CC3F810F498D893F`.
 - Documents `quake2-alpha133-baseline.elf` preserves Alpha133 (8,055,860 bytes):
@@ -39,7 +41,7 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha.136 implementation (2026-10-25)
+## Alpha.136 installed (2026-10-25)
 
 User authorized model-path optimization after render capture. Per-draw lazy
 normal-index cache reuses unchanged AliasVertexColor output and opaque packed
@@ -54,8 +56,10 @@ frozen135loop; cases include empty/max models, all256normalindexes, repeated
 normals, different light/yaw/alpha and opaque/clipped/shell pass transitions.
 Existing alias_clip/model_profile tests pass. Local original PAK survey119models/
 5671frames:2027000vertex colours ->726377unique-normal evaluations (64.2%fewer);
-this is not a runtime timing/FPS result. CI/build/install pending. Save135baseline
-and use matched render capture plus FPS Only firing for runtime comparison.
+this is not a runtime timing/FPS result. CI40211255568 passed all host sanitizer
+tests, maps and PS2 PROFILE build. Both root ELFs installed with verified hash;
+135baseline saved. Use matched render capture plus FPS Only firing for runtime
+comparison. Visual and performance acceptance remain pending.
 
 User135frame capture250/10.03s:40.11avg/100max; Server2.03/13.46,
 Client2.84/7.50,Render25.94/63.04,VSync9.26/16.10; WAVreads0.

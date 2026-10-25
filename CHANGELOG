@@ -20,7 +20,9 @@ Development priorities and completion criteria are tracked in
   bits against frozen Alpha135 at O0/O2; existing clipping and model profiling
   checks pass. Local PAK survey:119 models/5671 frames,2027000 vertex-colour
   evaluations become726377 distinct-normal evaluations (64.2% fewer), counting
-  operations only. CI/build and matched runtime performance/visuals pending.
+  operations only. CI40211255568 passed all host sanitizers, map checks and PS2
+  PROFILE build. Installed in both projects; Alpha135 baseline retained. Matched
+  runtime performance and visuals pending.
 
 ## 0.1.0-alpha.135 - 2026-10-11 (local test build)
 
