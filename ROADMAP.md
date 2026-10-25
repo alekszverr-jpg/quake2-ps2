@@ -162,6 +162,8 @@ play on a retail console.
 - [~] Reuse inactive BSP lighting-cache chunks within1.5MiB (Alpha.128; heavy-room capture59.58->33.37ms, Hit1235/Build0, World44.780->17.564ms; strong point-specific gain, views differ; seams/doors/light-style and session checks pending)
 - [~] Remove transient dynamic-light vertex copies and fast-path inside leaves (Alpha.129; preserve subdivision/colour/clipping, host differential checks passed; matched firing World/capture/visual checks pending)
 - [~] Reuse dynamic subdivision edge calculations for flashes/world explosions (Alpha.130; frozen129 output parity; synthetic depth-cap triangle765->192evaluations, no FPS claim; runtime firing/explosion comparison pending)
+- [~] Reuse exact MD2 normal colours within each draw (Alpha.136;2754-byte bounded cache,
+  4608 differential cases at O0/O2; CI/runtime performance and visuals pending)
 - [~] Validate long sessions for EE RAM, IOP RAM and VRAM leaks
 - [ ] Target a stable 30 FPS minimum, with 60 FPS where practical
 

@@ -6,6 +6,22 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.136 - 2026-10-25 (local test build)
+
+- Reuse MD2 vertex colours by normal index within each model draw. Identical
+  normals share the unchanged lighting formula and, on opaque paths, packed
+  colour. Shell colour is calculated once per draw. Vertex interpolation,
+  shell offsets, clipping, texture coordinates and geometry remain unchanged.
+- Fixed 2754-byte EE cache resets every draw; no cross-entity/frame retention,
+  allocations, precision reduction or effect limits. Invalid normal indexes
+  retain the original fallback to normal zero. Float colours remain available
+  for clipped weapons, shells and translucent models.
+- 4608 differential scenarios compare vertex positions and float/packed colour
+  bits against frozen Alpha135 at O0/O2; existing clipping and model profiling
+  checks pass. Local PAK survey:119 models/5671 frames,2027000 vertex-colour
+  evaluations become726377 distinct-normal evaluations (64.2% fewer), counting
+  operations only. CI/build and matched runtime performance/visuals pending.
+
 ## 0.1.0-alpha.135 - 2026-10-11 (local test build)
 
 - Add Test Map `capture object fx 10s`: split packet-object assembly into

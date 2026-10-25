@@ -39,6 +39,34 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
+## Alpha.136 implementation (2026-10-25)
+
+User authorized model-path optimization after render capture. Per-draw lazy
+normal-index cache reuses unchanged AliasVertexColor output and opaque packed
+colour; shell colour hoisted outside vertex loop. Exactly2754 fixed EE bytes,
+cleared validity before every non-shell draw; shells always clip. No cross-frame
+or cross-entity retention, new allocations, quality changes or per-item timers.
+Invalid normal indexes clamp to0 as before. Position interpolation, shell offsets,
+UVs, clipping and all submission/staging code remain unchanged.
+
+4608 host differential scenarios at O0/O2 compare position/colour bits against
+frozen135loop; cases include empty/max models, all256normalindexes, repeated
+normals, different light/yaw/alpha and opaque/clipped/shell pass transitions.
+Existing alias_clip/model_profile tests pass. Local original PAK survey119models/
+5671frames:2027000vertex colours ->726377unique-normal evaluations (64.2%fewer);
+this is not a runtime timing/FPS result. CI/build/install pending. Save135baseline
+and use matched render capture plus FPS Only firing for runtime comparison.
+
+User135frame capture250/10.03s:40.11avg/100max; Server2.03/13.46,
+Client2.84/7.50,Render25.94/63.04,VSync9.26/16.10; WAVreads0.
+User135render capture218/10.04s:46.07avg/100max; clear.01/.01,
+View3.81/26.33,3D26.39/38.87,HUD.40/.42; Setup.27/.27,
+World12.89/21.87,Entities11.51/13.68,Particles.34/1.54,Rest1.39/1.45;
+VUwait.16/.22,VRAMreuse.14/.19,TexDMA.23/.28,2Dwait.01/.01.
+Worst columns are the same longest full frame, not each phase's independent
+maximum. Peak View preparation remains unresolved. Different captures cannot
+be combined into one frame or used as an isolated model performance comparison.
+
 ## Alpha.135 installed (2026-10-11)
 
 User authorized separationofautomaticFX and checkinglongtrailloops. Mode8

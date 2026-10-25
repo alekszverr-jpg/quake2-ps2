@@ -48,6 +48,9 @@ jobs:
       - name: Check indexed MD2 clipping against generic clipper
         run: python3 tests/alias_clip/run.py
 
+      - name: Check per-draw MD2 colour reuse
+        run: python3 tests/alias_color/run.py
+
       - name: Check MD2 diagnostic phase accounting on host
         run: python3 tests/model_profile/run.py
 

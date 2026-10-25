@@ -2967,6 +2967,41 @@ math::Vec4 AliasVertexColor(const math::Vec3 & modelLight,
     };
 }
 
+// Reused only within a single MD2 draw. A normal's colour depends on the
+// draw's light, yaw and alpha, not its vertex position or texture coordinate.
+// Invalidate for every draw so moving lights, shells and translucent passes
+// cannot reuse another entity's colour. Fixed EE storage; no retained pointers.
+struct alignas(16) AliasCachedColor
+{
+    union { math::Vec4 color; u32 packedColor; };
+};
+constexpr int kAliasColorCount = static_cast<int>(ArrayLength(kAliasNormals));
+static AliasCachedColor s_aliasColors[kAliasColorCount];
+static bool s_aliasColorReady[kAliasColorCount];
+static_assert(sizeof(AliasCachedColor) == 16, "Bound MD2 colour cache to 2592 bytes");
+static_assert(sizeof(s_aliasColors) + sizeof(s_aliasColorReady) <= 3 * 1024,
+              "Keep per-draw MD2 colour cache below 3 KiB");
+
+void BeginAliasColors()
+{
+    std::memset(s_aliasColorReady, 0, sizeof(s_aliasColorReady));
+}
+
+inline const AliasCachedColor & CachedAliasColor(const math::Vec3 & light,
+    const math::Vec3 & shadeVector, u8 normalIndex, float alpha, bool clipAlias)
+{
+    if (normalIndex >= kAliasColorCount) normalIndex = 0;
+    if (!s_aliasColorReady[normalIndex])
+    {
+        math::Vec4 color = AliasVertexColor(light, shadeVector, normalIndex);
+        color.w = alpha * 128.0f;
+        if (clipAlias) s_aliasColors[normalIndex].color = color;
+        else s_aliasColors[normalIndex].packedColor = PackFloatColor(color);
+        s_aliasColorReady[normalIndex] = true;
+    }
+    return s_aliasColors[normalIndex];
+}
+
 void PrepareAliasTexCoords(const dstvert_t * stVerts, int stCount,
                            float invSkinW, float invSkinH, bool shell)
 {
@@ -3218,6 +3253,13 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model,
 
     timer.Switch(ModelProfile::Vertices);
     PS2_Assert(md2->num_xyz <= MAX_VERTS);
+    math::Vec4 shellColor;
+    if (shell)
+    {
+        shellColor = AliasShellVertexColor(modelLight);
+        shellColor.w = entityAlpha * 128.0f;
+    }
+    else BeginAliasColors();
     for (int vertexIndex = 0; vertexIndex < md2->num_xyz; ++vertexIndex)
     {
         const dtrivertx_t & v  = frame->verts[vertexIndex];
@@ -3239,14 +3281,14 @@ void DrawAliasModel(const entity_t & entity, const mod::ModelInstance & model,
             out.pos.y += offset.y;
             out.pos.z += offset.z;
         }
-        math::Vec4 color = shell
-            ? AliasShellVertexColor(modelLight)
-            : AliasVertexColor(modelLight, shadeVector, v.lightnormalindex);
-        color.w = entityAlpha * 128.0f;
-        if (clipAlias)
-            out.color = color;
+        if (shell) out.color = shellColor; // Shells always use the clipped path.
         else
-            out.packedColor = PackFloatColor(color);
+        {
+            const AliasCachedColor & color = CachedAliasColor(
+                modelLight, shadeVector, v.lightnormalindex, entityAlpha, clipAlias);
+            if (clipAlias) out.color = color.color;
+            else out.packedColor = color.packedColor;
+        }
     }
     timer.Switch(ModelProfile::Triangles);
     if (s_modelProfile.enabled) {
