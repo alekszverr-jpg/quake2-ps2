@@ -164,7 +164,7 @@ play on a retail console.
 - [~] Reuse dynamic subdivision edge calculations for flashes/world explosions (Alpha.130; frozen129 output parity; synthetic depth-cap triangle765->192evaluations, no FPS claim; runtime firing/explosion comparison pending)
 - [~] Reuse exact MD2 normal colours within each draw (Alpha.136;2754-byte bounded cache,
   4608 differential cases at O0/O2, host/CI/PS2 build passed and installed;
-  runtime performance and visuals pending)
+  matched demo43.36->43.55FPS (+0.44%)/23.06->22.96ms; retained, visuals pending)
 - [~] Validate long sessions for EE RAM, IOP RAM and VRAM leaks
 - [ ] Target a stable 30 FPS minimum, with 60 FPS where practical
 

@@ -22,7 +22,9 @@ Development priorities and completion criteria are tracked in
   evaluations become726377 distinct-normal evaluations (64.2% fewer), counting
   operations only. CI40211255568 passed all host sanitizers, map checks and PS2
   PROFILE build. Installed in both projects; Alpha135 baseline retained. Matched
-  runtime performance and visuals pending.
+  demo1 comparison:43.36->43.55FPS (+0.44%),23.06->22.96ms with matching
+  frames/settings and three stable passes each. Retained; visuals pending. This
+  does not establish a fix for the live100ms frame spikes.
 
 ## 0.1.0-alpha.135 - 2026-10-11 (local test build)
 

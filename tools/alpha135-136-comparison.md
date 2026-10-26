@@ -6,7 +6,7 @@ It does not change source version, game configuration or savegames.
 ## Prepared state
 
 - Source remains Alpha136, implementation f1cfcb0.
-- Both projects' `quake2-profile.elf` now contain Alpha135 for phase A.
+- Both projects' `quake2-profile.elf` now contain Alpha136 after the paired results.
 - Documents `quake2-alpha135-baseline.elf` is the original baseline.
 - Both projects' `quake2-alpha136-candidate.elf` preserve the verified candidate.
 - Alpha135 SHA256: `6F71212AE937D38F58833157AF9BEBDB1BD7E3D16D1F5934EC9A77989354E5D4`.
@@ -41,9 +41,22 @@ and assets must be used. Source: src/client/cl_benchmark.c and menu.c.
 
 ## Results
 
-- A / Alpha135: awaiting the user's hardware benchmark.
-- B / Alpha136: not installed for measurement yet; awaiting phase A.
-- Visual acceptance and retain/revert decision remain pending.
+| Version | Run1 FPS | Run2 FPS | Run3 FPS | Combined FPS | Combined ms |
+| --- | --- | --- | --- | --- | --- |
+| Alpha135 |43.36|43.35|43.37|43.36|23.06|
+| Alpha136 |43.54|43.55|43.55|43.55|22.96|
+
+Both screenshots show688frames per run, demo frames195..882, demo1 uncapped,
+VSync OFF, far light reduced and flash detail reduced. Approximate per-run
+seconds are15.87 on135 and15.80 on136. All136runs exceed all135runs;
+within-group range is0.02FPS on135 and0.01FPS on136. Combined improvement is
+0.19FPS (~0.44%) /0.10ms less per frame. These are rounded displayed results.
+
+Retain Alpha136 as a small positive result on this demo; both root ELFs restored
+from the hash-verified136candidate. Baseline135remains available. This does not
+prove a universal gain or resolve the live100ms frame peak; build order/session
+variation is not eliminated by this single A/B pair. Visual acceptance remains
+pending; no visual claim inferred from benchmark screenshots.
 
 The earlier live firing captures changed workload: Alpha13546.07ms vs
 Alpha13641.71ms average, but Entities11.51ms vs11.65ms while World12.89ms vs
