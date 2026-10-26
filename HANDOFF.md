@@ -8,24 +8,26 @@ before changing renderer, audio or memory-management code.
 
 - Development worktree: `C:\Users\user\.codex\worktrees\cb03\quake2-ps2`
 - Local testing project: `C:\Users\user\Documents\quake2-ps2`
-- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.136 changes are on fork main
+- Worktree branch: `codex/alpha70-small-pic-retention`; Alpha.137 changes are on fork main
 - Fork used for pushes and releases:
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source version: `0.1.0-alpha.136` (exact per-draw MD2 normal colour
-  reuse; host/sanitizer/map/PS2 CI passed; matched demo43.36->43.55FPS, visuals pending).
-- Current root test ELF: **Alpha136** in both projects after matched benchmark.
-  Alpha135 baseline and Alpha136 candidate copies remain available.
-- Current implementation commit: `f1cfcb0` (`Reuse exact MD2 colours by normal
-  within each model draw`); CI submodule fix `b344f3e` retained.
+- Current source/test version: `0.1.0-alpha.137` (coherent slowest-View scene
+  capture; host/sanitizer/map/PS2 CI passed and installed; runtime localization pending).
+- Current root test ELF: **Alpha137** in both projects. Alpha136 and135 baselines
+  remain available; Alpha136's matched demo gain remains retained in source.
+- Current implementation commit: `56e1ce8` (`Capture coherent slowest scene
+  preparation independently of full-frame peak`); CI submodule fix `b344f3e` retained.
 - Current published release:
   `https://github.com/alekszverr-jpg/quake2-ps2/releases/tag/v0.1.0-alpha.72`
-- Alpha.136 local PROFILE ELF SHA-256 (8,112,680 bytes):
-  `CDE0116AB3ADD7110C9A79C835D9EC932E8ACD34C1379D2D77795C1125109415`
-- CI `40211255568` passed all host sanitizer tests, map validation and PROFILE
-  build for `f1cfcb0`. Verified Alpha136 artifact remains at
-  `build/ci-f1cfcb0-profile/quake2-profile.elf`; both root test ELFs match136again.
+- Alpha.137 local PROFILE ELF SHA-256 (8,114,668 bytes):
+  `AAC63671E840BF572B0C12A5BAA7CD9BF54B606AB9E3EEDB835137E0A6DDC49D`
+- CI `40284351380` passed all host sanitizer tests, map validation and PROFILE
+  build for `56e1ce8`. Both root ELFs match the verified downloaded artifact
+  `build/ci-56e1ce8-profile/quake2-profile.elf`.
+- Documents `quake2-alpha136-baseline.elf` preserves Alpha136 (8,112,680 bytes):
+  `CDE0116AB3ADD7110C9A79C835D9EC932E8ACD34C1379D2D77795C1125109415`.
 - Documents `quake2-alpha135-baseline.elf` preserves Alpha135 (8,109,680 bytes):
   `6F71212AE937D38F58833157AF9BEBDB1BD7E3D16D1F5934EC9A77989354E5D4`.
 - Documents `quake2-alpha134-baseline.elf` preserves Alpha134 (8,074,544 bytes):
@@ -43,7 +45,7 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
-## Alpha137 scene-peak diagnosis (2026-10-26, pending install)
+## Alpha137 scene-peak diagnosis installed (2026-10-26)
 
 User asked to continue after136matched benchmark. Investigated pre3D boundaries:
 View includes pre2D/background work and client scene construction before
@@ -63,7 +65,8 @@ Tests:100ms frame with1ms View vs67ms frame with26ms View, later ties with
 other stage costs cannot pollute the snapshot; invalid/nonpositive frames ignored,
 reset cleared, actual UI labels and selected values checked with host-specific
 CLOCKS_PER_SEC. Frame capture, benchmark and video menu host tests passed.
-CI/build/install pending; preserve136baseline before install. Next user capture:
+CI40284351380passed host sanitizers, map validation and PS2 PROFILE build.
+Both root ELFs installed and SHA256checked;136baseline preserved. Next user capture:
 same heavy Base1point, continuous firing, capture scene10s; inspect the peak
 stage before choosing an optimization. No runtime FPS gain claimed.
 

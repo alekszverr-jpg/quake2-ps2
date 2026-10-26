@@ -17,7 +17,9 @@ Development priorities and completion criteria are tracked in
   the new snapshot copies already collected values at the display boundary.
 - Host checks cover distinct full-frame/View peaks, coherent stage/count copies,
   equal-peak ties, invalid/empty frames, reset and actual rendered labels/values;
-  the20-row scene panel fits320x224. CI/build and runtime localization pending.
+  the20-row scene panel fits320x224. CI40284351380 passed all host sanitizers,
+  map checks and PS2 PROFILE build. Installed in both projects; Alpha136 baseline
+  retained. Runtime spike localization pending.
   This diagnostic improvement does not claim an FPS gain or spike fix.
 
 ## 0.1.0-alpha.136 - 2026-10-25 (local test build)

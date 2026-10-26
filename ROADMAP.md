@@ -166,7 +166,8 @@ play on a retail console.
   4608 differential cases at O0/O2, host/CI/PS2 build passed and installed;
   matched demo43.36->43.55FPS (+0.44%)/23.06->22.96ms; retained, visuals pending)
 - [~] Capture the slowest View independently of the longest full frame (Alpha.137;
-  coherent scene stages/counts and panel tested; CI/runtime spike localization pending)
+  coherent scene stages/counts and panel tested, host/CI/PS2 build passed and installed;
+  runtime spike localization pending)
 - [~] Validate long sessions for EE RAM, IOP RAM and VRAM leaks
 - [ ] Target a stable 30 FPS minimum, with 60 FPS where practical
 
