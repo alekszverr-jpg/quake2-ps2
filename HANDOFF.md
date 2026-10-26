@@ -13,8 +13,10 @@ before changing renderer, audio or memory-management code.
   `https://github.com/alekszverr-jpg/quake2-ps2.git`
 - Read-only upstream reference:
   `https://github.com/glampert/quake2-ps2.git`
-- Current source/test version: `0.1.0-alpha.136` (exact per-draw MD2 normal
-  colour reuse; host/sanitizer/map/PS2 CI passed and installed; runtime pending)
+- Current source version: `0.1.0-alpha.136` (exact per-draw MD2 normal colour
+  reuse; host/sanitizer/map/PS2 CI passed; runtime comparison pending).
+- Current root test ELF: **Alpha135** in both projects for phase A of the matched
+  benchmark. Alpha136 is preserved as `quake2-alpha136-candidate.elf` in both roots.
 - Current implementation commit: `f1cfcb0` (`Reuse exact MD2 colours by normal
   within each model draw`); CI submodule fix `b344f3e` retained.
 - Current published release:
@@ -22,8 +24,8 @@ before changing renderer, audio or memory-management code.
 - Alpha.136 local PROFILE ELF SHA-256 (8,112,680 bytes):
   `CDE0116AB3ADD7110C9A79C835D9EC932E8ACD34C1379D2D77795C1125109415`
 - CI `40211255568` passed all host sanitizer tests, map validation and PROFILE
-  build for `f1cfcb0`. Both root ELF copies match downloaded artifact
-  `build/ci-f1cfcb0-profile/quake2-profile.elf`.
+  build for `f1cfcb0`. Verified Alpha136 artifact remains at
+  `build/ci-f1cfcb0-profile/quake2-profile.elf`; root test ELFs temporarily use135.
 - Documents `quake2-alpha135-baseline.elf` preserves Alpha135 (8,109,680 bytes):
   `6F71212AE937D38F58833157AF9BEBDB1BD7E3D16D1F5934EC9A77989354E5D4`.
 - Documents `quake2-alpha134-baseline.elf` preserves Alpha134 (8,074,544 bytes):
@@ -40,6 +42,31 @@ before changing renderer, audio or memory-management code.
 
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
+
+## Matched Alpha135/136 benchmark prepared (2026-10-26)
+
+User authorized the proposed three-run-per-version demo comparison. Preserved
+verified136in quake2-alpha136-candidate.elf in both project roots. Installed
+verified135baseline as quake2-profile.elf in both roots; hashes checked.
+Source136is unchanged. Local config snapshot saved under
+build/alpha135-136-comparison/config-before-a.cfg; no config edits.
+Procedure: [tools/alpha135-136-comparison.md](tools/alpha135-136-comparison.md).
+
+Await user phase-A screenshot: Game -> benchmark (3 runs), fresh135boot,
+normal mode (not world/model profile or6run comparisons), unchanged settings.
+Mode internally disables detailed timers/overlays, uses timedemo and excludes
+loading without additional warm-up. Once135results arrive, check frame ranges
+and settings, then install preserved136candidate, verify hash and request same
+three-run benchmark. Keep both versions available until retain/revert decision.
+No need for a new build or release. No hardware result has been collected yet.
+
+Latest user136render capture240/10.01s,41.71avg/100maxms:
+View3.23/25.08,3D23.75/39.41,HUD.38/.43;
+Setup.27/.27,World10.40/22.59,Entities11.65/14.21,
+Particles.26/1.17,Rest1.16/1.16. VUwait.14/.20,
+VRAMreuse.13/.20,TexDMA.22/.31,2Dwait.01/.01.
+135vs136Entities11.51->11.65ms while World12.89->10.40ms; changed live
+workload does not establish colour-cache benefit. Peak View remains unresolved.
 
 ## Alpha.136 installed (2026-10-25)
 
