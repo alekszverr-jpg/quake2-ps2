@@ -21,6 +21,10 @@ struct Capture {
     long long pendingScene[PS2_SCENE_PARTS]={}, scene[PS2_SCENE_PARTS]={}, worstScene[PS2_SCENE_PARTS]={};
     int pendingCounts[3]={}, worstCounts[3]={};
     long long counts[3]={};
+    // A slow View need not belong to the longest full frame. Keep one coherent
+    // View snapshot rather than combining independent per-stage maxima.
+    long long peakView=0, peakViewScene[PS2_SCENE_PARTS]={};
+    int peakViewFrameMs=0, peakViewCounts[3]={};
     int objectPart=PS2_OBJECT_BASE;
     long long pendingObject[PS2_OBJECT_PARTS]={}, object[PS2_OBJECT_PARTS]={}, worstObject[PS2_OBJECT_PARTS]={};
     ps2_fx_counters_t pendingFX={}, fx={}, worstFX={};
@@ -68,6 +72,12 @@ struct Capture {
         for(int i=0;i<5;++i) aux[i]+=auxiliary[i];
         for(int i=0;i<PS2_SCENE_PARTS;++i) scene[i]+=pendingScene[i];
         for(int i=0;i<3;++i) counts[i]+=pendingCounts[i];
+        if(pendingRender[PS2_RENDER_VIEW]>peakView) {
+            peakView=pendingRender[PS2_RENDER_VIEW];
+            peakViewFrameMs=ms;
+            for(int i=0;i<PS2_SCENE_PARTS;++i) peakViewScene[i]=pendingScene[i];
+            for(int i=0;i<3;++i) peakViewCounts[i]=pendingCounts[i];
+        }
         if(ms>maxMs) {
             worstFX=pendingFX;
             for(int i=0;i<PS2_OBJECT_PARTS;++i) worstObject[i]=pendingObject[i];

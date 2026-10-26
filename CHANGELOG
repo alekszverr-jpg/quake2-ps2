@@ -6,6 +6,20 @@ Development priorities and completion criteria are tracked in
 
 ## Unreleased
 
+## 0.1.0-alpha.137 - 2026-10-26 (local test build)
+
+- Scene capture now reports the coherent slowest View/pre3D frame, independently
+  of the longest full frame. Show its full-frame duration, stage costs and
+  entity/particle/light counts beside capture-wide averages. This prevents a
+  slower Server/3D/VSync frame from hiding the scene-preparation spike.
+- Existing full-frame, Render and Object FX modes keep their same-longest-full-
+  frame snapshots. No new timers, per-object calls, logs or gameplay changes;
+  the new snapshot copies already collected values at the display boundary.
+- Host checks cover distinct full-frame/View peaks, coherent stage/count copies,
+  equal-peak ties, invalid/empty frames, reset and actual rendered labels/values;
+  the20-row scene panel fits320x224. CI/build and runtime localization pending.
+  This diagnostic improvement does not claim an FPS gain or spike fix.
+
 ## 0.1.0-alpha.136 - 2026-10-25 (local test build)
 
 - Reuse MD2 vertex colours by normal index within each model draw. Identical

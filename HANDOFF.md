@@ -43,6 +43,30 @@ before changing renderer, audio or memory-management code.
 Local test builds may advance; no GitHub release is currently requested. This handoff-only
 checkpoint does not advance `VERSION`.
 
+## Alpha137 scene-peak diagnosis (2026-10-26, pending install)
+
+User asked to continue after136matched benchmark. Investigated pre3D boundaries:
+View includes pre2D/background work and client scene construction before
+PS2_RenderFrame enters3D. Existing worst columns all use the longest FULL frame;
+this can miss the actual slowest View frame. Latestcaptures repeatedly showed
+View25–26ms in some long frames; neither root cause nor fix is established.
+
+Alpha137 adds peakView ticks/full-frame ms plus coherent scene stages/counts,
+selected on greater total View ticks in Capture::Add using existing timestamps.
+No additional clocks, loops per entity/particle, allocations or game changes.
+Only capture scene10s changes its reported peak: avg / peak ms and counts,
+Peak View full frame line, Peak = same slowest View frame. It is not a mixture
+of per-stage independent maxima. Frame/Render/ObjectFX modes retain their
+original longest-full-frame snapshots.20rows fit320x224.
+
+Tests:100ms frame with1ms View vs67ms frame with26ms View, later ties with
+other stage costs cannot pollute the snapshot; invalid/nonpositive frames ignored,
+reset cleared, actual UI labels and selected values checked with host-specific
+CLOCKS_PER_SEC. Frame capture, benchmark and video menu host tests passed.
+CI/build/install pending; preserve136baseline before install. Next user capture:
+same heavy Base1point, continuous firing, capture scene10s; inspect the peak
+stage before choosing an optimization. No runtime FPS gain claimed.
+
 ## Matched Alpha135/136 benchmark completed (2026-10-26)
 
 User authorized the proposed three-run-per-version demo comparison. Preserved

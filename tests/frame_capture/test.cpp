@@ -3,6 +3,8 @@
 #include <cstdio>
 #include <cstring>
 #include <ctime>
+#include <string>
+#include <vector>
 struct cvar_t { float value; } request={1};
 static const cvar_t * s_frameRequest=&request;
 static cvar_t detailPage={0};
@@ -25,9 +27,10 @@ void Cvar_SetValue(const char * name,float value) {
     assert(false);
 }
 static int rows=0;
+static std::vector<std::string> printed;
 void DrawInternalString(int x,int y,const char * text) {
     assert(x>=0 && x+static_cast<int>(std::strlen(text))*8<=320);
-    assert(y>=0 && y+8<=224); ++rows;
+    assert(y>=0 && y+8<=224); ++rows; printed.emplace_back(text);
 }
 namespace ps2::gs { void FillRect(int x,int y,int w,int h,int,int,int,int) { assert(x+w<=320 && y+h<=224); } }
 namespace ps2::gs {
@@ -70,6 +73,42 @@ int main() {
     assert(partition.pendingObject[0]==30 && partition.pendingObject[1]==30);
     assert(partition.pendingScene[PS2_SCENE_OBJECTS]==60);
 
+    // The longest full frame (100ms) has only1ms of View. A shorter full
+    // frame carries the26ms View spike; all stages/counts must come from it.
+    ps2::frame::Capture viewPeak;
+    const int noDraw[3]={}, noAux[5]={};
+    viewPeak.pendingRender[PS2_RENDER_VIEW]=1000;
+    viewPeak.pendingScene[PS2_SCENE_CAMERA]=1000;
+    viewPeak.pendingCounts[0]=7;
+    viewPeak.Add(100,noDraw,noAux);
+    viewPeak.Discard(0);
+    viewPeak.pendingRender[PS2_RENDER_VIEW]=26000;
+    viewPeak.pendingScene[PS2_SCENE_OBJECTS]=25000;
+    viewPeak.pendingScene[PS2_SCENE_SORT]=1000;
+    viewPeak.pendingCounts[0]=66; viewPeak.pendingCounts[1]=952;
+    viewPeak.Add(67,noDraw,noAux);
+    assert(viewPeak.maxMs==100 && viewPeak.worstCounts[0]==7);
+    assert(viewPeak.peakView==26000 && viewPeak.peakViewFrameMs==67);
+    assert(viewPeak.peakViewScene[PS2_SCENE_OBJECTS]==25000);
+    assert(viewPeak.peakViewScene[PS2_SCENE_CAMERA]==0);
+    assert(viewPeak.peakViewCounts[0]==66 && viewPeak.peakViewCounts[1]==952);
+    // A later stage can exceed its old value without exceeding total View;
+    // it must not leak into the retained peak snapshot. Ties keep the first.
+    viewPeak.Discard(0);
+    viewPeak.pendingRender[PS2_RENDER_VIEW]=26000;
+    viewPeak.pendingScene[PS2_SCENE_EFFECTS]=26000;
+    viewPeak.pendingCounts[0]=99;
+    viewPeak.Add(80,noDraw,noAux);
+    assert(viewPeak.peakViewScene[PS2_SCENE_EFFECTS]==0);
+    assert(viewPeak.peakViewFrameMs==67 && viewPeak.peakViewCounts[0]==66);
+    const auto retainedPeak=viewPeak;
+    viewPeak.valid=false; viewPeak.pendingRender[PS2_RENDER_VIEW]=99000;
+    viewPeak.Add(100,noDraw,noAux);
+    assert(viewPeak.peakView==26000);
+    viewPeak.valid=true; viewPeak.Add(0,noDraw,noAux);
+    assert(viewPeak.peakView==26000);
+    viewPeak={}; assert(viewPeak.peakView==0 && viewPeak.peakViewFrameMs==0);
+
     detailPage.value=3;
     s_frameCapture.Switch(PS2_FRAME_RENDER,0); s_frameCapture.ScenePart(PS2_SCENE_OBJECTS,0);
     assert(PS2_FrameObjectProfile() && PS2_FrameFXCounters()!=nullptr);
@@ -99,6 +138,7 @@ int main() {
     assert(s_frameCapture.worst[PS2_FRAME_OTHER]==80000); // same worst frame, not per-phase maxima
     PS2_VramCaptureEligible(0); // skipped loading screen has no EndFrame
     assert(!s_frameRunning && s_frameCapture.frames==0);
+    assert(s_frameCapture.peakView==0 && s_frameCapture.peakViewCounts[0]==0);
     advance(4000); CollectFrameCapture();
     assert(!s_frameRunning && s_frameCapture.frames==0);
     s_captureEligible=true; CollectFrameCapture();
@@ -108,9 +148,9 @@ int main() {
     const auto total=s_frameCapture.total[PS2_FRAME_CLIENT]; frame(100); assert(total==s_frameCapture.total[PS2_FRAME_CLIENT]);
     DrawFrameCaptureResult(); assert(rows==20);
     detailPage.value=1; DrawFrameCaptureResult(); assert(rows==41);
-    detailPage.value=2; DrawFrameCaptureResult(); assert(rows==60);
-    detailPage.value=3; DrawFrameCaptureResult(); assert(rows==79);
-    s_captureEligible=false; DrawFrameCaptureResult(); assert(rows==79);
+    detailPage.value=2; DrawFrameCaptureResult(); assert(rows==61);
+    detailPage.value=3; DrawFrameCaptureResult(); assert(rows==80);
+    s_captureEligible=false; DrawFrameCaptureResult(); assert(rows==80);
     request.value=1; PrepareFrameCapture(); assert(!s_frameReady && profiles[0]==0);
     request.value=0; PrepareFrameCapture(); assert(profiles[0]==1 && !s_frameSaved);
     // Unsigned tick and millisecond wrap keep real positive intervals.
@@ -119,5 +159,22 @@ int main() {
     frame(0); assert(s_frameCapture.elapsedMs==20 && s_frameCapture.total[PS2_FRAME_CLIENT]==4000);
     // Backward clocks discard the incomplete window.
     now-=100; tick-=100000u; CollectFrameCapture(); assert(s_frameCapture.frames==0);
+    // Check actual rendered values, not only the result-panel row count.
+    s_frameCapture=retainedPeak;
+    // Simulated partition ticks above are microseconds; panel conversion must
+    // use the host's CLOCKS_PER_SEC (1000 on Windows, 1000000 on Linux).
+    s_frameCapture.peakView=26*static_cast<long long>(CLOCKS_PER_SEC)/1000;
+    for(auto & value:s_frameCapture.peakViewScene)
+        value=value*static_cast<long long>(CLOCKS_PER_SEC)/1000000;
+    printed.clear(); rows=0; DrawSceneCaptureResult(); assert(rows==20);
+    bool frameLabel=false, totalLabel=false, objectLabel=false, countLabel=false;
+    for(const auto & line:printed) {
+        frameLabel|=line=="Peak View full frame: 67 ms";
+        totalLabel|=line.find("View total")==0 && line.find("26.00")!=std::string::npos;
+        objectLabel|=line.find("Objects/FX")==0 && line.find("25.00")!=std::string::npos;
+        countLabel|=line.find("Entities")==0 && line.find("/ 66")!=std::string::npos;
+    }
+    assert(frameLabel && totalLabel && objectLabel && countLabel);
+    std::puts("Coherent slowest-View snapshot independent of longest full frame PASS");
     std::puts("Full-frame exclusive phases/audio boundary/worst-frame/freeze/interruption/profile restore/wrap PASS");
 }
